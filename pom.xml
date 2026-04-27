@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+============================================
+Maven 项目配置文件 - pom.xml
+============================================
+
+【基本概念】
+- groupId:    组织/公司标识（如 com.weib）
+- artifactId: 项目名称
+- version:    版本号
+- packaging:  打包类型（jar/war/pom）
+
+【依赖管理】
+- dependencies: 项目依赖列表
+- dependency:   单个依赖
+  - groupId:    依赖组织
+  - artifactId: 依赖名称
+  - version:    版本（可省略，由 parent 管理）
+  - scope:      作用范围
+    - compile:  编译时（默认）
+    - runtime:  运行时
+    - test:     测试时
+    - provided: 编译时需要，运行时由容器提供
+
+【Spring Boot Starters】
+spring-boot-starter-* 是 Spring Boot 提供的"一站式依赖包"
+- starter-web:      Web 开发（Tomcat + Spring MVC）
+- starter-data-jpa: JPA 数据库操作
+- starter-thymeleaf: Thymeleaf 模板引擎
+- starter-security: Spring Security 安全框架
+- starter-test:     测试框架
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+    【parent】继承 Spring Boot 父项目
+    自动管理所有依赖版本，无需手动指定版本号
+    -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.5</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.weib</groupId>
+    <artifactId>weib</artifactId>
+    <version>1.0.0</version>
+    <name>weib</name>
+    <description>微薄 Web 项目</description>
+
+    <properties>
+        <java.version>17</java.version>
+    </properties>
+
+    <dependencies>
+        <!--
+        【spring-boot-starter-web】
+        Web 开发核心依赖，包含：
+        - Spring MVC（Web 框架）
+        - Tomcat（内嵌服务器）
+        - Jackson（JSON 处理）
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!--
+        【spring-boot-starter-thymeleaf】
+        Thymeleaf 模板引擎，用于服务端渲染 HTML
+        模板文件放在 src/main/resources/templates/
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+        </dependency>
+
+        <!--
+        【spring-boot-starter-data-jpa】
+        JPA 数据库操作，包含：
+        - Spring Data JPA（Repository 接口）
+        - Hibernate（ORM 框架）
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <!-- MySQL 驱动（正式环境用） -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- H2 内存数据库（开发测试用，无需安装） -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!--
+        【spring-boot-starter-validation】
+        参数校验，支持 JSR-303 注解：
+        - @NotNull, @NotBlank, @NotEmpty
+        - @Size, @Min, @Max
+        - @Email, @Pattern
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!--
+        【Lombok】
+        自动生成代码，减少样板代码：
+        - @Data: getter/setter/toString/equals/hashCode
+        - @RequiredArgsConstructor: 构造器注入
+        - @Slf4j: 日志
+        - @Builder: 建造者模式
+        -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- 测试依赖 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Spring Boot Maven 插件，用于打包可执行 JAR -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

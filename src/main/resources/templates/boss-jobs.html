@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>职位管理 - 微招</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; 
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        
+        /* 顶部导航 */
+        .header {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 20px 30px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .logo { 
+            font-size: 24px; 
+            font-weight: bold;
+            background: linear-gradient(135deg, #00d4ff, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .nav-links { display: flex; gap: 16px; }
+        .nav-links a {
+            color: #a0a0a0;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        .nav-links a:hover, .nav-links a.active {
+            background: rgba(0,212,255,0.2);
+            color: #00d4ff;
+        }
+        .logout-btn {
+            background: rgba(255,255,255,0.1);
+            color: #a0a0a0;
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .logout-btn:hover { background: rgba(255,100,100,0.2); color: #ff6b6b; }
+        
+        /* 页面标题 */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        .page-title { font-size: 24px; }
+        .add-btn {
+            padding: 12px 28px;
+            background: linear-gradient(135deg, #00d4ff, #8b5cf6);
+            color: #fff;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        .add-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,212,255,0.4);
+        }
+        
+        /* 职位列表 */
+        .jobs-list { display: flex; flex-direction: column; gap: 16px; }
+        .job-card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+        .job-card:hover {
+            border-color: rgba(0,212,255,0.3);
+            transform: translateX(5px);
+        }
+        .job-info { flex: 1; }
+        .job-title { font-size: 18px; font-weight: 600; color: #fff; margin-bottom: 8px; }
+        .job-meta { display: flex; gap: 20px; color: #888; font-size: 14px; }
+        .job-meta span { display: flex; align-items: center; gap: 6px; }
+        .job-salary {
+            font-size: 18px;
+            font-weight: bold;
+            color: #00d4ff;
+            margin: 8px 0;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-left: 12px;
+        }
+        .status-active { background: rgba(16,185,129,0.2); color: #10b981; }
+        .status-closed { background: rgba(255,107,107,0.2); color: #ff6b6b; }
+        .job-actions { display: flex; gap: 12px; align-items: center; }
+        .action-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+        .edit-btn {
+            background: rgba(0,212,255,0.1);
+            color: #00d4ff;
+            border: 1px solid rgba(0,212,255,0.3);
+        }
+        .edit-btn:hover { background: rgba(0,212,255,0.2); }
+        .delete-btn {
+            background: rgba(255,107,107,0.1);
+            color: #ff6b6b;
+            border: 1px solid rgba(255,107,107,0.3);
+        }
+        .delete-btn:hover { background: rgba(255,107,107,0.2); }
+        
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .empty-state .icon { font-size: 64px; margin-bottom: 20px; opacity: 0.5; }
+        .empty-state h3 { font-size: 20px; margin-bottom: 10px; color: #888; }
+        .empty-state p { color: #555; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 顶部导航 -->
+        <div class="header">
+            <div class="logo">⚡ 微招 - BOSS管理后台</div>
+            <div class="nav-links">
+                <a href="/">← 返回首页</a>
+                <a href="/boss">管理首页</a>
+                <a href="/boss/jobs" class="active">职位管理</a>
+                <a href="/boss/applications">投递管理</a>
+            </div>
+            <button class="logout-btn" onclick="location.href='/logout'">退出登录</button>
+        </div>
+        
+        <!-- 页面标题 -->
+        <div class="page-header">
+            <h2 class="page-title">💼 职位管理</h2>
+            <a href="/boss/job/new" class="add-btn">+ 发布新职位</a>
+        </div>
+        
+        <!-- 职位列表 -->
+        <div class="jobs-list" th:if="${not #lists.isEmpty(jobs)}">
+            <div class="job-card" th:each="job : ${jobs}">
+                <div class="job-info">
+                    <div class="job-title">
+                        <span th:text="${job.title}">职位名称</span>
+                        <span class="status-badge" 
+                              th:classappend="${job.status == 'active'} ? 'status-active' : 'status-closed'"
+                              th:text="${job.status == 'active'} ? '招聘中' : '已关闭'">招聘中</span>
+                    </div>
+                    <div class="job-salary" th:if="${job.salaryMin != null && job.salaryMax != null}">
+                        <span th:text="${job.salaryMin/1000}">15</span>k - <span th:text="${job.salaryMax/1000}">25</span>k
+                    </div>
+                    <div class="job-meta">
+                        <span>📍 <span th:text="${job.city ?: '未填写'}">北京</span></span>
+                        <span>👁 <span th:text="${job.viewCount ?: 0}">0</span>次浏览</span>
+                        <span>📄 <span th:text="${job.viewCount ?: 0}">0</span>份简历</span>
+                    </div>
+                </div>
+                <div class="job-actions">
+                    <a th:href="'/boss/job/edit/' + ${job.id}" class="action-btn edit-btn">编辑</a>
+                    <form th:if="${job.status == 'active'}" 
+                          th:action="'/boss/job/delete/' + ${job.id}" 
+                          method="post" style="display:inline;">
+                        <button type="submit" class="action-btn delete-btn" 
+                                onclick="return confirm('确定要关闭该职位吗？')">关闭</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 空状态 -->
+        <div class="empty-state" th:if="${#lists.isEmpty(jobs)}">
+            <div class="icon">💼</div>
+            <h3>暂无职位</h3>
+            <p>点击下方按钮发布您的第一个职位</p>
+            <a href="/boss/job/new" class="add-btn">+ 发布新职位</a>
+        </div>
+    </div>
+</body>
+</html>

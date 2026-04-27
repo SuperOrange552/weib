@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${isEdit} ? '编辑职位' : '发布职位'">发布职位</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; 
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            padding: 40px 20px;
+        }
+        .container { max-width: 800px; margin: 0 auto; }
+        
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #00d4ff;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            background: rgba(0,212,255,0.1);
+            border: 1px solid rgba(0,212,255,0.3);
+            margin-bottom: 30px;
+            transition: all 0.3s;
+        }
+        .back-btn:hover { background: rgba(0,212,255,0.2); }
+        
+        .page-title {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .page-title h1 {
+            font-size: 32px;
+            background: linear-gradient(135deg, #00d4ff, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+        }
+        
+        .form-card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .form-group { margin-bottom: 24px; }
+        .form-label { display: block; margin-bottom: 10px; color: #a0a0a0; font-size: 14px; }
+        .form-label span { color: #ff6b6b; }
+        .form-input {
+            width: 100%;
+            padding: 14px 18px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.3s;
+        }
+        .form-input:focus {
+            border-color: #00d4ff;
+            box-shadow: 0 0 20px rgba(0,212,255,0.2);
+        }
+        textarea.form-input { min-height: 150px; resize: vertical; }
+        select.form-input {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23666'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+        }
+        select.form-input option { background: #1a1a2e; }
+        
+        .salary-group { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; }
+        .salary-unit { color: #888; text-align: center; }
+        
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #00d4ff, #8b5cf6);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+        .submit-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(0,212,255,0.4);
+        }
+        
+        .error-msg {
+            background: rgba(255,107,107,0.1);
+            border: 1px solid rgba(255,107,107,0.3);
+            border-radius: 10px;
+            padding: 14px;
+            color: #ff6b6b;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/boss/jobs" class="back-btn">← 返回职位列表</a>
+        
+        <div class="page-title">
+            <h1 th:text="${isEdit} ? '✏️ 编辑职位' : '✨ 发布新职位'">发布新职位</h1>
+            <p th:text="${isEdit} ? '修改职位信息' : '填写职位信息，吸引优秀人才'">填写职位信息，吸引优秀人才</p>
+        </div>
+        
+        <div class="form-card">
+            <div class="error-msg" th:if="${error}" th:text="${error}"></div>
+            
+            <form action="/boss/job/save" method="post">
+                <!-- 隐藏字段：编辑时传递ID -->
+                <input type="hidden" name="id" th:value="${job.id}">
+                
+                <!-- 职位名称 -->
+                <div class="form-group">
+                    <label class="form-label">职位名称 <span>*</span></label>
+                    <input type="text" name="title" class="form-input" 
+                           placeholder="如：Java高级开发工程师" 
+                           th:value="${job.title}" required>
+                </div>
+                
+                <!-- 薪资范围 -->
+                <div class="form-group">
+                    <label class="form-label">薪资范围（k/月）</label>
+                    <div class="salary-group">
+                        <input type="number" name="salaryMin" class="form-input" 
+                               placeholder="最低薪资" th:value="${job.salaryMin}">
+                        <span class="salary-unit">~</span>
+                        <input type="number" name="salaryMax" class="form-input" 
+                               placeholder="最高薪资" th:value="${job.salaryMax}">
+                    </div>
+                </div>
+                
+                <!-- 城市和地址 -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">工作城市</label>
+                        <select name="city" class="form-input">
+                            <option value="">选择城市</option>
+                            <option value="北京" th:selected="${job.city == '北京'}">北京</option>
+                            <option value="上海" th:selected="${job.city == '上海'}">上海</option>
+                            <option value="广州" th:selected="${job.city == '广州'}">广州</option>
+                            <option value="深圳" th:selected="${job.city == '深圳'}">深圳</option>
+                            <option value="杭州" th:selected="${job.city == '杭州'}">杭州</option>
+                            <option value="成都" th:selected="${job.city == '成都'}">成都</option>
+                            <option value="武汉" th:selected="${job.city == '武汉'}">武汉</option>
+                            <option value="西安" th:selected="${job.city == '西安'}">西安</option>
+                            <option value="南京" th:selected="${job.city == '南京'}">南京</option>
+                            <option value="苏州" th:selected="${job.city == '苏州'}">苏州</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">详细地址</label>
+                        <input type="text" name="address" class="form-input" 
+                               placeholder="如：朝阳区望京SOHO" th:value="${job.address}">
+                    </div>
+                </div>
+                
+                <!-- 学历和经验 -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">学历要求</label>
+                        <select name="education" class="form-input">
+                            <option value="">学历要求</option>
+                            <option value="不限" th:selected="${job.education == '不限'}">不限</option>
+                            <option value="大专" th:selected="${job.education == '大专'}">大专</option>
+                            <option value="本科" th:selected="${job.education == '本科'}">本科</option>
+                            <option value="硕士" th:selected="${job.education == '硕士'}">硕士</option>
+                            <option value="博士" th:selected="${job.education == '博士'}">博士</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">经验要求</label>
+                        <select name="experience" class="form-input">
+                            <option value="">经验要求</option>
+                            <option value="不限" th:selected="${job.experience == '不限'}">不限</option>
+                            <option value="1年以下" th:selected="${job.experience == '1年以下'}">1年以下</option>
+                            <option value="1-3年" th:selected="${job.experience == '1-3年'}">1-3年</option>
+                            <option value="3-5年" th:selected="${job.experience == '3-5年'}">3-5年</option>
+                            <option value="5-10年" th:selected="${job.experience == '5-10年'}">5-10年</option>
+                            <option value="10年以上" th:selected="${job.experience == '10年以上'}">10年以上</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- 职位描述 -->
+                <div class="form-group">
+                    <label class="form-label">职位描述</label>
+                    <textarea name="description" class="form-input" 
+                              placeholder="详细描述岗位职责、工作内容、发展前景等..."
+                              th:text="${job.description}"></textarea>
+                </div>
+                
+                <!-- 任职要求 -->
+                <div class="form-group">
+                    <label class="form-label">任职要求</label>
+                    <textarea name="requirements" class="form-input" 
+                              placeholder="列出必备技能、工作经验、素质要求等..."
+                              th:text="${job.requirements}"></textarea>
+                </div>
+                
+                <!-- 职位标签 -->
+                <div class="form-group">
+                    <label class="form-label">职位标签（用逗号分隔）</label>
+                    <input type="text" name="tags" class="form-input" 
+                           placeholder="如：五险一金,弹性工作,定期团建,年度旅游"
+                           th:value="${job.tags}">
+                </div>
+                
+                <button type="submit" class="submit-btn" th:text="${isEdit} ? '保存修改' : '发布职位'">发布职位</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

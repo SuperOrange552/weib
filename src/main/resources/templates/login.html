@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - 微招</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: #0a0a0f;
+            perspective: 1500px;
+        }
+
+        /* 3D 场景 */
+        .scene {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            transform-style: preserve-3d;
+            perspective: 1500px;
+        }
+
+        .grid-floor {
+            position: absolute;
+            bottom: 0; left: -50%;
+            width: 200%; height: 60%;
+            transform: rotateX(75deg) translateZ(-100px);
+            transform-origin: bottom center;
+        }
+
+        .grid-surface {
+            width: 100%; height: 100%;
+            background: 
+                linear-gradient(90deg, rgba(0, 255, 255, 0.15) 2px, transparent 2px),
+                linear-gradient(rgba(0, 255, 255, 0.15) 2px, transparent 2px);
+            background-size: 60px 60px;
+            animation: gridMove 3s linear infinite;
+        }
+
+        @keyframes gridMove {
+            0% { background-position: 0 0; }
+            100% { background-position: 60px 60px; }
+        }
+
+        /* 3D 立方体 */
+        .shape-3d { position: absolute; transform-style: preserve-3d; }
+        .cube-1 { top: 12%; left: 8%; width: 80px; height: 80px; }
+        .cube-1 .front { position: absolute; width: 100%; height: 100%; background: linear-gradient(135deg, #00d4ff, #0099cc); transform: translateZ(40px); border: 1px solid rgba(0, 212, 255, 0.5); }
+        .cube-1 .back { position: absolute; width: 100%; height: 100%; background: #004455; transform: translateZ(-40px) rotateY(180deg); }
+        .cube-1 .left { position: absolute; width: 80px; height: 100%; background: linear-gradient(90deg, #004455, #0099cc); transform: rotateY(-90deg); }
+        .cube-1 .right { position: absolute; width: 80px; height: 100%; background: linear-gradient(90deg, #0099cc, #004455); transform: rotateY(90deg) translateZ(80px); }
+        .cube-1 .top { position: absolute; width: 100%; height: 80px; background: linear-gradient(180deg, #00ffff, #00d4ff); transform: rotateX(90deg); }
+        .cube-1 .bottom { position: absolute; width: 100%; height: 80px; background: #003344; transform: rotateX(-90deg) translateZ(80px); }
+
+        .cube-2 { top: 20%; right: 12%; width: 60px; height: 60px; }
+        .cube-2 .front { position: absolute; width: 100%; height: 100%; background: linear-gradient(135deg, #8b5cf6, #6d28d9); transform: translateZ(30px); border: 1px solid rgba(139, 92, 246, 0.5); }
+        .cube-2 .back { position: absolute; width: 100%; height: 100%; background: #4c1d95; transform: translateZ(-30px) rotateY(180deg); }
+        .cube-2 .left { position: absolute; width: 60px; height: 100%; background: linear-gradient(90deg, #4c1d95, #6d28d9); transform: rotateY(-90deg); }
+        .cube-2 .right { position: absolute; width: 60px; height: 100%; background: linear-gradient(90deg, #6d28d9, #4c1d95); transform: rotateY(90deg) translateZ(60px); }
+        .cube-2 .top { position: absolute; width: 100%; height: 60px; background: linear-gradient(180deg, #a78bfa, #8b5cf6); transform: rotateX(90deg); }
+        .cube-2 .bottom { position: absolute; width: 100%; height: 60px; background: #3b0764; transform: rotateX(-90deg) translateZ(60px); }
+
+        .cube-3 { bottom: 25%; left: 15%; width: 50px; height: 50px; }
+        .cube-3 .front { position: absolute; width: 100%; height: 100%; background: linear-gradient(135deg, #00ff88, #00cc66); transform: translateZ(25px); border: 1px solid rgba(0, 255, 136, 0.5); }
+        .cube-3 .back { position: absolute; width: 100%; height: 100%; background: #006633; transform: translateZ(-25px) rotateY(180deg); }
+        .cube-3 .left { position: absolute; width: 50px; height: 100%; background: linear-gradient(90deg, #006633, #00cc66); transform: rotateY(-90deg); }
+        .cube-3 .right { position: absolute; width: 50px; height: 100%; background: linear-gradient(90deg, #00cc66, #006633); transform: rotateY(90deg) translateZ(50px); }
+        .cube-3 .top { position: absolute; width: 100%; height: 50px; background: linear-gradient(180deg, #00ff99, #00ff88); transform: rotateX(90deg); }
+        .cube-3 .bottom { position: absolute; width: 100%; height: 50px; background: #004422; transform: rotateX(-90deg) translateZ(50px); }
+
+        /* 扫描线 */
+        .scanline {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.1) 1px, transparent 1px, transparent 2px);
+            pointer-events: none; z-index: 1000;
+        }
+
+        /* 光晕 */
+        .glow-orb { position: fixed; border-radius: 50%; filter: blur(80px); pointer-events: none; }
+        .glow-1 { top: 20%; left: 25%; width: 400px; height: 400px; background: rgba(0, 212, 255, 0.25); animation: glowPulse1 6s ease-in-out infinite; }
+        .glow-2 { bottom: 15%; right: 15%; width: 500px; height: 500px; background: rgba(139, 92, 246, 0.25); animation: glowPulse2 6s ease-in-out infinite; }
+        @keyframes glowPulse1 { 0%, 100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.3); } }
+        @keyframes glowPulse2 { 0%, 100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.3); } }
+
+        /* 卡片 */
+        /* 卡片容器 */
+        .card-container { 
+            position: relative; 
+            z-index: 100; 
+            transform-style: preserve-3d; 
+            pointer-events: none;
+        }
+        
+        /* 确保表单可以点击 */
+        .card-container * {
+            pointer-events: auto;
+        }
+
+        .login-card {
+            position: relative;
+            width: 420px;
+            background: rgba(10, 10, 20, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 48px 40px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            box-shadow: 
+                0 0 60px rgba(0, 212, 255, 0.2),
+                0 0 100px rgba(139, 92, 246, 0.15),
+                inset 0 0 60px rgba(0, 212, 255, 0.05);
+            transform-style: preserve-3d;
+            z-index: 101;
+        }
+
+        .card-glow {
+            position: absolute;
+            top: -2px; left: -2px; right: -2px; bottom: -2px;
+            border-radius: 26px;
+            background: linear-gradient(45deg, #00d4ff, #8b5cf6, #00d4ff);
+            z-index: -1;
+            opacity: 0.5;
+            animation: borderGlow 3s linear infinite;
+            background-size: 200% 200%;
+        }
+
+        @keyframes borderGlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .logo { text-align: center; margin-bottom: 40px; }
+        .logo h1 {
+            font-size: 36px;
+            background: linear-gradient(135deg, #00d4ff, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 40px rgba(0, 212, 255, 0.5);
+            margin-bottom: 8px;
+        }
+        .logo p { color: #666; font-size: 14px; }
+
+        .form-group { margin-bottom: 24px; }
+        .form-label { display: block; margin-bottom: 10px; color: #888; font-size: 14px; }
+        .form-input {
+            width: 100%; padding: 16px 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s;
+        }
+        .form-input:focus {
+            border-color: #00d4ff;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+            background: rgba(0, 212, 255, 0.05);
+        }
+        .form-input::placeholder { color: #444; }
+
+        .submit-btn {
+            width: 100%; padding: 18px;
+            background: linear-gradient(135deg, #00d4ff, #8b5cf6);
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .submit-btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+        .submit-btn:hover::before { left: 100%; }
+        .submit-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0, 212, 255, 0.4);
+        }
+
+        .links { text-align: center; margin-top: 24px; }
+        .links a { color: #00d4ff; text-decoration: none; font-size: 14px; }
+        .links a:hover { text-decoration: underline; }
+
+        .error-msg {
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            border-radius: 10px;
+            padding: 12px;
+            color: #ff6b6b;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .success-msg {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 10px;
+            padding: 12px;
+            color: #10b981;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="scene">
+        <div class="grid-floor"><div class="grid-surface"></div></div>
+        <div class="glow-orb glow-1"></div>
+        <div class="glow-orb glow-2"></div>
+        
+        <div class="shape-3d cube-1" id="cube1">
+            <div class="front"></div><div class="back"></div>
+            <div class="left"></div><div class="right"></div>
+            <div class="top"></div><div class="bottom"></div>
+        </div>
+        <div class="shape-3d cube-2" id="cube2">
+            <div class="front"></div><div class="back"></div>
+            <div class="left"></div><div class="right"></div>
+            <div class="top"></div><div class="bottom"></div>
+        </div>
+        <div class="shape-3d cube-3" id="cube3">
+            <div class="front"></div><div class="back"></div>
+            <div class="left"></div><div class="right"></div>
+            <div class="top"></div><div class="bottom"></div>
+        </div>
+        
+        <div class="scanline"></div>
+    </div>
+
+    <div class="card-container" id="cardContainer">
+        <div class="login-card" id="loginCard">
+            <div class="card-glow"></div>
+            <div class="logo">
+                <h1>⚡ 微招</h1>
+                <p>找工作，直接跟Boss谈</p>
+            </div>
+            
+            <div th:if="${error}" class="error-msg" th:text="${error}"></div>
+            <div th:if="${success}" class="success-msg" th:text="${success}"></div>
+            
+            <form action="/login" method="post">
+                <div class="form-group">
+                    <label class="form-label">用户名</label>
+                    <input type="text" name="username" class="form-input" placeholder="请输入用户名" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">密码</label>
+                    <input type="password" name="password" class="form-input" placeholder="请输入密码" required>
+                </div>
+                <button type="submit" class="submit-btn">登录</button>
+            </form>
+            
+            <div class="links">
+                <a href="/register">还没有账号？立即注册</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 鼠标跟随效果
+        document.addEventListener('mousemove', (e) => {
+            const mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+            const mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+            
+            document.getElementById('cube1').style.transform = `translate(${mouseX * 20}px, ${mouseY * 20}px) rotateX(${mouseY * 15}deg) rotateY(${mouseX * 15}deg)`;
+            document.getElementById('cube2').style.transform = `translate(${mouseX * -15}px, ${mouseY * -15}px) rotateX(${mouseY * -10}deg) rotateY(${mouseX * -10}deg)`;
+            document.getElementById('cube3').style.transform = `translate(${mouseX * 10}px, ${mouseY * 10}px) rotateX(${mouseY * 20}deg) rotateY(${mouseX * 20}deg)`;
+            
+            document.getElementById('loginCard').style.transform = `rotateX(${mouseY * -5}deg) rotateY(${mouseX * 5}deg)`;
+        });
+
+        // 立方体自转动画
+        function animateCube(cube, duration, delay) {
+            setTimeout(() => {
+                cube.style.transition = `transform ${duration}s ease-in-out`;
+                let angle = 0;
+                setInterval(() => {
+                    angle += 1;
+                    const mouseX = (window.innerWidth / 2) / window.innerWidth - 0.5;
+                    const mouseY = (window.innerHeight / 2) / window.innerHeight - 0.5;
+                    cube.style.transform = `translate(${mouseX * 20}px, ${mouseY * 20}px) rotateX(${angle * 0.5}deg) rotateY(${angle}deg)`;
+                }, 50);
+            }, delay);
+        }
+        
+        animateCube(document.getElementById('cube1'), 8, 0);
+        animateCube(document.getElementById('cube2'), 10, 2000);
+        animateCube(document.getElementById('cube3'), 12, 4000);
+    </script>
+    <!-- 页脚 -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="copyright">
+                © 2026 微招招聘平台 版权所有
+            </div>
+            <div class="icp-info">
+                <a href="https://beian.miit.gov.cn/" target="_blank" class="icp-link">
+                    渝ICP备2026007393号
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <style>
+        /* 页脚样式 */
+        .footer {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px 0;
+            margin-top: 40px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+        }
+        
+        .icp-link {
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .icp-link:hover {
+            color: #ffffff;
+        }
+    </style>
+
+</body>
+</html>

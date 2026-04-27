@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简历预览 - 微招</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; 
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container { max-width: 800px; margin: 0 auto; }
+        
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #00d4ff;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            background: rgba(0,212,255,0.1);
+            border: 1px solid rgba(0,212,255,0.3);
+            margin-bottom: 30px;
+            transition: all 0.3s;
+        }
+        .back-btn:hover { background: rgba(0,212,255,0.2); }
+        
+        .resume-card {
+            background: #fff;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        /* 头部 */
+        .resume-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 40px;
+            color: #fff;
+        }
+        .resume-header h1 { font-size: 28px; margin-bottom: 10px; }
+        .resume-contact { display: flex; gap: 20px; font-size: 14px; opacity: 0.9; flex-wrap: wrap; }
+        .resume-contact span { display: flex; align-items: center; gap: 6px; }
+        
+        /* 内容 */
+        .resume-body { padding: 40px; color: #333; }
+        
+        .section { margin-bottom: 30px; }
+        .section-title {
+            font-size: 18px;
+            color: #667eea;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+        .info-item { }
+        .info-label { font-size: 13px; color: #888; margin-bottom: 4px; }
+        .info-value { font-size: 15px; color: #333; }
+        
+        .content-text { 
+            white-space: pre-wrap; 
+            line-height: 1.8;
+            color: #555;
+        }
+        
+        /* 打印按钮 */
+        .print-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 15px;
+            box-shadow: 0 8px 25px rgba(102,126,234,0.4);
+            transition: all 0.3s;
+        }
+        .print-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(102,126,234,0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/resume" class="back-btn">← 返回编辑</a>
+        
+        <div class="resume-card">
+            <div class="resume-header">
+                <h1 th:text="${resume.realName ?: '未填写姓名'}">张三</h1>
+                <div class="resume-contact">
+                    <span th:if="${resume.gender}">👤 <span th:text="${resume.gender}">男</span></span>
+                    <span th:if="${resume.birthday}">🎂 <span th:text="${resume.birthday}">1995-01</span></span>
+                    <span th:if="${resume.phone}">📱 <span th:text="${resume.phone}">13800138000</span></span>
+                    <span th:if="${resume.email}">📧 <span th:text="${resume.email}">zhangsan@email.com</span></span>
+                </div>
+            </div>
+            
+            <div class="resume-body">
+                <!-- 教育背景 -->
+                <div class="section" th:if="${resume.education or resume.school or resume.major}">
+                    <div class="section-title">🎓 教育背景</div>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">学历</div>
+                            <div class="info-value" th:text="${resume.education ?: '-'}">本科</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">学校</div>
+                            <div class="info-value" th:text="${resume.school ?: '-'}">某某大学</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">专业</div>
+                            <div class="info-value" th:text="${resume.major ?: '-'}">计算机科学与技术</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 工作经历 -->
+                <div class="section" th:if="${resume.workExperience}">
+                    <div class="section-title">💼 工作经历</div>
+                    <div class="content-text" th:text="${resume.workExperience}">
+                        工作经历内容...
+                    </div>
+                </div>
+                
+                <!-- 项目经验 -->
+                <div class="section" th:if="${resume.projectExperience}">
+                    <div class="section-title">🚀 项目经验</div>
+                    <div class="content-text" th:text="${resume.projectExperience}">
+                        项目经验内容...
+                    </div>
+                </div>
+                
+                <!-- 技能特长 -->
+                <div class="section" th:if="${resume.skills}">
+                    <div class="section-title">⭐ 技能特长</div>
+                    <div class="content-text" th:text="${resume.skills}">
+                        技能清单...
+                    </div>
+                </div>
+                
+                <!-- 自我介绍 -->
+                <div class="section" th:if="${resume.selfIntroduction}">
+                    <div class="section-title">💬 自我介绍</div>
+                    <div class="content-text" th:text="${resume.selfIntroduction}">
+                        自我介绍内容...
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <button class="print-btn" onclick="window.print()">🖨 打印简历</button>
+    </div>
+</body>
+</html>

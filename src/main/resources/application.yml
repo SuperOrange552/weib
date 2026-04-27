@@ -1,0 +1,41 @@
+server:
+  port: 8080
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+spring:
+  application:
+    name: weib
+
+  thymeleaf:
+    cache: false
+    prefix: classpath:/templates/
+    suffix: .html
+    encoding: UTF-8
+    mode: HTML
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/weib?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: 123456
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+storage:
+  upload-dir: C:/java/weib/uploads
+  avatar-dir: C:/java/weib/uploads/avatars
+  attachment-dir: C:/java/weib/uploads/attachments
+
+logging:
+  level:
+    root: info
+    com.weib: debug

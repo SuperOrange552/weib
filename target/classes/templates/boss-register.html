@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boss入驻 - 微招</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; 
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            padding: 40px 20px;
+        }
+        .container { max-width: 700px; margin: 0 auto; }
+        
+        /* 顶部导航 */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .back-btn {
+            color: #00d4ff;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 8px;
+            background: rgba(0,212,255,0.1);
+            border: 1px solid rgba(0,212,255,0.3);
+            transition: all 0.3s;
+        }
+        .back-btn:hover { background: rgba(0,212,255,0.2); }
+        
+        /* 标题 */
+        .page-title {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .page-title h1 {
+            font-size: 32px;
+            background: linear-gradient(135deg, #00d4ff, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+        }
+        .page-title p { color: #888; }
+        
+        /* 表单卡片 */
+        .form-card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .form-group { margin-bottom: 24px; }
+        .form-label {
+            display: block;
+            margin-bottom: 10px;
+            color: #a0a0a0;
+            font-size: 14px;
+        }
+        .form-label span { color: #ff6b6b; }
+        .form-input {
+            width: 100%;
+            padding: 14px 18px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.3s;
+        }
+        .form-input:focus {
+            border-color: #00d4ff;
+            box-shadow: 0 0 20px rgba(0,212,255,0.2);
+        }
+        .form-input::placeholder { color: #555; }
+        textarea.form-input { min-height: 120px; resize: vertical; }
+        select.form-input {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23666'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+        }
+        select.form-input option { background: #1a1a2e; }
+        
+        /* 提示信息 */
+        .form-hint { font-size: 12px; color: #666; margin-top: 6px; }
+        
+        /* 提交按钮 */
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #00d4ff, #8b5cf6);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+        .submit-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(0,212,255,0.4);
+        }
+        
+        /* 错误提示 */
+        .error-msg {
+            background: rgba(255,107,107,0.1);
+            border: 1px solid rgba(255,107,107,0.3);
+            border-radius: 10px;
+            padding: 14px;
+            color: #ff6b6b;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="/boss" class="back-btn">← 返回BOSS后台</a>
+        </div>
+        
+        <div class="page-title">
+            <h1>🏢 公司入驻</h1>
+            <p>完善公司信息，开始招聘之旅</p>
+        </div>
+        
+        <div class="form-card">
+            <!-- 错误提示 -->
+            <div class="error-msg" th:if="${error}" th:text="${error}"></div>
+            
+            <form action="/boss/register" method="post">
+                <!-- 公司名称 -->
+                <div class="form-group">
+                    <label class="form-label">
+                        公司名称 <span>*</span>
+                    </label>
+                    <input type="text" name="name" class="form-input" 
+                           placeholder="请输入公司全称" required>
+                </div>
+                
+                <!-- 行业 -->
+                <div class="form-group">
+                    <label class="form-label">所属行业</label>
+                    <select name="industry" class="form-input">
+                        <option value="">请选择行业</option>
+                        <option value="互联网">互联网</option>
+                        <option value="电子商务">电子商务</option>
+                        <option value="金融">金融</option>
+                        <option value="教育培训">教育培训</option>
+                        <option value="医疗健康">医疗健康</option>
+                        <option value="游戏">游戏</option>
+                        <option value="媒体">媒体</option>
+                        <option value="广告营销">广告营销</option>
+                        <option value="企业服务">企业服务</option>
+                        <option value="硬件">硬件</option>
+                        <option value="房产">房产</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </div>
+                
+                <!-- 规模 -->
+                <div class="form-group">
+                    <label class="form-label">公司规模</label>
+                    <select name="scale" class="form-input">
+                        <option value="">请选择规模</option>
+                        <option value="0-20人">0-20人</option>
+                        <option value="20-99人">20-99人</option>
+                        <option value="100-499人">100-499人</option>
+                        <option value="500-999人">500-999人</option>
+                        <option value="1000-9999人">1000-9999人</option>
+                        <option value="10000人以上">10000人以上</option>
+                    </select>
+                </div>
+                
+                <!-- 地址 -->
+                <div class="form-group">
+                    <label class="form-label">公司地址</label>
+                    <input type="text" name="address" class="form-input" 
+                           placeholder="如：北京市朝阳区望京SOHO">
+                </div>
+                
+                <!-- 公司介绍 -->
+                <div class="form-group">
+                    <label class="form-label">公司介绍</label>
+                    <textarea name="description" class="form-input" 
+                              placeholder="介绍一下你们的公司、文化、福利等..."></textarea>
+                </div>
+                
+                <!-- 联系方式 -->
+                <div class="form-group">
+                    <label class="form-label">联系人姓名</label>
+                    <input type="text" name="contactName" class="form-input" 
+                           placeholder="招聘负责人姓名">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">联系电话</label>
+                    <input type="text" name="contactPhone" class="form-input" 
+                           placeholder="方便求职者联系">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">联系邮箱</label>
+                    <input type="email" name="contactEmail" class="form-input" 
+                           placeholder="HR邮箱">
+                </div>
+                
+                <button type="submit" class="submit-btn">完成入驻</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

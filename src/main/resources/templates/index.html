@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>微招 - 找工作直接跟Boss谈</title>
+    <style>
+        /* ========== 基础样式 ========== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; 
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+        
+        /* ========== 容器 ========== */
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        
+        /* ========== 顶部导航 ========== */
+        .header {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 20px 30px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        .logo { 
+            font-size: 28px; 
+            font-weight: bold;
+            background: linear-gradient(135deg, #00d4ff, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(0,212,255,0.5);
+        }
+        .header-right { display: flex; align-items: center; gap: 20px; }
+        .user-info {
+            color: #a0a0a0;
+            font-size: 14px;
+        }
+        .user-info span {
+            color: #00d4ff;
+            font-weight: 500;
+        }
+        .nav-links { display: flex; gap: 16px; }
+        .nav-links a {
+            color: #a0a0a0;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        .nav-links a:hover {
+            background: rgba(0,212,255,0.2);
+            color: #00d4ff;
+        }
+        .nav-links a.active {
+            background: linear-gradient(135deg, #00d4ff, #8b5cf6);
+            color: #fff;
+        }
+        .logout-btn {
+            background: rgba(255,255,255,0.1);
+            color: #a0a0a0;
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .logout-btn:hover {
+            background: rgba(255,100,100,0.2);
+            border-color: rgba(255,100,100,0.5);
+            color: #ff6b6b;
+        }
+        
+        /* ========== 搜索区域 ========== */
+        .search-box {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .search-form {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 14px 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.3s;
+        }
+        .search-input:focus {
+            border-color: #00d4ff;
+            box-shadow: 0 0 20px rgba(0,212,255,0.2);
+        }
+        .search-input::placeholder { color: #666; }
+        .search-select {
+            padding: 14px 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            font-size: 15px;
+            outline: none;
+            cursor: pointer;
+            min-width: 140px;
+        }
+        .search-select option { background: #1a1a2e; color: #fff; }
+        .search-btn {
+            padding: 14px 32px;
+            background: linear-gradient(135deg, #00d4ff, #8b5cf6);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,212,255,0.4);
+        }
+        
+        /* ========== 职位列表 ========== */
+        .jobs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 20px;
+        }
+        .job-card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        .job-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #00d4ff, #8b5cf6);
+            transform: scaleX(0);
+            transition: transform 0.3s;
+        }
+        .job-card:hover::before { transform: scaleX(1); }
+        .job-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(0,212,255,0.3);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+        .job-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+        .job-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 6px;
+        }
+        .job-salary {
+            font-size: 22px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #00d4ff, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .job-tags { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+        .tag {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            background: rgba(139,92,246,0.2);
+            color: #a78bfa;
+            border: 1px solid rgba(139,92,246,0.3);
+        }
+        .job-info {
+            display: flex;
+            gap: 20px;
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+        .job-info span { display: flex; align-items: center; gap: 6px; }
+        .company-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        .company-logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: #fff;
+        }
+        .company-name { font-weight: 500; color: #e0e0e0; }
+        .company-industry { font-size: 12px; color: #666; }
+        
+        /* ========== 空状态 ========== */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        .empty-state .icon { font-size: 64px; margin-bottom: 20px; opacity: 0.5; }
+        .empty-state h3 { font-size: 20px; margin-bottom: 10px; color: #888; }
+        .empty-state p { color: #555; }
+        
+        /* ========== 统计信息 ========== */
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 24px;
+        }
+        .stat-item { text-align: center; }
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #00d4ff, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .stat-label { font-size: 14px; color: #666; }
+        
+        /* ========== 响应式 ========== */
+        @media (max-width: 768px) {
+            .header { flex-direction: column; gap: 16px; }
+            .nav-links { flex-wrap: wrap; justify-content: center; }
+            .search-form { flex-direction: column; }
+            .jobs-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 顶部导航 -->
+        <div class="header">
+            <div class="logo">⚡ 微招</div>
+            <div class="header-right">
+                <th:block th:if="${user != null}">
+                    <div class="user-info">
+                        欢迎, <span th:text="${user.nickname ?: user.username}">用户</span>
+                        <th:block th:if="${user.role == 'boss'}">👑 Boss</th:block>
+                        <th:block th:if="${user.role == 'seeker'}">💼 求职者</th:block>
+                    </div>
+                    <div class="nav-links">
+                        <a href="/" class="active">职位大厅</a>
+                        <th:block th:if="${user.role == 'seeker'}">
+                            <a href="/my/applications">我的投递</a>
+                            <a href="/resume">我的简历</a>
+                        </th:block>
+                        <th:block th:if="${user.role == 'boss'}">
+                            <a href="/boss">Boss入口</a>
+                        </th:block>
+                    </div>
+                    <button class="logout-btn" onclick="location.href='/logout'">退出</button>
+                </th:block>
+                <th:block th:if="${user == null}">
+                    <button class="logout-btn" onclick="location.href='/login'">登录</button>
+                    <button class="search-btn" onclick="location.href='/register'">注册</button>
+                </th:block>
+            </div>
+        </div>
+        
+        <!-- 搜索区域 -->
+        <div class="search-box">
+            <form class="search-form" action="/" method="get">
+                <input type="text" name="keyword" class="search-input" 
+                       placeholder="搜索职位名称..." th:value="${keyword}">
+                <select name="city" class="search-select">
+                    <option value="">选择城市</option>
+                    <option value="北京" th:selected="${city == '北京'}">北京</option>
+                    <option value="上海" th:selected="${city == '上海'}">上海</option>
+                    <option value="广州" th:selected="${city == '广州'}">广州</option>
+                    <option value="深圳" th:selected="${city == '深圳'}">深圳</option>
+                    <option value="杭州" th:selected="${city == '杭州'}">杭州</option>
+                    <option value="成都" th:selected="${city == '成都'}">成都</option>
+                    <option value="武汉" th:selected="${city == '武汉'}">武汉</option>
+                    <option value="西安" th:selected="${city == '西安'}">西安</option>
+                    <option value="南京" th:selected="${city == '南京'}">南京</option>
+                    <option value="苏州" th:selected="${city == '苏州'}">苏州</option>
+                </select>
+                <select name="education" class="search-select">
+                    <option value="">学历要求</option>
+                    <option value="不限" th:selected="${education == '不限'}">不限</option>
+                    <option value="大专" th:selected="${education == '大专'}">大专</option>
+                    <option value="本科" th:selected="${education == '本科'}">本科</option>
+                    <option value="硕士" th:selected="${education == '硕士'}">硕士</option>
+                    <option value="博士" th:selected="${education == '博士'}">博士</option>
+                </select>
+                <button type="submit" class="search-btn">🔍 搜索</button>
+            </form>
+        </div>
+        
+        <!-- 统计信息 -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-number" th:text="${jobs.size()}">0</div>
+                <div class="stat-label">在招职位</div>
+            </div>
+        </div>
+        
+        <!-- 职位列表 -->
+        <div class="jobs-grid" th:if="${not #lists.isEmpty(jobs)}">
+            <div class="job-card" th:each="job : ${jobs}" 
+                 th:onclick="'location.href=\'/job/' + ${job.id} + '\''">
+                <div class="job-header">
+                    <div>
+                        <div class="job-title" th:text="${job.title}">职位名称</div>
+                        <div class="job-salary" th:if="${job.salaryMin != null && job.salaryMax != null}">
+                            <span th:text="${job.salaryMin/1000}">15</span>k -
+                            <span th:text="${job.salaryMax/1000}">25</span>k
+                        </div>
+                        <div class="job-salary" th:if="${job.salaryMin == null || job.salaryMax == null}">
+                            薪资面议
+                        </div>
+                    </div>
+                </div>
+                <div class="job-tags">
+                    <span class="tag" th:if="${job.city}" th:text="${job.city}">北京</span>
+                    <span class="tag" th:if="${job.education}" th:text="${job.education}">本科</span>
+                    <span class="tag" th:if="${job.experience}" th:text="${job.experience}">3-5年</span>
+                </div>
+                <div class="job-info">
+                    <span>📍 <span th:text="${job.address ?: '未填写'}">朝阳区</span></span>
+                    <span>👁 <span th:text="${job.viewCount ?: 0}">0</span>次浏览</span>
+                </div>
+                <div class="company-info">
+                    <div class="company-logo" th:text="${companyMap[job.companyId]?.name?.substring(0,1) ?: '公'}">公</div>
+                    <div>
+                        <div class="company-name" th:text="${companyMap[job.companyId]?.name ?: '公司已删除'}">公司名称</div>
+                        <div class="company-industry" th:text="${companyMap[job.companyId]?.industry ?: '互联网'}">互联网</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 空状态 -->
+        <div class="empty-state" th:if="${#lists.isEmpty(jobs)}">
+            <div class="icon">💼</div>
+            <h3>暂无职位</h3>
+            <p>当前没有符合条件的职位，试试其他搜索条件吧</p>
+        </div>
+    </div>
+    <!-- 页脚 -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="copyright">
+                © 2026 微招招聘平台 版权所有
+            </div>
+            <div class="icp-info">
+                <a href="https://beian.miit.gov.cn/" target="_blank" class="icp-link">
+                    渝ICP备2026007393号
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <style>
+        /* 页脚样式 */
+        .footer {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px 0;
+            margin-top: 40px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+        }
+        
+        .icp-link {
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .icp-link:hover {
+            color: #ffffff;
+        }
+    </style>
+
+</body>
+</html>
