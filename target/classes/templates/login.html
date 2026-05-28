@@ -6,7 +6,7 @@
     <title>登录 - 微招</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+
         body {
             font-family: "Microsoft YaHei", Arial, sans-serif;
             min-height: 100vh;
@@ -37,7 +37,7 @@
 
         .grid-surface {
             width: 100%; height: 100%;
-            background: 
+            background:
                 linear-gradient(90deg, rgba(0, 255, 255, 0.15) 2px, transparent 2px),
                 linear-gradient(rgba(0, 255, 255, 0.15) 2px, transparent 2px);
             background-size: 60px 60px;
@@ -52,19 +52,19 @@
         /* 3D 立方体 */
         .shape-3d { position: absolute; transform-style: preserve-3d; }
         .cube-1 { top: 12%; left: 8%; width: 80px; height: 80px; }
-        .cube-1 .front { position: absolute; width: 100%; height: 100%; background: linear-gradient(135deg, #00d4ff, #0099cc); transform: translateZ(40px); border: 1px solid rgba(0, 212, 255, 0.5); }
+        .cube-1 .front { position: absolute; width: 100%; height: 100%; background: linear-gradient(135deg, #00c2b3, #18c3b1); transform: translateZ(40px); border: 1px solid rgba(0, 194, 179, 0.5); }
         .cube-1 .back { position: absolute; width: 100%; height: 100%; background: #004455; transform: translateZ(-40px) rotateY(180deg); }
-        .cube-1 .left { position: absolute; width: 80px; height: 100%; background: linear-gradient(90deg, #004455, #0099cc); transform: rotateY(-90deg); }
-        .cube-1 .right { position: absolute; width: 80px; height: 100%; background: linear-gradient(90deg, #0099cc, #004455); transform: rotateY(90deg) translateZ(80px); }
-        .cube-1 .top { position: absolute; width: 100%; height: 80px; background: linear-gradient(180deg, #00ffff, #00d4ff); transform: rotateX(90deg); }
+        .cube-1 .left { position: absolute; width: 80px; height: 100%; background: linear-gradient(90deg, #004455, #18c3b1); transform: rotateY(-90deg); }
+        .cube-1 .right { position: absolute; width: 80px; height: 100%; background: linear-gradient(90deg, #18c3b1, #004455); transform: rotateY(90deg) translateZ(80px); }
+        .cube-1 .top { position: absolute; width: 100%; height: 80px; background: linear-gradient(180deg, #00d7c6, #00c2b3); transform: rotateX(90deg); }
         .cube-1 .bottom { position: absolute; width: 100%; height: 80px; background: #003344; transform: rotateX(-90deg) translateZ(80px); }
 
         .cube-2 { top: 20%; right: 12%; width: 60px; height: 60px; }
-        .cube-2 .front { position: absolute; width: 100%; height: 100%; background: linear-gradient(135deg, #8b5cf6, #6d28d9); transform: translateZ(30px); border: 1px solid rgba(139, 92, 246, 0.5); }
+        .cube-2 .front { position: absolute; width: 100%; height: 100%; background: linear-gradient(135deg, #5dd5c8, #18c3b1); transform: translateZ(30px); border: 1px solid rgba(93, 213, 200, 0.5); }
         .cube-2 .back { position: absolute; width: 100%; height: 100%; background: #4c1d95; transform: translateZ(-30px) rotateY(180deg); }
-        .cube-2 .left { position: absolute; width: 60px; height: 100%; background: linear-gradient(90deg, #4c1d95, #6d28d9); transform: rotateY(-90deg); }
-        .cube-2 .right { position: absolute; width: 60px; height: 100%; background: linear-gradient(90deg, #6d28d9, #4c1d95); transform: rotateY(90deg) translateZ(60px); }
-        .cube-2 .top { position: absolute; width: 100%; height: 60px; background: linear-gradient(180deg, #a78bfa, #8b5cf6); transform: rotateX(90deg); }
+        .cube-2 .left { position: absolute; width: 60px; height: 100%; background: linear-gradient(90deg, #4c1d95, #18c3b1); transform: rotateY(-90deg); }
+        .cube-2 .right { position: absolute; width: 60px; height: 100%; background: linear-gradient(90deg, #18c3b1, #4c1d95); transform: rotateY(90deg) translateZ(60px); }
+        .cube-2 .top { position: absolute; width: 100%; height: 60px; background: linear-gradient(180deg, #6adbcf, #5dd5c8); transform: rotateX(90deg); }
         .cube-2 .bottom { position: absolute; width: 100%; height: 60px; background: #3b0764; transform: rotateX(-90deg) translateZ(60px); }
 
         .cube-3 { bottom: 25%; left: 15%; width: 50px; height: 50px; }
@@ -84,20 +84,20 @@
 
         /* 光晕 */
         .glow-orb { position: fixed; border-radius: 50%; filter: blur(80px); pointer-events: none; }
-        .glow-1 { top: 20%; left: 25%; width: 400px; height: 400px; background: rgba(0, 212, 255, 0.25); animation: glowPulse1 6s ease-in-out infinite; }
-        .glow-2 { bottom: 15%; right: 15%; width: 500px; height: 500px; background: rgba(139, 92, 246, 0.25); animation: glowPulse2 6s ease-in-out infinite; }
+        .glow-1 { top: 20%; left: 25%; width: 400px; height: 400px; background: rgba(0, 194, 179, 0.25); animation: glowPulse1 6s ease-in-out infinite; }
+        .glow-2 { bottom: 15%; right: 15%; width: 500px; height: 500px; background: rgba(93, 213, 200, 0.25); animation: glowPulse2 6s ease-in-out infinite; }
         @keyframes glowPulse1 { 0%, 100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.3); } }
         @keyframes glowPulse2 { 0%, 100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.3); } }
 
         /* 卡片 */
         /* 卡片容器 */
-        .card-container { 
-            position: relative; 
-            z-index: 100; 
-            transform-style: preserve-3d; 
+        .card-container {
+            position: relative;
+            z-index: 100;
+            transform-style: preserve-3d;
             pointer-events: none;
         }
-        
+
         /* 确保表单可以点击 */
         .card-container * {
             pointer-events: auto;
@@ -110,11 +110,11 @@
             backdrop-filter: blur(20px);
             border-radius: 24px;
             padding: 48px 40px;
-            border: 1px solid rgba(0, 212, 255, 0.3);
-            box-shadow: 
-                0 0 60px rgba(0, 212, 255, 0.2),
-                0 0 100px rgba(139, 92, 246, 0.15),
-                inset 0 0 60px rgba(0, 212, 255, 0.05);
+            border: 1px solid rgba(0, 194, 179, 0.3);
+            box-shadow:
+                0 0 60px rgba(0, 194, 179, 0.2),
+                0 0 100px rgba(93, 213, 200, 0.15),
+                inset 0 0 60px rgba(0, 194, 179, 0.05);
             transform-style: preserve-3d;
             z-index: 101;
         }
@@ -123,7 +123,7 @@
             position: absolute;
             top: -2px; left: -2px; right: -2px; bottom: -2px;
             border-radius: 26px;
-            background: linear-gradient(45deg, #00d4ff, #8b5cf6, #00d4ff);
+            background: linear-gradient(45deg, #00c2b3, #5dd5c8, #00c2b3);
             z-index: -1;
             opacity: 0.5;
             animation: borderGlow 3s linear infinite;
@@ -139,10 +139,10 @@
         .logo { text-align: center; margin-bottom: 40px; }
         .logo h1 {
             font-size: 36px;
-            background: linear-gradient(135deg, #00d4ff, #8b5cf6);
+            background: linear-gradient(135deg, #00c2b3, #5dd5c8);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 40px rgba(0, 212, 255, 0.5);
+            text-shadow: 0 0 40px rgba(0, 194, 179, 0.5);
             margin-bottom: 8px;
         }
         .logo p { color: #666; font-size: 14px; }
@@ -152,7 +152,7 @@
         .form-input {
             width: 100%; padding: 16px 20px;
             background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(0, 212, 255, 0.2);
+            border: 1px solid rgba(0, 194, 179, 0.2);
             border-radius: 12px;
             color: #fff;
             font-size: 16px;
@@ -160,15 +160,15 @@
             transition: all 0.3s;
         }
         .form-input:focus {
-            border-color: #00d4ff;
-            box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
-            background: rgba(0, 212, 255, 0.05);
+            border-color: #00c2b3;
+            box-shadow: 0 0 30px rgba(0, 194, 179, 0.3);
+            background: rgba(0, 194, 179, 0.05);
         }
         .form-input::placeholder { color: #444; }
 
         .submit-btn {
             width: 100%; padding: 18px;
-            background: linear-gradient(135deg, #00d4ff, #8b5cf6);
+            background: linear-gradient(135deg, #00c2b3, #5dd5c8);
             border: none;
             border-radius: 12px;
             color: #fff;
@@ -190,19 +190,19 @@
         .submit-btn:hover::before { left: 100%; }
         .submit-btn:hover {
             transform: translateY(-3px);
-            box-shadow: 0 15px 40px rgba(0, 212, 255, 0.4);
+            box-shadow: 0 15px 40px rgba(0, 194, 179, 0.4);
         }
 
         .links { text-align: center; margin-top: 24px; }
-        .links a { color: #00d4ff; text-decoration: none; font-size: 14px; }
+        .links a { color: #00c2b3; text-decoration: none; font-size: 14px; }
         .links a:hover { text-decoration: underline; }
 
         .error-msg {
-            background: rgba(255, 107, 107, 0.1);
-            border: 1px solid rgba(255, 107, 107, 0.3);
+            background: rgba(239, 80, 94, 0.1);
+            border: 1px solid rgba(239, 80, 94, 0.3);
             border-radius: 10px;
             padding: 12px;
-            color: #ff6b6b;
+            color: #ef505e;
             margin-bottom: 20px;
             text-align: center;
             font-size: 14px;
@@ -218,6 +218,25 @@
             text-align: center;
             font-size: 14px;
         }
+
+        .captcha-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .captcha-input {
+            flex: 1;
+        }
+        .captcha-img {
+            height: 44px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 194, 179, 0.2);
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+        .captcha-img:hover {
+            border-color: #00c2b3;
+        }
     </style>
 </head>
 <body>
@@ -225,7 +244,7 @@
         <div class="grid-floor"><div class="grid-surface"></div></div>
         <div class="glow-orb glow-1"></div>
         <div class="glow-orb glow-2"></div>
-        
+
         <div class="shape-3d cube-1" id="cube1">
             <div class="front"></div><div class="back"></div>
             <div class="left"></div><div class="right"></div>
@@ -241,7 +260,7 @@
             <div class="left"></div><div class="right"></div>
             <div class="top"></div><div class="bottom"></div>
         </div>
-        
+
         <div class="scanline"></div>
     </div>
 
@@ -249,14 +268,15 @@
         <div class="login-card" id="loginCard">
             <div class="card-glow"></div>
             <div class="logo">
-                <h1>⚡ 微招</h1>
+                <h1>◆ 微招</h1>
                 <p>找工作，直接跟Boss谈</p>
             </div>
-            
+
             <div th:if="${error}" class="error-msg" th:text="${error}"></div>
             <div th:if="${success}" class="success-msg" th:text="${success}"></div>
-            
+
             <form action="/login" method="post">
+                <input type="hidden" name="_csrf" th:value="${csrf_token}">
                 <div class="form-group">
                     <label class="form-label">用户名</label>
                     <input type="text" name="username" class="form-input" placeholder="请输入用户名" required>
@@ -265,9 +285,16 @@
                     <label class="form-label">密码</label>
                     <input type="password" name="password" class="form-input" placeholder="请输入密码" required>
                 </div>
+                <div class="form-group">
+                    <label class="form-label">验证码</label>
+                    <div class="captcha-row">
+                        <input type="text" name="captcha" class="form-input captcha-input" placeholder="请输入验证码" maxlength="4" required autocomplete="off">
+                        <img src="/captcha" alt="验证码" class="captcha-img" id="captchaImg" onclick="this.src='/captcha?'+new Date().getTime()" title="点击刷新验证码">
+                    </div>
+                </div>
                 <button type="submit" class="submit-btn">登录</button>
             </form>
-            
+
             <div class="links">
                 <a href="/register">还没有账号？立即注册</a>
             </div>
@@ -279,11 +306,11 @@
         document.addEventListener('mousemove', (e) => {
             const mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
             const mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
-            
+
             document.getElementById('cube1').style.transform = `translate(${mouseX * 20}px, ${mouseY * 20}px) rotateX(${mouseY * 15}deg) rotateY(${mouseX * 15}deg)`;
             document.getElementById('cube2').style.transform = `translate(${mouseX * -15}px, ${mouseY * -15}px) rotateX(${mouseY * -10}deg) rotateY(${mouseX * -10}deg)`;
             document.getElementById('cube3').style.transform = `translate(${mouseX * 10}px, ${mouseY * 10}px) rotateX(${mouseY * 20}deg) rotateY(${mouseX * 20}deg)`;
-            
+
             document.getElementById('loginCard').style.transform = `rotateX(${mouseY * -5}deg) rotateY(${mouseX * 5}deg)`;
         });
 
@@ -300,10 +327,55 @@
                 }, 50);
             }, delay);
         }
-        
+
         animateCube(document.getElementById('cube1'), 8, 0);
         animateCube(document.getElementById('cube2'), 10, 2000);
         animateCube(document.getElementById('cube3'), 12, 4000);
     </script>
+    <!-- 页脚 -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="copyright">
+                © 2026 微招招聘平台 版权所有
+            </div>
+            <div class="icp-info">
+                <a href="https://beian.miit.gov.cn/" target="_blank" class="icp-link">
+                    渝ICP备2026007393号
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <style>
+        /* 页脚样式 */
+        .footer {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px 0;
+            margin-top: 40px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+        }
+
+        .icp-link {
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .icp-link:hover {
+            color: #ffffff;
+        }
+    </style>
+
 </body>
 </html>

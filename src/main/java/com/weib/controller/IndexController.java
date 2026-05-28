@@ -2,21 +2,24 @@ package com.weib.controller;
 
 import com.weib.entity.Company;
 import com.weib.entity.Job;
+import com.weib.entity.Resume;
 import com.weib.entity.User;
 import com.weib.service.CompanyService;
 import com.weib.service.JobService;
+import com.weib.service.ResumeService;
+import com.weib.util.IdObfuscator;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * ============================================
@@ -81,6 +84,8 @@ public class IndexController {
      */
     private final JobService jobService;
     private final CompanyService companyService;
+    private final ResumeService resumeService;
+    private final IdObfuscator idObfuscator;
 
     /**
      * ========================================
@@ -180,190 +185,142 @@ public class IndexController {
                         Model model,
                         @RequestParam(required = false) String keyword,
                         @RequestParam(required = false) String city,
-                        @RequestParam(required = false) String education) {
-        
-        // ========================================
-        // 第一步：获取当前登录用户
-        // ========================================
-        
-        /**
-         * 【Session 获取用户】
-         * 
-         * session.getAttribute("user") 获取之前存入的用户对象
-         * 登录成功时：session.setAttribute("user", user)
-         * 
-         * 【为什么存入的是整个 User 对象？】
-         * - 方便后续使用用户的所有信息
-         * - id、username、role、nickname 等都能直接用
-         * - 比只存 userId 更灵活
-         * 
-         * 【类型转换】
-         * Session 存的是 Object，取出来需要强转
-         * (User) 将 Object 转成 User 类型
-         */
+                        @RequestParam(required = false) String education,
+                        @RequestParam(required = false) String experience,
+                        @RequestParam(required = false) Integer salaryMin,
+                        @RequestParam(required = false) Integer salaryMax,
+                        @RequestParam(defaultValue = "newest") String sort,
+                        @RequestParam(defaultValue = "0") int page,
+                        @RequestParam(defaultValue = "12") int size) {
+
         User user = (User) session.getAttribute("user");
-        
-        /**
-         * 【Thymeleaf 中判断用户登录状态】
-         * 
-         * model.addAttribute("user", user);
-         * 
-         * HTML 中使用：
-         * <div th:if="${user != null}">已登录</div>
-         * <div th:if="${user == null}">未登录</div>
-         */
         model.addAttribute("user", user);
 
-        // ========================================
-        // 第二步：搜索/筛选职位
-        // ========================================
-        
-        /**
-         * 【搜索逻辑】
-         * 
-         * 如果有任何筛选条件，就调用搜索方法
-         * 否则查询所有活跃职位
-         * 
-         * 【为什么设计成这样？】
-         * - 减少代码重复
-         * - 一个方法处理两种情况
-         * - 搜索方法内部处理了无条件的边界情况
-         */
-        List<Job> jobs;
-        if (keyword != null || city != null || education != null) {
-            // 有筛选条件，调用搜索
-            jobs = jobService.searchJobs(keyword, city, education);
+        // 搜索或获取所有活跃职位
+        Page<Job> jobPage;
+        boolean hasFilters = keyword != null || city != null || education != null
+                || experience != null || salaryMin != null || salaryMax != null;
+        if (hasFilters) {
+            jobPage = jobService.searchJobsPaged(keyword, city, education, experience, salaryMin, salaryMax, sort, page, size);
         } else {
-            // 无筛选条件，获取所有活跃职位
-            jobs = jobService.getAllActiveJobs();
+            jobPage = jobService.getActiveJobsPaged(page, size);
         }
-        
-        /**
-         * 【职位列表排序】
-         * 
-         * findByStatusOrderByCreatedAtDesc 已按创建时间降序
-         * 最新的职位排在最前面
-         * 
-         * 【为什么用降序？】
-         * - 用户通常想看最新发布的职位
-         * - 新职位更可能还在招聘
-         */
 
-        // ========================================
-        // 第三步：加载公司信息
-        // ========================================
-        
-        /**
-         * 【关联查询公司信息】
-         * 
-         * Job 表中只有 companyId（外键）
-         * 需要根据 companyId 查询公司名称（Company.name）
-         * 
-         * 【为什么用 Map 缓存？】
-         * - 避免 N+1 查询问题
-         * - 如果有 100 个职位，循环查询公司会执行 100 次
-         * - 先收集所有 companyId，一次查询获取所有公司，再构建 Map
-         * - 只需要 1 次数据库查询
-         * 
-         * 【Map<Long, Company> 的 Key-Value】
-         * - Key: companyId（公司ID）
-         * - Value: Company（公司对象）
-         * 
-         * 模板中使用：${companyMap[job.companyId].name}
-         */
-        
-        // 收集所有需要的公司ID（去重）
-        /**
-         * 【Stream 流处理】
-         * 
-         * jobs.stream()                    // 把 List 转成 Stream
-         * .map(Job::getCompanyId)          // 提取每个职位的 companyId
-         * .distinct()                      // 去重
-         * .collect(Collectors.toSet())     // 收集为 Set
-         * 
-         * 【为什么用 Set 而不是 List？】
-         * - Set 自动去重
-         * - 公司可能发布多个职位，companyId 会重复
-         * - 只查询一次每个公司
-         */
+        List<Job> jobs = jobPage.getContent();
+
+        // 批量加载公司信息（避免 N+1 查询）
         List<Long> companyIds = jobs.stream()
-                .map(Job::getCompanyId)
-                .distinct()
-                .collect(Collectors.toList());
-        
-        // 批量查询公司信息，构建 Map
-        /**
-         * 【HashMap vs Map】
-         * 
-         * HashMap 是 Map 的实现类
-         * 这里用 Map 接口声明，好处：
-         * - 面向接口编程
-         * - 方便替换实现（如 LinkedHashMap）
-         * - 单元测试时可以传入 mock 对象
-         */
-        Map<Long, Company> companyMap = new HashMap<>();
-        
-        /**
-         * 【批量查询公司】
-         * 
-         * companyRepository.findAllById(companyIds)
-         * 根据多个 ID 一次性查询
-         * 比循环中逐个查询效率高得多
-         * 
-         * 【companyService.getCompanyById(id)】
-         * 单个查询，如果公司不存在会抛异常
-         * 用 try-catch 包裹，忽略不存在的公司
-         */
-        for (Long companyId : companyIds) {
+                .map(Job::getCompanyId).distinct().collect(Collectors.toList());
+        Map<Long, Company> companyMap = companyService.getCompanyMapByIds(companyIds);
+
+        // 求职者个性化推荐（基于简历匹配）
+        if (user != null && "seeker".equals(user.getRole()) && !hasFilters) {
             try {
-                Company company = companyService.getCompanyById(companyId);
-                companyMap.put(companyId, company);
-            } catch (Exception e) {
-                // 公司不存在，跳过（理论上不应该发生）
+                Resume resume = resumeService.getResumeByUserId(user.getId());
+                List<Job> allJobs = jobService.getAllActiveJobs();
+                List<Job> recommended = rankJobsByResume(allJobs, resume);
+                // 限制推荐数量，排除当前页已有的职位
+                Set<Long> existingIds = jobs.stream().map(Job::getId).collect(Collectors.toSet());
+                List<Job> topRecommendations = recommended.stream()
+                        .filter(j -> !existingIds.contains(j.getId()))
+                        .limit(6)
+                        .collect(Collectors.toList());
+                if (!topRecommendations.isEmpty()) {
+                    List<Long> recCompanyIds = topRecommendations.stream()
+                            .map(Job::getCompanyId).distinct().collect(Collectors.toList());
+                    Map<Long, Company> recCompanyMap = companyService.getCompanyMapByIds(recCompanyIds);
+                    model.addAttribute("recommendedJobs", topRecommendations);
+                    model.addAttribute("recCompanyMap", recCompanyMap);
+                    Map<Long, String> recEncodedJobIds = new HashMap<>();
+                    for (Job j : topRecommendations) recEncodedJobIds.put(j.getId(), idObfuscator.encode(j.getId()));
+                    Map<Long, String> recEncodedCompanyIds = new HashMap<>();
+                    for (Long cid : recCompanyIds) recEncodedCompanyIds.put(cid, idObfuscator.encode(cid));
+                    model.addAttribute("recEncodedJobIds", recEncodedJobIds);
+                    model.addAttribute("recEncodedCompanyIds", recEncodedCompanyIds);
+                }
+            } catch (Exception ignored) {}
+        }
+
+        model.addAttribute("jobs", jobs);
+        model.addAttribute("companyMap", companyMap);
+
+        // ID 混淆：防止 IDOR 攻击
+        Map<Long, String> encodedJobIds = new HashMap<>();
+        for (Job job : jobs) encodedJobIds.put(job.getId(), idObfuscator.encode(job.getId()));
+        Map<Long, String> encodedCompanyIds = new HashMap<>();
+        for (Long cid : companyIds) encodedCompanyIds.put(cid, idObfuscator.encode(cid));
+        model.addAttribute("encodedJobIds", encodedJobIds);
+        model.addAttribute("encodedCompanyIds", encodedCompanyIds);
+
+        model.addAttribute("keyword", keyword);
+        model.addAttribute("city", city);
+        model.addAttribute("education", education);
+        model.addAttribute("experience", experience);
+        model.addAttribute("salaryMin", salaryMin);
+        model.addAttribute("salaryMax", salaryMax);
+        model.addAttribute("sort", sort);
+
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", jobPage.getTotalPages());
+        model.addAttribute("totalItems", jobPage.getTotalElements());
+        model.addAttribute("pageSize", size);
+
+        int startPage = Math.max(0, page - 2);
+        int endPage = Math.min(jobPage.getTotalPages() - 1, page + 2);
+        if (endPage <= startPage) { endPage = startPage; }
+        model.addAttribute("startPage", startPage);
+        model.addAttribute("endPage", endPage);
+        model.addAttribute("pageNumbers", IntStream.rangeClosed(startPage, endPage).boxed().collect(Collectors.toList()));
+
+        return "index";
+    }
+
+    /**
+     * 基于简历的职位推荐排名
+     * 简单关键词匹配算法：技能、学历、经验匹配度评分
+     */
+    private List<Job> rankJobsByResume(List<Job> jobs, Resume resume) {
+        return jobs.stream()
+                .filter(j -> "active".equals(j.getStatus()))
+                .map(j -> new AbstractMap.SimpleEntry<>(j, matchScore(j, resume)))
+                .filter(e -> e.getValue() > 0)
+                .sorted(Map.Entry.<Job, Integer>comparingByValue().reversed())
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
+    }
+
+    private int matchScore(Job job, Resume resume) {
+        int score = 0;
+        // 学历匹配
+        if (resume.getEducation() != null && resume.getEducation().equals(job.getEducation())) {
+            score += 3;
+        }
+        // 技能关键词匹配
+        if (resume.getSkills() != null && job.getTags() != null) {
+            String[] skills = resume.getSkills().toLowerCase().split("[,\\s、]+");
+            String[] tags = job.getTags().toLowerCase().split("[,\\s、]+");
+            for (String skill : skills) {
+                for (String tag : tags) {
+                    if (skill.contains(tag) || tag.contains(skill)) {
+                        score += 5;
+                    }
+                }
             }
         }
-
-        // ========================================
-        // 第四步：将数据传递给视图
-        // ========================================
-        
-        /**
-         * 【model.addAttribute() 的作用】
-         * 
-         * 将数据存入 Model，供 Thymeleaf 模板使用
-         * 
-         * 语法：model.addAttribute("key", value)
-         * 
-         * 模板中使用：${key}
-         * 如：model.addAttribute("jobs", jobs)
-         *    th:text="${jobs.size()}"
-         */
-        model.addAttribute("jobs", jobs);              // 职位列表
-        model.addAttribute("companyMap", companyMap);   // 公司Map
-        model.addAttribute("keyword", keyword);        // 搜索关键词（回显）
-        model.addAttribute("city", city);              // 城市筛选（回显）
-        model.addAttribute("education", education);    // 学历筛选（回显）
-
-        // ========================================
-        // 第五步：返回视图
-        // ========================================
-        
-        /**
-         * 【return "index" 的含义】
-         * 
-         * Thymeleaf 配置：
-         * - 前缀：classpath:/templates/
-         * - 后缀：.html
-         * 
-         * 所以返回 "index" 会渲染：
-         * src/main/resources/templates/index.html
-         * 
-         * 【为什么不直接返回 HTML 字符串？】
-         * - 返回视图名，由视图解析器处理
-         * - 可以切换模板引擎（Thymeleaf → Freemarker → JSP）
-         * - 便于国际化、布局复用等高级功能
-         */
-        return "index";
+        // 工作经历关键词匹配到职位描述
+        if (resume.getWorkExperience() != null && job.getDescription() != null) {
+            String exp = resume.getWorkExperience().toLowerCase();
+            String desc = job.getDescription().toLowerCase();
+            if (exp.length() > 10 && desc.length() > 10) {
+                String[] expWords = exp.split("[\\s,，。、]+");
+                for (String word : expWords) {
+                    if (word.length() > 2 && desc.contains(word)) {
+                        score += 1;
+                    }
+                }
+            }
+        }
+        return score;
     }
 
     /**
@@ -419,31 +376,43 @@ public class IndexController {
      *    - 投递简历（求职者可见）
      *    - 查看简历（HR可见）
      */
-    @GetMapping("/job/{id}")
-    public String jobDetail(@PathVariable Long id,
+    @GetMapping("/job/{encodedId}")
+    public String jobDetail(@PathVariable String encodedId,
                             HttpSession session,
                             Model model) {
-        
+
+        Long id = idObfuscator.decode(encodedId);
+        if (id == null) return "redirect:/";
+
         // 获取当前用户
         User user = (User) session.getAttribute("user");
         model.addAttribute("user", user);
-        
-        // 查询职位详情
-        /**
-         * 【try-catch 处理业务异常】
-         * 
-         * jobService.getJobById(id) 内部会检查职位是否存在
-         * 如果不存在，抛出 RuntimeException
-         * 
-         * 这里捕获异常，返回友好的错误页面
-         */
+
         try {
             Job job = jobService.getJobById(id);
+            // 禁止访问非活跃职位（已关闭/下线的职位不可直接通过URL访问）
+            if (!"active".equals(job.getStatus())) {
+                return "redirect:/";
+            }
             model.addAttribute("job", job);
             
             // 查询公司信息
             Company company = companyService.getCompanyById(job.getCompanyId());
             model.addAttribute("company", company);
+            model.addAttribute("encodedJobId", encodedId);
+            model.addAttribute("encodedCompanyId", idObfuscator.encode(company.getId()));
+
+            // ========================================
+            // 【高德地图打点】自动地理编码 + 构建地图数据
+            // ========================================
+            if (company.getLongitude() == null || company.getLatitude() == null) {
+                // 异步地理编码 + 持久化，不阻塞页面加载
+                companyService.geocodeAndPersistAsync(company);
+            }
+            if (company.getLongitude() != null && company.getLatitude() != null) {
+                model.addAttribute("companyLng", company.getLongitude());
+                model.addAttribute("companyLat", company.getLatitude());
+            }
             
             // 增加浏览量（异步更好，这里简化处理）
             jobService.incrementViewCount(id);
@@ -473,5 +442,32 @@ public class IndexController {
         }
         
         return "job-detail";
+    }
+
+    /**
+     * 公司详情页
+     */
+    @GetMapping("/company/{encodedId}")
+    public String companyDetail(@PathVariable String encodedId, HttpSession session, Model model) {
+        Long id = idObfuscator.decode(encodedId);
+        if (id == null) return "redirect:/";
+
+        User user = (User) session.getAttribute("user");
+        model.addAttribute("user", user);
+
+        try {
+            Company company = companyService.getCompanyById(id);
+            model.addAttribute("company", company);
+            model.addAttribute("encodedCompanyId", encodedId);
+            List<Job> jobs = jobService.getJobsByCompanyId(id);
+            model.addAttribute("jobs", jobs);
+            Map<Long, String> encodedJobIds = new HashMap<>();
+            for (Job job : jobs) encodedJobIds.put(job.getId(), idObfuscator.encode(job.getId()));
+            model.addAttribute("encodedJobIds", encodedJobIds);
+        } catch (Exception e) {
+            return "redirect:/";
+        }
+
+        return "company-detail";
     }
 }

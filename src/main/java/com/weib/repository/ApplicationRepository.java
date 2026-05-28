@@ -56,9 +56,13 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
 
     /**
      * 根据状态查询投递记录
-     * 
-     * @param status 投递状态
-     * @return 符合状态的投递记录列表
      */
     List<Application> findByStatus(String status);
+
+    /**
+     * 批量查询多个职位的投递记录（避免 N+1）
+     */
+    List<Application> findByJobIdIn(List<Long> jobIds);
+
+    List<Application> findByJobIdInAndUserId(List<Long> jobIds, Long userId);
 }

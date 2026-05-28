@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${company.name} + ' - 微招'">公司详情 - 微招</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+
+        .back-btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            color: #00c2b3; text-decoration: none;
+            padding: 10px 20px; border-radius: 8px;
+            background: rgba(0,194,179,0.1);
+            border: 1px solid rgba(0,194,179,0.3);
+            margin-bottom: 24px; transition: all 0.3s;
+        }
+        .back-btn:hover { background: rgba(0,194,179,0.2); }
+
+        .company-header {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            border: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        .company-logo-large {
+            width: 80px; height: 80px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #5e96f2, #53cac3);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 36px; color: #fff;
+            margin: 0 auto 20px;
+        }
+        .company-name {
+            font-size: 32px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #00c2b3, #5dd5c8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 14px;
+        }
+        .company-tags { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px; }
+        .company-tag {
+            padding: 6px 18px;
+            border-radius: 20px;
+            background: rgba(0,194,179,0.1);
+            border: 1px solid rgba(0,194,179,0.2);
+            color: #00c2b3;
+            font-size: 14px;
+        }
+        .company-desc {
+            color: #9fa3b0;
+            font-size: 15px;
+            line-height: 1.8;
+            max-width: 700px;
+            margin: 0 auto;
+            white-space: pre-wrap;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 18px;
+            color: #fff;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+        .info-card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 14px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+        }
+        .info-icon {
+            width: 44px; height: 44px;
+            border-radius: 10px;
+            background: rgba(0,194,179,0.15);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; flex-shrink: 0;
+        }
+        .info-label { color: #666; font-size: 13px; margin-bottom: 4px; }
+        .info-value { color: #e0e0e0; font-size: 15px; }
+
+        /* 地图区域 - Boss直聘风格 */
+        .map-section { margin-bottom: 24px; }
+        .map-wrapper {
+            background: #fff;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        #amapContainer { width: 100%; height: 400px; }
+        .map-controls {
+            display: flex; gap: 10px; padding: 14px 20px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            background: rgba(255,255,255,0.02);
+            flex-wrap: wrap;
+        }
+        .map-btn {
+            padding: 8px 18px; border-radius: 20px; border: 1px solid rgba(0,194,179,0.4);
+            background: rgba(0,194,179,0.1); color: #00c2b3;
+            cursor: pointer; font-size: 13px; transition: all 0.3s;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+            white-space: nowrap;
+        }
+        .map-btn:hover { background: rgba(0,194,179,0.2); border-color: rgba(0,194,179,0.6); }
+        .map-address {
+            display: flex; align-items: center; gap: 10px;
+            padding: 12px 20px; color: #888; font-size: 13px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            background: rgba(255,255,255,0.02);
+        }
+        .map-pin { font-size: 16px; }
+
+        /* 距离卡片 */
+        .distance-card {
+            display: none;
+            margin: 0; padding: 14px 20px;
+            background: linear-gradient(135deg, rgba(0,194,179,0.08), rgba(93,213,200,0.05));
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            align-items: center; gap: 16px;
+        }
+        .distance-card.show { display: flex; }
+        .distance-main {
+            display: flex; align-items: baseline; gap: 6px;
+        }
+        .distance-value {
+            font-size: 28px; font-weight: 700;
+            background: linear-gradient(135deg, #00c2b3, #5dd5c8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .distance-unit { font-size: 14px; color: #888; }
+        .distance-detail {
+            display: flex; flex-direction: column; gap: 4px;
+            font-size: 13px; color: #888;
+        }
+        .distance-detail .time {
+            font-size: 16px; color: #e0e0e0; font-weight: 600;
+        }
+        .distance-type {
+            margin-left: auto; font-size: 12px; color: #666;
+            padding: 4px 12px; background: rgba(0,194,179,0.15);
+            border-radius: 20px;
+        }
+
+        .route-panel {
+            display: none;
+            background: rgba(255,255,255,0.03);
+            border-top: 1px solid rgba(255,255,255,0.06);
+            padding: 16px 20px;
+            max-height: 200px; overflow-y: auto;
+        }
+        .route-panel.show { display: block; }
+        .route-info { color: #888; font-size: 13px; line-height: 1.8; }
+        .route-info strong { color: #00c2b3; }
+
+        .jobs-list { display: flex; flex-direction: column; gap: 14px; }
+        .job-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 14px;
+            padding: 20px 24px;
+            border: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+            text-decoration: none;
+            color: inherit;
+            cursor: pointer;
+        }
+        .job-card:hover {
+            border-color: rgba(0,194,179,0.3);
+            transform: translateX(5px);
+        }
+        .job-title { font-size: 17px; font-weight: 600; color: #fff; margin-bottom: 6px; }
+        .job-meta { display: flex; gap: 16px; color: #888; font-size: 13px; }
+        .job-salary {
+            font-size: 18px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #00c2b3, #5dd5c8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            white-space: nowrap;
+        }
+
+        .empty-state { text-align: center; padding: 40px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="javascript:history.back()" class="back-btn">← 返回</a>
+
+        <div class="company-header">
+            <div class="company-logo-large" th:text="${company.name.substring(0,1)}">公</div>
+            <div class="company-name" th:text="${company.name}">公司名称</div>
+            <div class="company-tags">
+                <span class="company-tag" th:if="${company.industry}" th:text="${company.industry}">互联网</span>
+                <span class="company-tag" th:if="${company.scale}" th:text="${company.scale}">100-499人</span>
+            </div>
+            <div class="company-desc" th:if="${company.description}" th:text="${company.description}">公司介绍...</div>
+        </div>
+
+        <div class="info-grid">
+            <div class="info-card" th:if="${company.address}">
+                <div class="info-icon">📍</div>
+                <div class="info-text">
+                    <div class="info-label">公司地址</div>
+                    <div class="info-value" th:text="${company.address}">地址</div>
+                </div>
+            </div>
+            <div class="info-card" th:if="${company.contactName}">
+                <div class="info-icon">👤</div>
+                <div class="info-text">
+                    <div class="info-label">联系人</div>
+                    <div class="info-value" th:text="${company.contactName}">姓名</div>
+                </div>
+            </div>
+            <div class="info-card" th:if="${company.contactPhone}">
+                <div class="info-icon">📞</div>
+                <div class="info-text">
+                    <div class="info-label">联系电话</div>
+                    <div class="info-value" th:text="${company.contactPhone}">电话</div>
+                </div>
+            </div>
+            <div class="info-card" th:if="${company.contactEmail}">
+                <div class="info-icon">📧</div>
+                <div class="info-text">
+                    <div class="info-label">联系邮箱</div>
+                    <div class="info-value" th:text="${company.contactEmail}">邮箱</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 地图 - Boss直聘风格 -->
+        <div class="map-section" th:if="${company.longitude != null && company.latitude != null}">
+            <div class="section-title">🗺 公司位置</div>
+            <div class="map-wrapper">
+                <div id="amapContainer"></div>
+                <div class="distance-card" id="distanceCard">
+                    <div class="distance-main">
+                        <span class="distance-value" id="distValue">--</span>
+                        <span class="distance-unit" id="distUnit">km</span>
+                    </div>
+                    <div class="distance-detail">
+                        <span class="time" id="distTime">获取位置中...</span>
+                        <span id="distDesc">点击下方按钮查看导航</span>
+                    </div>
+                    <span class="distance-type" id="distType">直线距离</span>
+                </div>
+                <div class="map-controls">
+                    <button class="map-btn" onclick="planRoute('driving')">🚗 驾车导航</button>
+                    <button class="map-btn" onclick="planRoute('walking')">🚶 步行导航</button>
+                    <button class="map-btn" onclick="planRoute('transit')">🚌 公交导航</button>
+                    <button class="map-btn" onclick="locateMe()">📍 我的位置</button>
+                    <button class="map-btn" onclick="openInAmap()">🗺 高德地图打开</button>
+                </div>
+                <div class="map-address">
+                    <span class="map-pin">📍</span>
+                    <span th:text="${company.address ?: '公司地址'}">公司地址</span>
+                </div>
+                <div class="route-panel" id="routePanel">
+                    <div class="route-info" id="routeInfo"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-title" th:if="${not #lists.isEmpty(jobs)}">
+            在招职位（<span th:text="${#lists.size(jobs)}">0</span>）
+        </div>
+
+        <div class="jobs-list" th:if="${not #lists.isEmpty(jobs)}">
+            <a th:href="@{/job/{id}(id=${encodedJobIds[job.id]})}" class="job-card" th:each="job : ${jobs}">
+                <div>
+                    <div class="job-title" th:text="${job.title}">职位名称</div>
+                    <div class="job-meta">
+                        <span th:if="${job.city}" th:text="${job.city}">城市</span>
+                        <span th:if="${job.education}" th:text="${job.education}">学历</span>
+                        <span th:if="${job.experience}" th:text="${job.experience}">经验</span>
+                    </div>
+                </div>
+                <div class="job-salary" th:if="${job.salaryMin != null && job.salaryMax != null}">
+                    <span th:text="${job.salaryMin}">15</span>k-<span th:text="${job.salaryMax}">25</span>k
+                </div>
+                <div class="job-salary" th:if="${job.salaryMin == null || job.salaryMax == null}">薪资面议</div>
+            </a>
+        </div>
+
+        <div class="empty-state" th:if="${#lists.isEmpty(jobs)}">该公司暂无在招职位</div>
+    </div>
+
+    <script th:if="${company.longitude != null && company.latitude != null}" th:inline="javascript">
+        var companyLng = /*[[${company.longitude}]]*/ 116.397;
+        var companyLat = /*[[${company.latitude}]]*/ 39.908;
+        var companyName = /*[[${company.name}]]*/ '公司';
+        var companyAddress = /*[[${company.address}]]*/ '';
+        var amapKey = /*[[${amapKey}]]*/ '40e3021845971db336775b94da0326da';
+        var map, companyMarker, userMarker, geolocation;
+        var userPosition = null;
+        var currentRouter = null;
+        var straightLine = null;
+
+        (function() {
+            var script = document.createElement('script');
+            script.src = 'https://webapi.amap.com/maps?v=2.0&key=' + amapKey
+                + '&plugin=AMap.Geolocation,AMap.Driving,AMap.Walking,AMap.Transfer,AMap.Scale,AMap.ToolBar,AMap.GeometryUtil,AMap.Buildings';
+            script.onload = initMap;
+            script.onerror = function() {
+                document.getElementById('amapContainer').innerHTML =
+                    '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;background:#1a1a2e;">' +
+                    '<div style="text-align:center;"><p>地图加载失败</p>' +
+                    '<p style="font-size:12px;margin-top:4px;">' + companyAddress + '</p></div></div>';
+            };
+            document.head.appendChild(script);
+        })();
+
+        function initMap() {
+            map = new AMap.Map('amapContainer', {
+                center: [companyLng, companyLat],
+                zoom: 17,
+                mapStyle: 'amap://styles/light',
+                features: ['bg', 'road', 'building', 'point'],
+                viewMode: '2D',
+                showBuildingBlock: true,
+                pitch: 30
+            });
+
+            map.addControl(new AMap.Scale({ position: 'LB' }));
+            map.addControl(new AMap.ToolBar({ position: 'RT', locate: false, liteStyle: false }));
+
+            var buildings = new AMap.Buildings({ zooms: [14, 20], opacity: 0.8, heightFactor: 1.5 });
+            map.add(buildings);
+
+            companyMarker = new AMap.Marker({
+                position: [companyLng, companyLat],
+                title: companyName,
+                icon: new AMap.Icon({
+                    size: new AMap.Size(36, 50),
+                    image: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png',
+                    imageSize: new AMap.Size(36, 50)
+                }),
+                anchor: 'center',
+                label: {
+                    content: '<div style="background:rgba(0,0,0,0.75);color:#fff;padding:4px 12px;border-radius:4px;font-size:12px;white-space:nowrap;margin-top:8px;">'
+                        + companyName + '</div>',
+                    direction: 'bottom'
+                }
+            });
+            map.add(companyMarker);
+
+            var infoWindow = new AMap.InfoWindow({
+                content: '<div style="padding:8px 12px;font-size:13px;"><strong style="color:#333;">'
+                    + companyName + '</strong><br><span style="color:#666;font-size:12px;">'
+                    + companyAddress + '</span></div>',
+                offset: new AMap.Pixel(0, -50)
+            });
+            companyMarker.on('click', function() { infoWindow.open(map, companyMarker.getPosition()); });
+            infoWindow.open(map, companyMarker.getPosition());
+
+            // 静默获取用户位置计算距离
+            AMap.plugin('AMap.Geolocation', function() {
+                geolocation = new AMap.Geolocation({ enableHighAccuracy: true, timeout: 10000 });
+                geolocation.getCurrentPosition(function(status, result) {
+                    if (status === 'complete') {
+                        userPosition = [result.position.lng, result.position.lat];
+                        showStraightDistance();
+                    }
+                });
+            });
+        }
+
+        function showStraightDistance() {
+            if (!userPosition) return;
+            var dist = AMap.GeometryUtil.distance(userPosition, [companyLng, companyLat]);
+            var card = document.getElementById('distanceCard');
+            document.getElementById('distValue').textContent = dist < 1000
+                ? Math.round(dist) : (dist / 1000).toFixed(1);
+            document.getElementById('distUnit').textContent = dist < 1000 ? 'm' : 'km';
+            document.getElementById('distTime').textContent = dist < 1000
+                ? '步行约' + Math.round(dist / 80) + '分钟'
+                : '驾车约' + Math.round(dist / 500) + '分钟';
+            card.classList.add('show');
+
+            // 画虚线连接
+            if (straightLine) { map.remove(straightLine); }
+            straightLine = new AMap.Polyline({
+                path: [userPosition, [companyLng, companyLat]],
+                strokeColor: '#00c2b3',
+                strokeWeight: 3,
+                strokeStyle: 'dashed',
+                strokeDasharray: [12, 8],
+                lineJoin: 'round',
+                zIndex: 50,
+                showDir: true
+            });
+            map.add(straightLine);
+            map.setFitView(null, false, [80, 80, 80, 200]);
+        }
+
+        function locateMe() {
+            if (!geolocation) {
+                AMap.plugin('AMap.Geolocation', function() {
+                    geolocation = new AMap.Geolocation({ enableHighAccuracy: true, timeout: 10000 });
+                    doLocate();
+                });
+                return;
+            }
+            doLocate();
+        }
+
+        function doLocate() {
+            if (!geolocation) return;
+            geolocation.getCurrentPosition(function(status, result) {
+                if (status === 'complete') {
+                    var pos = [result.position.lng, result.position.lat];
+                    userPosition = pos;
+                    map.setCenter(pos);
+                    if (userMarker) { map.remove(userMarker); }
+                    userMarker = new AMap.Marker({
+                        position: pos,
+                        icon: new AMap.Icon({
+                            size: new AMap.Size(24, 36),
+                            image: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png',
+                            imageSize: new AMap.Size(24, 36)
+                        }),
+                        title: '我的位置',
+                        zIndex: 100
+                    });
+                    map.add(userMarker);
+                    map.setFitView(null, false, [80, 80, 80, 200]);
+                    showStraightDistance();
+                } else {
+                    alert('定位失败，请检查浏览器定位权限');
+                }
+            });
+        }
+
+        function planRoute(type) {
+            if (!map || !userPosition) {
+                alert('请先点击"我的位置"按钮进行定位');
+                return;
+            }
+            var start = userPosition;
+            var end = [companyLng, companyLat];
+
+            // 清除之前的路线
+            if (currentRouter) {
+                try { currentRouter.clear(); } catch(e) {}
+                currentRouter = null;
+            }
+
+            var panel = document.getElementById('routePanel');
+            var info = document.getElementById('routeInfo');
+            panel.classList.add('show');
+            info.innerHTML = '<div style="color:#00c2b3;text-align:center;padding:20px;">正在规划路线...</div>';
+
+            if (type === 'driving') {
+                AMap.plugin('AMap.Driving', function() {
+                    var driving = new AMap.Driving({
+                        map: map, panel: 'routeInfo', showTraffic: false,
+                        policy: AMap.DrivingPolicy.LEAST_TIME, autoFitView: true
+                    });
+                    driving.search(start, end, function(status, result) {
+                        panel.classList.add('show');
+                        updateDistanceFromRoute(result, '驾车');
+                        styleRoutePolylines();
+                    });
+                    currentRouter = driving;
+                });
+            } else if (type === 'walking') {
+                AMap.plugin('AMap.Walking', function() {
+                    var walking = new AMap.Walking({ map: map, panel: 'routeInfo', autoFitView: true });
+                    walking.search(start, end, function(status, result) {
+                        panel.classList.add('show');
+                        updateDistanceFromRoute(result, '步行');
+                        styleRoutePolylines();
+                    });
+                    currentRouter = walking;
+                });
+            } else if (type === 'transit') {
+                AMap.plugin('AMap.Transfer', function() {
+                    var transfer = new AMap.Transfer({
+                        map: map, panel: 'routeInfo',
+                        city: '北京', policy: AMap.TransferPolicy.LEAST_TIME, autoFitView: true
+                    });
+                    transfer.search(start, end, function(status, result) {
+                        panel.classList.add('show');
+                        updateDistanceFromRoute(result, '公交');
+                        styleRoutePolylines();
+                    });
+                    currentRouter = transfer;
+                });
+            }
+        }
+
+        function styleRoutePolylines() {
+            try {
+                map.getAllOverlays('polyline').forEach(function(poly) {
+                    var opts = poly.getOptions();
+                    if (opts.strokeStyle !== 'dashed' && opts.strokeWeight < 6) {
+                        poly.setOptions({
+                            strokeColor: '#00c2b3',
+                            strokeWeight: 7,
+                            strokeOpacity: 0.9,
+                            lineJoin: 'round',
+                            showDir: true
+                        });
+                    }
+                });
+            } catch(e) {}
+        }
+
+        function updateDistanceFromRoute(result, type) {
+            if (!result || !result.routes || result.routes.length === 0) return;
+            var route = result.routes[0];
+            var dist = route.distance;
+            var time = route.time;
+            var card = document.getElementById('distanceCard');
+
+            document.getElementById('distValue').textContent = dist < 1000
+                ? Math.round(dist) : (dist / 1000).toFixed(1);
+            document.getElementById('distUnit').textContent = dist < 1000 ? 'm' : 'km';
+
+            var timeStr;
+            if (time < 60) timeStr = '不到1分钟';
+            else if (time < 3600) timeStr = '约' + Math.round(time / 60) + '分钟';
+            else {
+                var h = Math.floor(time / 3600);
+                var m = Math.round((time % 3600) / 60);
+                timeStr = '约' + h + '小时' + (m > 0 ? m + '分钟' : '');
+            }
+            document.getElementById('distTime').textContent = timeStr;
+            document.getElementById('distDesc').textContent = type + '路线距离';
+            document.getElementById('distType').textContent = type + '路线';
+            card.classList.add('show');
+        }
+
+        function openInAmap() {
+            var url = 'https://uri.amap.com/navigation?to=' + companyLng + ',' + companyLat
+                + ',' + encodeURIComponent(companyName) + '&mode=car&callnative=1';
+            window.open(url, '_blank');
+        }
+    </script>
+</body>
+</html>

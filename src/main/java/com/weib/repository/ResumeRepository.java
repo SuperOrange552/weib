@@ -4,6 +4,7 @@ import com.weib.entity.Resume;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -32,4 +33,6 @@ public interface ResumeRepository extends JpaRepository<Resume, Long> {
      * @return true=已创建，false=未创建
      */
     boolean existsByUserId(Long userId);
+
+    List<Resume> findByUserIdIn(List<Long> userIds);
 }

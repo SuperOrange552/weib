@@ -1,0 +1,7 @@
+{
+  "gitCommitHash": "4423b85df7465d05db6fab5a9daa854dfa45eaa6",
+  "lastUpdate": "2026-05-27T12:00:00+08:00",
+  "fileCount": 42,
+  "scanExtensions": [".java", ".html", ".xml", ".yml", ".properties", ".sql"],
+  "ignoreDirs": ["target", ".git", ".idea", "node_modules", "dist", "build"]
+}

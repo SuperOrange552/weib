@@ -3,45 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="${isEdit} ? '编辑职位' : '发布职位'">发布职位</title>
+    <title th:text="${isEdit ? '编辑职位' : '发布职位'}">发布职位 - 微招</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; 
+        body {
+            font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             min-height: 100vh;
             color: #e0e0e0;
             padding: 40px 20px;
         }
-        .container { max-width: 800px; margin: 0 auto; }
-        
+        .container { max-width: 900px; margin: 0 auto; }
+
         .back-btn {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            color: #00d4ff;
+            color: #00c2b3;
             text-decoration: none;
             padding: 10px 20px;
             border-radius: 8px;
-            background: rgba(0,212,255,0.1);
-            border: 1px solid rgba(0,212,255,0.3);
+            background: rgba(0,194,179,0.1);
+            border: 1px solid rgba(0,194,179,0.3);
             margin-bottom: 30px;
             transition: all 0.3s;
         }
-        .back-btn:hover { background: rgba(0,212,255,0.2); }
-        
+        .back-btn:hover { background: rgba(0,194,179,0.2); }
+
         .page-title {
             text-align: center;
             margin-bottom: 40px;
         }
         .page-title h1 {
             font-size: 32px;
-            background: linear-gradient(135deg, #00d4ff, #8b5cf6);
+            background: linear-gradient(135deg, #00c2b3, #5dd5c8);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             margin-bottom: 12px;
         }
-        
+        .page-title p { color: #888; }
+
+        .layout { display: grid; grid-template-columns: 1fr 380px; gap: 24px; align-items: start; }
+
         .form-card {
             background: rgba(255,255,255,0.05);
             backdrop-filter: blur(10px);
@@ -49,12 +52,32 @@
             padding: 40px;
             border: 1px solid rgba(255,255,255,0.1);
         }
-        .form-group { margin-bottom: 24px; }
-        .form-label { display: block; margin-bottom: 10px; color: #a0a0a0; font-size: 14px; }
-        .form-label span { color: #ff6b6b; }
+        .form-section { margin-bottom: 32px; }
+        .form-section:last-child { margin-bottom: 0; }
+        .section-title {
+            font-size: 16px;
+            color: #00c2b3;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(0,194,179,0.15);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-group:last-child { margin-bottom: 0; }
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: #9fa3af;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .form-label .req { color: #ef505e; margin-left: 2px; }
+        .form-label .optional { color: #555; font-weight: 400; font-size: 12px; }
         .form-input {
             width: 100%;
-            padding: 14px 18px;
+            padding: 12px 16px;
             border: 1px solid rgba(255,255,255,0.1);
             border-radius: 10px;
             background: rgba(255,255,255,0.05);
@@ -64,10 +87,11 @@
             transition: all 0.3s;
         }
         .form-input:focus {
-            border-color: #00d4ff;
-            box-shadow: 0 0 20px rgba(0,212,255,0.2);
+            border-color: #00c2b3;
+            box-shadow: 0 0 20px rgba(0,194,179,0.15);
         }
-        textarea.form-input { min-height: 150px; resize: vertical; }
+        .form-input::placeholder { color: #555; }
+        textarea.form-input { min-height: 130px; resize: vertical; line-height: 1.7; }
         select.form-input {
             cursor: pointer;
             appearance: none;
@@ -76,16 +100,152 @@
             background-position: right 16px center;
         }
         select.form-input option { background: #1a1a2e; }
-        
-        .salary-group { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; }
-        .salary-unit { color: #888; text-align: center; }
-        
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        
+
+        .salary-group { display: grid; grid-template-columns: 1fr auto 1fr auto; gap: 10px; align-items: center; }
+        .salary-sep { color: #666; text-align: center; font-size: 14px; }
+        .salary-type {
+            padding: 12px 14px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            background: rgba(255,255,255,0.05);
+            color: #888;
+            font-size: 14px;
+        }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+        .char-count { font-size: 11px; color: #555; text-align: right; margin-top: 4px; }
+        .char-count.warn { color: #ffc107; }
+
+        /* Tag input */
+        .tag-input-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 10px 14px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            background: rgba(255,255,255,0.05);
+            min-height: 48px;
+            align-items: center;
+            transition: all 0.3s;
+        }
+        .tag-input-wrap:focus-within {
+            border-color: #00c2b3;
+            box-shadow: 0 0 20px rgba(0,194,179,0.15);
+        }
+        .tag-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 12px;
+            background: rgba(0,194,179,0.15);
+            border: 1px solid rgba(0,194,179,0.25);
+            border-radius: 16px;
+            color: #00c2b3;
+            font-size: 13px;
+        }
+        .tag-remove {
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0 2px;
+            line-height: 1;
+        }
+        .tag-remove:hover { color: #ef505e; }
+        #tagInput {
+            flex: 1;
+            min-width: 120px;
+            border: none;
+            background: transparent;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+            padding: 4px 0;
+        }
+        #tagInput::placeholder { color: #555; }
+        .tag-suggestions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+        .tag-suggest {
+            padding: 4px 12px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #666;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tag-suggest:hover {
+            background: rgba(0,194,179,0.1);
+            border-color: rgba(0,194,179,0.25);
+            color: #00c2b3;
+        }
+        input[name="tags"] { display: none; }
+
+        /* Preview card */
+        .preview-card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 28px;
+            border: 1px solid rgba(255,255,255,0.1);
+            position: sticky;
+            top: 20px;
+        }
+        .preview-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .preview-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 6px;
+        }
+        .preview-salary {
+            font-size: 22px;
+            font-weight: 700;
+            color: #ef505e;
+            margin-bottom: 16px;
+        }
+        .preview-meta {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+        .preview-tag {
+            padding: 4px 14px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.08);
+            color: #aaa;
+            font-size: 13px;
+        }
+        .preview-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        .preview-desc {
+            font-size: 14px;
+            color: #999;
+            line-height: 1.7;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .preview-empty { color: #555; font-style: italic; font-size: 14px; }
+
         .submit-btn {
             width: 100%;
             padding: 16px;
-            background: linear-gradient(135deg, #00d4ff, #8b5cf6);
+            background: linear-gradient(135deg, #00c2b3, #5dd5c8);
             color: #fff;
             border: none;
             border-radius: 12px;
@@ -93,138 +253,344 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
-            margin-top: 20px;
+            margin-top: 24px;
         }
         .submit-btn:hover {
             transform: translateY(-3px);
-            box-shadow: 0 12px 35px rgba(0,212,255,0.4);
+            box-shadow: 0 12px 35px rgba(0,194,179,0.4);
         }
-        
+
         .error-msg {
-            background: rgba(255,107,107,0.1);
-            border: 1px solid rgba(255,107,107,0.3);
+            background: rgba(239,80,94,0.1);
+            border: 1px solid rgba(239,80,94,0.3);
             border-radius: 10px;
             padding: 14px;
-            color: #ff6b6b;
+            color: #ef505e;
             margin-bottom: 20px;
+            text-align: center;
+        }
+
+        @media (max-width: 900px) {
+            .layout { grid-template-columns: 1fr; }
+            .preview-card { position: static; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <a href="/boss/jobs" class="back-btn">← 返回职位列表</a>
-        
+
         <div class="page-title">
-            <h1 th:text="${isEdit} ? '✏️ 编辑职位' : '✨ 发布新职位'">发布新职位</h1>
-            <p th:text="${isEdit} ? '修改职位信息' : '填写职位信息，吸引优秀人才'">填写职位信息，吸引优秀人才</p>
+            <h1 th:text="${isEdit ? '✏️ 编辑职位' : '✅ 发布新职位'}">发布新职位</h1>
+            <p th:text="${isEdit ? '修改职位信息，更新招聘需求' : '填写详细的职位信息，更吸引优质人才'}">填写详细的职位信息，更吸引优质人才</p>
         </div>
-        
-        <div class="form-card">
-            <div class="error-msg" th:if="${error}" th:text="${error}"></div>
-            
-            <form action="/boss/job/save" method="post">
-                <!-- 隐藏字段：编辑时传递ID -->
-                <input type="hidden" name="id" th:value="${job.id}">
-                
-                <!-- 职位名称 -->
-                <div class="form-group">
-                    <label class="form-label">职位名称 <span>*</span></label>
-                    <input type="text" name="title" class="form-input" 
-                           placeholder="如：Java高级开发工程师" 
-                           th:value="${job.title}" required>
-                </div>
-                
-                <!-- 薪资范围 -->
-                <div class="form-group">
-                    <label class="form-label">薪资范围（k/月）</label>
-                    <div class="salary-group">
-                        <input type="number" name="salaryMin" class="form-input" 
-                               placeholder="最低薪资" th:value="${job.salaryMin}">
-                        <span class="salary-unit">~</span>
-                        <input type="number" name="salaryMax" class="form-input" 
-                               placeholder="最高薪资" th:value="${job.salaryMax}">
+
+        <div class="layout">
+            <!-- 编辑表单 -->
+            <div class="form-card">
+                <div class="error-msg" th:if="${error}" th:text="${error}"></div>
+
+                <form action="/boss/job/save" method="post" id="jobForm">
+                    <input type="hidden" name="_csrf" th:value="${csrf_token}">
+                    <input type="hidden" name="id" th:value="${job.id}">
+                    <input type="hidden" name="tags" id="tagsHidden" th:value="${job.tags}">
+
+                    <!-- 基本信息 -->
+                    <div class="form-section">
+                        <div class="section-title">📋 基本信息</div>
+
+                        <div class="form-group">
+                            <label class="form-label">职位名称 <span class="req">*</span></label>
+                            <input type="text" name="title" id="titleInput" class="form-input"
+                                   placeholder="如：Java高级开发工程师、产品经理、UI设计师"
+                                   th:value="${job.title}" required maxlength="100">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">薪资范围 <span class="optional">(可选，不填则显示"薪资面议")</span></label>
+                            <div class="salary-group">
+                                <input type="number" name="salaryMin" id="salaryMinInput" class="form-input"
+                                       placeholder="最低" th:value="${job.salaryMin}" min="0" max="999">
+                                <span class="salary-sep">—</span>
+                                <input type="number" name="salaryMax" id="salaryMaxInput" class="form-input"
+                                       placeholder="最高" th:value="${job.salaryMax}" min="0" max="999">
+                                <span class="salary-type">K/月</span>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">工作城市</label>
+                                <select name="city" id="citySelect" class="form-input">
+                                    <option value="">不限</option>
+                                    <option value="北京" th:selected="${job.city == '北京'}">北京</option>
+                                    <option value="上海" th:selected="${job.city == '上海'}">上海</option>
+                                    <option value="广州" th:selected="${job.city == '广州'}">广州</option>
+                                    <option value="深圳" th:selected="${job.city == '深圳'}">深圳</option>
+                                    <option value="杭州" th:selected="${job.city == '杭州'}">杭州</option>
+                                    <option value="成都" th:selected="${job.city == '成都'}">成都</option>
+                                    <option value="武汉" th:selected="${job.city == '武汉'}">武汉</option>
+                                    <option value="西安" th:selected="${job.city == '西安'}">西安</option>
+                                    <option value="南京" th:selected="${job.city == '南京'}">南京</option>
+                                    <option value="苏州" th:selected="${job.city == '苏州'}">苏州</option>
+                                    <option value="重庆" th:selected="${job.city == '重庆'}">重庆</option>
+                                    <option value="天津" th:selected="${job.city == '天津'}">天津</option>
+                                    <option value="长沙" th:selected="${job.city == '长沙'}">长沙</option>
+                                    <option value="郑州" th:selected="${job.city == '郑州'}">郑州</option>
+                                    <option value="厦门" th:selected="${job.city == '厦门'}">厦门</option>
+                                    <option value="青岛" th:selected="${job.city == '青岛'}">青岛</option>
+                                    <option value="大连" th:selected="${job.city == '大连'}">大连</option>
+                                    <option value="东莞" th:selected="${job.city == '东莞'}">东莞</option>
+                                    <option value="合肥" th:selected="${job.city == '合肥'}">合肥</option>
+                                    <option value="福州" th:selected="${job.city == '福州'}">福州</option>
+                                    <option value="济南" th:selected="${job.city == '济南'}">济南</option>
+                                    <option value="沈阳" th:selected="${job.city == '沈阳'}">沈阳</option>
+                                    <option value="长春" th:selected="${job.city == '长春'}">长春</option>
+                                    <option value="哈尔滨" th:selected="${job.city == '哈尔滨'}">哈尔滨</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">详细地址 <span class="optional">(选填)</span></label>
+                                <input type="text" name="address" id="addressInput" class="form-input"
+                                       placeholder="如：朝阳区望京SOHO T1"
+                                       th:value="${job.address}" maxlength="200">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">学历要求 <span class="req">*</span></label>
+                                <select name="education" id="educationSelect" class="form-input" required>
+                                    <option value="">请选择</option>
+                                    <option value="不限" th:selected="${job.education == '不限'}">不限</option>
+                                    <option value="高中" th:selected="${job.education == '高中'}">高中</option>
+                                    <option value="大专" th:selected="${job.education == '大专'}">大专</option>
+                                    <option value="本科" th:selected="${job.education == '本科'}">本科</option>
+                                    <option value="硕士" th:selected="${job.education == '硕士'}">硕士</option>
+                                    <option value="博士" th:selected="${job.education == '博士'}">博士</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">经验要求 <span class="req">*</span></label>
+                                <select name="experience" id="experienceSelect" class="form-input" required>
+                                    <option value="">请选择</option>
+                                    <option value="应届生" th:selected="${job.experience == '应届生'}">应届生</option>
+                                    <option value="1年以下" th:selected="${job.experience == '1年以下'}">1年以下</option>
+                                    <option value="1-3年" th:selected="${job.experience == '1-3年'}">1-3年</option>
+                                    <option value="3-5年" th:selected="${job.experience == '3-5年'}">3-5年</option>
+                                    <option value="5-10年" th:selected="${job.experience == '5-10年'}">5-10年</option>
+                                    <option value="10年以上" th:selected="${job.experience == '10年以上'}">10年以上</option>
+                                    <option value="不限" th:selected="${job.experience == '不限'}">不限</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                
-                <!-- 城市和地址 -->
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">工作城市</label>
-                        <select name="city" class="form-input">
-                            <option value="">选择城市</option>
-                            <option value="北京" th:selected="${job.city == '北京'}">北京</option>
-                            <option value="上海" th:selected="${job.city == '上海'}">上海</option>
-                            <option value="广州" th:selected="${job.city == '广州'}">广州</option>
-                            <option value="深圳" th:selected="${job.city == '深圳'}">深圳</option>
-                            <option value="杭州" th:selected="${job.city == '杭州'}">杭州</option>
-                            <option value="成都" th:selected="${job.city == '成都'}">成都</option>
-                            <option value="武汉" th:selected="${job.city == '武汉'}">武汉</option>
-                            <option value="西安" th:selected="${job.city == '西安'}">西安</option>
-                            <option value="南京" th:selected="${job.city == '南京'}">南京</option>
-                            <option value="苏州" th:selected="${job.city == '苏州'}">苏州</option>
-                        </select>
+
+                    <!-- 职位详情 -->
+                    <div class="form-section">
+                        <div class="section-title">📝 职位详情</div>
+
+                        <div class="form-group">
+                            <label class="form-label">职位描述 <span class="req">*</span></label>
+                            <textarea name="description" id="descInput" class="form-input" required maxlength="5000"
+                                      placeholder="详细描述这个岗位的工作内容：&#10;&#10;1. 负责什么产品/项目？&#10;2. 日常主要工作内容有哪些？&#10;3. 团队规模和分工是怎样的？&#10;4. 有什么发展空间和晋升路径？"
+                                      th:text="${job.description}"></textarea>
+                            <div class="char-count" id="descCount">0 / 5000</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">任职要求 <span class="optional">(选填)</span></label>
+                            <textarea name="requirements" id="reqInput" class="form-input" maxlength="3000"
+                                      placeholder="需要候选人具备哪些能力和经验：&#10;&#10;1. 技术栈/工具要求&#10;2. 工作经验要求&#10;3. 软技能/综合素质&#10;4. 加分项（优先考虑的条件）"
+                                      th:text="${job.requirements}"></textarea>
+                            <div class="char-count" id="reqCount">0 / 3000</div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">详细地址</label>
-                        <input type="text" name="address" class="form-input" 
-                               placeholder="如：朝阳区望京SOHO" th:value="${job.address}">
+
+                    <!-- 标签 -->
+                    <div class="form-section">
+                        <div class="section-title">🏷️ 职位标签</div>
+                        <div class="form-group">
+                            <label class="form-label">技能标签 <span class="optional">(输入后按回车添加，有助于求职者搜索到你)</span></label>
+                            <div class="tag-input-wrap" id="tagWrap">
+                                <input type="text" id="tagInput" placeholder="输入标签，回车添加..." maxlength="15">
+                            </div>
+                            <div class="tag-suggestions" id="tagSuggestions">
+                                <span class="tag-suggest" onclick="addTag('Java')">Java</span>
+                                <span class="tag-suggest" onclick="addTag('Python')">Python</span>
+                                <span class="tag-suggest" onclick="addTag('Spring')">Spring</span>
+                                <span class="tag-suggest" onclick="addTag('Vue')">Vue</span>
+                                <span class="tag-suggest" onclick="addTag('React')">React</span>
+                                <span class="tag-suggest" onclick="addTag('MySQL')">MySQL</span>
+                                <span class="tag-suggest" onclick="addTag('Linux')">Linux</span>
+                                <span class="tag-suggest" onclick="addTag('Docker')">Docker</span>
+                                <span class="tag-suggest" onclick="addTag('AI')">AI</span>
+                                <span class="tag-suggest" onclick="addTag('大数据')">大数据</span>
+                                <span class="tag-suggest" onclick="addTag('K8s')">K8s</span>
+                                <span class="tag-suggest" onclick="addTag('微服务')">微服务</span>
+                            </div>
+                        </div>
                     </div>
+
+                    <button type="submit" class="submit-btn" th:text="${isEdit ? '💾 保存修改' : '🚀 立即发布'}">发布职位</button>
+                </form>
+            </div>
+
+            <!-- 实时预览 -->
+            <div class="preview-card">
+                <div class="preview-header">👁️ 求职者视角预览</div>
+                <div class="preview-title" id="previewTitle">职位名称</div>
+                <div class="preview-salary" id="previewSalary">薪资面议</div>
+                <div class="preview-meta">
+                    <span class="preview-tag" id="previewCity">城市</span>
+                    <span class="preview-tag" id="previewEdu">学历</span>
+                    <span class="preview-tag" id="previewExp">经验</span>
                 </div>
-                
-                <!-- 学历和经验 -->
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">学历要求</label>
-                        <select name="education" class="form-input">
-                            <option value="">学历要求</option>
-                            <option value="不限" th:selected="${job.education == '不限'}">不限</option>
-                            <option value="大专" th:selected="${job.education == '大专'}">大专</option>
-                            <option value="本科" th:selected="${job.education == '本科'}">本科</option>
-                            <option value="硕士" th:selected="${job.education == '硕士'}">硕士</option>
-                            <option value="博士" th:selected="${job.education == '博士'}">博士</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">经验要求</label>
-                        <select name="experience" class="form-input">
-                            <option value="">经验要求</option>
-                            <option value="不限" th:selected="${job.experience == '不限'}">不限</option>
-                            <option value="1年以下" th:selected="${job.experience == '1年以下'}">1年以下</option>
-                            <option value="1-3年" th:selected="${job.experience == '1-3年'}">1-3年</option>
-                            <option value="3-5年" th:selected="${job.experience == '3-5年'}">3-5年</option>
-                            <option value="5-10年" th:selected="${job.experience == '5-10年'}">5-10年</option>
-                            <option value="10年以上" th:selected="${job.experience == '10年以上'}">10年以上</option>
-                        </select>
-                    </div>
+                <div id="previewTags" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;"></div>
+                <div class="preview-label">职位描述</div>
+                <div class="preview-desc" id="previewDesc">
+                    <span class="preview-empty">输入职位描述后会在这里实时预览...</span>
                 </div>
-                
-                <!-- 职位描述 -->
-                <div class="form-group">
-                    <label class="form-label">职位描述</label>
-                    <textarea name="description" class="form-input" 
-                              placeholder="详细描述岗位职责、工作内容、发展前景等..."
-                              th:text="${job.description}"></textarea>
-                </div>
-                
-                <!-- 任职要求 -->
-                <div class="form-group">
-                    <label class="form-label">任职要求</label>
-                    <textarea name="requirements" class="form-input" 
-                              placeholder="列出必备技能、工作经验、素质要求等..."
-                              th:text="${job.requirements}"></textarea>
-                </div>
-                
-                <!-- 职位标签 -->
-                <div class="form-group">
-                    <label class="form-label">职位标签（用逗号分隔）</label>
-                    <input type="text" name="tags" class="form-input" 
-                           placeholder="如：五险一金,弹性工作,定期团建,年度旅游"
-                           th:value="${job.tags}">
-                </div>
-                
-                <button type="submit" class="submit-btn" th:text="${isEdit} ? '保存修改' : '发布职位'">发布职位</button>
-            </form>
+            </div>
         </div>
     </div>
+
+    <script>
+        // Tag management
+        var tags = [];
+        var tagsHidden = document.getElementById('tagsHidden');
+        var tagInput = document.getElementById('tagInput');
+        var tagWrap = document.getElementById('tagWrap');
+        var previewTags = document.getElementById('previewTags');
+
+        // Init tags from existing value
+        if (tagsHidden.value) {
+            tags = tagsHidden.value.split(',').map(function(t) { return t.trim(); }).filter(Boolean);
+            renderTags();
+        }
+
+        tagInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addTag(tagInput.value.trim());
+            }
+            if (e.key === 'Backspace' && tagInput.value === '' && tags.length > 0) {
+                tags.pop();
+                renderTags();
+            }
+        });
+
+        function addTag(text) {
+            if (!text) return;
+            if (tags.length >= 10) { return; }
+            if (tags.includes(text)) {
+                tagInput.value = '';
+                return;
+            }
+            tags.push(text);
+            tagInput.value = '';
+            renderTags();
+        }
+
+        function removeTag(idx) {
+            tags.splice(idx, 1);
+            renderTags();
+        }
+
+        function renderTags() {
+            tagsHidden.value = tags.join(',');
+            // Update chips in wrap
+            var chips = tagWrap.querySelectorAll('.tag-chip');
+            chips.forEach(function(c) { c.remove(); });
+            tags.forEach(function(t, i) {
+                var chip = document.createElement('span');
+                chip.className = 'tag-chip';
+                chip.textContent = t;
+                var btn = document.createElement('button');
+                btn.className = 'tag-remove';
+                btn.textContent = '×';
+                btn.type = 'button';
+                btn.onclick = (function(idx) { return function() { removeTag(idx); }; })(i);
+                chip.appendChild(btn);
+                tagWrap.insertBefore(chip, tagInput);
+            });
+            // Update preview
+            previewTags.innerHTML = '';
+            tags.forEach(function(t) {
+                var span = document.createElement('span');
+                span.className = 'preview-tag';
+                span.style.cssText = 'background:rgba(0,194,179,0.1);color:#00c2b3;border:1px solid rgba(0,194,179,0.2);';
+                span.textContent = t;
+                previewTags.appendChild(span);
+            });
+        }
+
+        // Live preview
+        var titleInput = document.getElementById('titleInput');
+        var salaryMinInput = document.getElementById('salaryMinInput');
+        var salaryMaxInput = document.getElementById('salaryMaxInput');
+        var citySelect = document.getElementById('citySelect');
+        var educationSelect = document.getElementById('educationSelect');
+        var experienceSelect = document.getElementById('experienceSelect');
+        var descInput = document.getElementById('descInput');
+        var previewTitle = document.getElementById('previewTitle');
+        var previewSalary = document.getElementById('previewSalary');
+        var previewCity = document.getElementById('previewCity');
+        var previewEdu = document.getElementById('previewEdu');
+        var previewExp = document.getElementById('previewExp');
+        var previewDesc = document.getElementById('previewDesc');
+
+        function updatePreview() {
+            previewTitle.textContent = titleInput.value || '职位名称';
+            var min = parseInt(salaryMinInput.value) || 0;
+            var max = parseInt(salaryMaxInput.value) || 0;
+            if (min > 0 && max > 0) {
+                previewSalary.textContent = min + 'K - ' + max + 'K';
+            } else if (min > 0) {
+                previewSalary.textContent = min + 'K起';
+            } else if (max > 0) {
+                previewSalary.textContent = '最高' + max + 'K';
+            } else {
+                previewSalary.textContent = '薪资面议';
+            }
+            previewCity.textContent = citySelect.value || '全国';
+            previewEdu.textContent = educationSelect.value || '学历不限';
+            previewExp.textContent = experienceSelect.value || '经验不限';
+            var desc = descInput.value.trim();
+            if (desc) {
+                var escaped = document.createElement('div');
+                escaped.textContent = desc;
+                previewDesc.innerHTML = escaped.innerHTML.replace(/\n/g, '<br>');
+                previewDesc.style.color = '#b0b0b0';
+            } else {
+                previewDesc.innerHTML = '<span class="preview-empty">输入职位描述后会在这里实时预览...</span>';
+                previewDesc.style.color = '';
+            }
+        }
+
+        [titleInput, salaryMinInput, salaryMaxInput, citySelect, educationSelect, experienceSelect, descInput].forEach(function(el) {
+            el.addEventListener('input', updatePreview);
+            el.addEventListener('change', updatePreview);
+        });
+
+        // Character counters
+        var descCount = document.getElementById('descCount');
+        var reqCount = document.getElementById('reqCount');
+        descInput.addEventListener('input', function() {
+            var len = descInput.value.length;
+            descCount.textContent = len + ' / 5000';
+            descCount.className = len > 4500 ? 'char-count warn' : 'char-count';
+        });
+        document.getElementById('reqInput').addEventListener('input', function() {
+            var len = this.value.length;
+            reqCount.textContent = len + ' / 3000';
+            reqCount.className = len > 2700 ? 'char-count warn' : 'char-count';
+        });
+
+        // Init
+        updatePreview();
+        descCount.textContent = (descInput.value || '').length + ' / 5000';
+        reqCount.textContent = (document.getElementById('reqInput').value || '').length + ' / 3000';
+    </script>
 </body>
 </html>

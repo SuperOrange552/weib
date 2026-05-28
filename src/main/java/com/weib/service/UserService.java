@@ -3,6 +3,7 @@ package com.weib.service;
 import com.weib.entity.User;
 import com.weib.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -160,13 +161,10 @@ public class UserService {
 
     /**
      * UserRepository - 用户数据访问
-     * 
-     * 【final 关键字】
-     * - 表示这个字段只能赋值一次
-     * - 配合构造器注入，保证依赖不可变
-     * - 线程安全
+     * PasswordEncoder - BCrypt 密码加密器
      */
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * 用户注册
@@ -264,7 +262,7 @@ public class UserService {
         // 创建用户对象
         User user = new User();
         user.setUsername(username);
-        user.setPassword(password);  // 实际项目应该加密！
+        user.setPassword(passwordEncoder.encode(password));  // BCrypt 加密后存库
         user.setRole(role);           // 设置用户角色
         user.setNickname(username);   // 默认昵称同用户名
         
@@ -347,7 +345,7 @@ public class UserService {
     @Transactional(readOnly = true)  // 只读事务，优化查询
     public Optional<User> login(String username, String password) {
         return userRepository.findByUsername(username)
-                .filter(user -> user.getPassword().equals(password));
+                .filter(user -> passwordEncoder.matches(password, user.getPassword()));
     }
 
     /**
@@ -383,5 +381,17 @@ public class UserService {
     @Transactional(readOnly = true)
     public boolean existsByUsername(String username) {
         return userRepository.existsByUsername(username);
+    }
+
+    public String generateRememberToken(User user) {
+        String token = java.util.UUID.randomUUID().toString();
+        user.setRememberToken(token);
+        userRepository.save(user);
+        return token;
+    }
+
+    public void clearRememberToken(User user) {
+        user.setRememberToken(null);
+        userRepository.save(user);
     }
 }

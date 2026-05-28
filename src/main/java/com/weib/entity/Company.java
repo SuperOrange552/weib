@@ -36,6 +36,13 @@ public class Company {
     @Column(length = 200)
     private String address;
 
+    // ========================================
+    // 【地图坐标】用于高德地图打点
+    // 纬度(latitude) 和 经度(longitude)
+    // ========================================
+    private Double latitude;   // 纬度，如 39.980557
+    private Double longitude;  // 经度，如 116.337649
+
     @Column(length = 50)
     private String contactName;
 
@@ -45,7 +52,7 @@ public class Company {
     @Column(length = 100)
     private String contactEmail;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private Long bossId;
 
     @Column(nullable = false)

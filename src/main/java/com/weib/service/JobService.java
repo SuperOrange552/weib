@@ -4,9 +4,14 @@ import com.weib.entity.Job;
 import com.weib.repository.JobRepository;
 import com.weib.repository.ApplicationRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -291,7 +296,72 @@ public class JobService {
      * @return true=已投递，false=未投递
      */
     @Transactional(readOnly = true)
+    public List<Job> getJobsByIds(List<Long> ids) {
+        if (ids.isEmpty()) return List.of();
+        return jobRepository.findAllById(ids);
+    }
+
+    @Transactional(readOnly = true)
     public boolean hasApplied(Long jobId, Long userId) {
         return applicationRepository.findByJobIdAndUserId(jobId, userId).isPresent();
+    }
+
+    /**
+     * 分页获取活跃职位
+     */
+    @Transactional(readOnly = true)
+    public Page<Job> getActiveJobsPaged(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return jobRepository.findByStatusOrderByCreatedAtDesc("active", pageable);
+    }
+
+    /**
+     * 分页搜索职位
+     */
+    @Transactional(readOnly = true)
+    public Page<Job> searchJobsPaged(String keyword, String city, String education,
+                                      String experience,
+                                      Integer salaryMin, Integer salaryMax,
+                                      String sort, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Job> result;
+
+        if (keyword != null && !keyword.isEmpty()) {
+            result = jobRepository.findByTitleContainingIgnoreCase(keyword, pageable);
+        } else {
+            result = jobRepository.findByStatus("active", pageable);
+        }
+
+        List<Job> filtered = new ArrayList<>(result.getContent());
+        // 只展示活跃职位
+        filtered = filtered.stream().filter(j -> "active".equals(j.getStatus())).toList();
+        if (city != null && !city.isEmpty()) {
+            filtered = filtered.stream().filter(j -> city.equals(j.getCity())).toList();
+        }
+        if (education != null && !education.isEmpty()) {
+            filtered = filtered.stream().filter(j -> education.equals(j.getEducation())).toList();
+        }
+        if (experience != null && !experience.isEmpty()) {
+            filtered = filtered.stream().filter(j -> experience.equals(j.getExperience())).toList();
+        }
+        if (salaryMin != null) {
+            filtered = filtered.stream().filter(j -> j.getSalaryMax() != null && j.getSalaryMax() >= salaryMin).toList();
+        }
+        if (salaryMax != null) {
+            filtered = filtered.stream().filter(j -> j.getSalaryMin() != null && j.getSalaryMin() <= salaryMax).toList();
+        }
+
+        if ("salary_high".equals(sort)) {
+            filtered.sort(Comparator.comparing(Job::getSalaryMax, Comparator.nullsLast(Comparator.reverseOrder())));
+        } else if ("salary_low".equals(sort)) {
+            filtered.sort(Comparator.comparing(Job::getSalaryMin, Comparator.nullsLast(Comparator.naturalOrder())));
+        }
+
+        // 分页：totalElements 必须反映过滤后的真实数量，否则前端分页数字错误
+        int total = filtered.size();
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), total);
+        List<Job> pageContent = start < total ? filtered.subList(start, end) : List.of();
+        return new org.springframework.data.domain.PageImpl<>(pageContent, pageable, total);
     }
 }

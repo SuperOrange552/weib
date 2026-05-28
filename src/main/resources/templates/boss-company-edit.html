@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>编辑公司信息 - 微招</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            padding: 40px 20px;
+        }
+        .container { max-width: 800px; margin: 0 auto; }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .back-btn {
+            color: #00c2b3;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 8px;
+            background: rgba(0,194,179,0.1);
+            border: 1px solid rgba(0,194,179,0.3);
+            transition: all 0.3s;
+        }
+        .back-btn:hover { background: rgba(0,194,179,0.2); }
+
+        .page-title {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .page-title h1 {
+            font-size: 32px;
+            background: linear-gradient(135deg, #00c2b3, #5dd5c8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+        }
+        .page-title p { color: #888; }
+
+        .form-card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .form-group { margin-bottom: 24px; }
+        .form-label {
+            display: block;
+            margin-bottom: 10px;
+            color: #9fa3af;
+            font-size: 14px;
+        }
+        .form-input {
+            width: 100%;
+            padding: 14px 18px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.3s;
+        }
+        .form-input:focus {
+            border-color: #00c2b3;
+            box-shadow: 0 0 20px rgba(0,194,179,0.2);
+        }
+        .form-input::placeholder { color: #555; }
+        .form-input[readonly] {
+            background: rgba(255,255,255,0.03);
+            color: #666;
+            cursor: not-allowed;
+        }
+        textarea.form-input { min-height: 120px; resize: vertical; }
+        select.form-input {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23666'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+        }
+        select.form-input option { background: #1a1a2e; }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #00c2b3, #5dd5c8);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+        .submit-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(0,194,179,0.4);
+        }
+
+        .success-msg {
+            background: rgba(16,185,129,0.1);
+            border: 1px solid rgba(16,185,129,0.3);
+            border-radius: 10px;
+            padding: 14px;
+            color: #10b981;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .error-msg {
+            background: rgba(239,80,94,0.1);
+            border: 1px solid rgba(239,80,94,0.3);
+            border-radius: 10px;
+            padding: 14px;
+            color: #ef505e;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .map-section {
+            margin-bottom: 24px;
+            padding: 20px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+            border: 1px solid rgba(0,194,179,0.2);
+        }
+        .map-section-title {
+            color: #00c2b3;
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .map-search-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .map-search-input {
+            flex: 1;
+            padding: 12px 16px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+        }
+        .map-search-input:focus { border-color: #00c2b3; }
+        .map-search-btn {
+            padding: 12px 18px;
+            background: rgba(0,194,179,0.2);
+            color: #00c2b3;
+            border: 1px solid rgba(0,194,179,0.4);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            white-space: nowrap;
+            transition: all 0.3s;
+        }
+        .map-search-btn:hover { background: rgba(0,194,179,0.3); }
+        #mapContainer {
+            width: 100%;
+            height: 320px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .map-hint { font-size: 12px; color: #666; margin-bottom: 4px; }
+        .coord-display { font-size: 13px; color: #5dd5c8; margin-top: 6px; }
+        .coord-display .set { color: #10b981; }
+        .coord-display .not-set { color: #666; }
+
+        .section-title {
+            font-size: 16px;
+            color: #00c2b3;
+            margin: 30px 0 20px 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(0,194,179,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="/boss" class="back-btn">← 返回Boss后台</a>
+        </div>
+
+        <div class="page-title">
+            <h1>✏️ 编辑公司信息</h1>
+            <p>更新公司的基本信息和联系方式</p>
+        </div>
+
+        <div class="form-card">
+            <div class="success-msg" th:if="${success}" th:text="${success}"></div>
+            <div class="error-msg" th:if="${error}" th:text="${error}"></div>
+
+            <form action="/boss/company/edit" method="post" id="editForm">
+                <input type="hidden" name="_csrf" th:value="${csrf_token}">
+                <div class="form-group">
+                    <label class="form-label">公司名称</label>
+                    <input type="text" class="form-input" readonly
+                           th:value="${company.name}">
+                    <div style="font-size:12px;color:#555;margin-top:4px;">公司名称创建后不可修改</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">所属行业</label>
+                    <select name="industry" class="form-input">
+                        <option value="">请选择行业</option>
+                        <option value="互联网" th:selected="${company.industry == '互联网'}">互联网</option>
+                        <option value="电子商务" th:selected="${company.industry == '电子商务'}">电子商务</option>
+                        <option value="金融" th:selected="${company.industry == '金融'}">金融</option>
+                        <option value="教育培训" th:selected="${company.industry == '教育培训'}">教育培训</option>
+                        <option value="医疗健康" th:selected="${company.industry == '医疗健康'}">医疗健康</option>
+                        <option value="游戏" th:selected="${company.industry == '游戏'}">游戏</option>
+                        <option value="媒体" th:selected="${company.industry == '媒体'}">媒体</option>
+                        <option value="广告营销" th:selected="${company.industry == '广告营销'}">广告营销</option>
+                        <option value="企业服务" th:selected="${company.industry == '企业服务'}">企业服务</option>
+                        <option value="硬件" th:selected="${company.industry == '硬件'}">硬件</option>
+                        <option value="房产" th:selected="${company.industry == '房产'}">房产</option>
+                        <option value="其他" th:selected="${company.industry == '其他'}">其他</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">公司规模</label>
+                    <select name="scale" class="form-input">
+                        <option value="">请选择规模</option>
+                        <option value="0-20人" th:selected="${company.scale == '0-20人'}">0-20人</option>
+                        <option value="20-99人" th:selected="${company.scale == '20-99人'}">20-99人</option>
+                        <option value="100-499人" th:selected="${company.scale == '100-499人'}">100-499人</option>
+                        <option value="500-999人" th:selected="${company.scale == '500-999人'}">500-999人</option>
+                        <option value="1000-9999人" th:selected="${company.scale == '1000-9999人'}">1000-9999人</option>
+                        <option value="10000人以上" th:selected="${company.scale == '10000人以上'}">10000人以上</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">公司地址</label>
+                    <input type="text" name="address" id="addressInput" class="form-input"
+                           th:value="${company.address}" placeholder="如：北京市朝阳区望京SOHO">
+                </div>
+
+                <div class="map-section">
+                    <div class="map-section-title">📍 公司定位（在地图上选择位置）</div>
+                    <div class="map-search-row">
+                        <input type="text" id="mapSearchInput" class="map-search-input"
+                               placeholder="搜索地址或在地图上点击选择位置...">
+                        <button type="button" class="map-search-btn" onclick="searchAddress()">🔍 搜索</button>
+                        <button type="button" class="map-search-btn" onclick="locateCurrent()">📍 定位</button>
+                    </div>
+                    <div id="mapContainer"></div>
+                    <div class="map-hint">点击地图或搜索地址来精确定位公司位置</div>
+                    <div class="coord-display" id="coordDisplay">
+                        <span class="not-set" id="coordText">⚠ 请在地图上选择公司位置</span>
+                    </div>
+                </div>
+
+                <input type="hidden" name="longitude" id="lngInput" th:value="${company.longitude}">
+                <input type="hidden" name="latitude" id="latInput" th:value="${company.latitude}">
+
+                <div class="form-group">
+                    <label class="form-label">公司介绍</label>
+                    <textarea name="description" class="form-input"
+                              th:text="${company.description}"
+                              placeholder="介绍一下你们的公司、文化、福利等..."></textarea>
+                </div>
+
+                <div class="section-title">📞 联系方式</div>
+
+                <div class="form-group">
+                    <label class="form-label">联系人姓名</label>
+                    <input type="text" name="contactName" class="form-input"
+                           th:value="${company.contactName}" placeholder="招聘负责人姓名">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">联系电话</label>
+                    <input type="text" name="contactPhone" class="form-input"
+                           th:value="${company.contactPhone}" placeholder="方便求职者联系">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">联系邮箱</label>
+                    <input type="email" name="contactEmail" class="form-input"
+                           th:value="${company.contactEmail}" placeholder="HR邮箱">
+                </div>
+
+                <button type="submit" class="submit-btn">保存修改</button>
+            </form>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        var amapKey = /*[[${amapKey}]]*/ '40e3021845971db336775b94da0326da';
+        var map, marker, geocoder;
+        var existingLng = /*[[${company.longitude}]]*/ null;
+        var existingLat = /*[[${company.latitude}]]*/ null;
+
+        function loadAmap() {
+            var script = document.createElement('script');
+            script.src = 'https://webapi.amap.com/maps?v=2.0&key=' + amapKey + '&plugin=AMap.Geocoder,AMap.Geolocation';
+            script.onload = initMap;
+            script.onerror = function() {
+                document.getElementById('mapContainer').innerHTML =
+                    '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;">' +
+                    '<div style="text-align:center;"><div style="font-size:32px;margin-bottom:12px;">🗺️</div>' +
+                    '<p>地图加载失败</p><p style="font-size:12px;margin-top:6px;">可以手动输入地址，系统将自动定位</p></div></div>';
+            };
+            document.head.appendChild(script);
+        }
+
+        function initMap() {
+            var centerLng = existingLng || 116.397428;
+            var centerLat = existingLat || 39.90923;
+
+            map = new AMap.Map('mapContainer', {
+                center: [centerLng, centerLat],
+                zoom: existingLng ? 15 : 12,
+                mapStyle: 'amap://styles/darkblue'
+            });
+
+            geocoder = new AMap.Geocoder({ map: map });
+
+            // 如果有已有坐标，显示标记
+            if (existingLng && existingLat) {
+                placeMarker(existingLng, existingLat);
+            }
+
+            map.on('click', function(e) {
+                placeMarker(e.lnglat.getLng(), e.lnglat.getLat());
+                geocoder.getAddress([e.lnglat.getLng(), e.lnglat.getLat()], function(status, result) {
+                    if (status === 'complete' && result.regeocode) {
+                        document.getElementById('addressInput').value = result.regeocode.formattedAddress;
+                    }
+                });
+            });
+        }
+
+        function searchAddress() {
+            var addr = document.getElementById('mapSearchInput').value.trim();
+            if (!addr) {
+                addr = document.getElementById('addressInput').value.trim();
+            }
+            if (!addr) { alert('请输入地址后搜索'); return; }
+            if (!geocoder) return;
+
+            geocoder.getLocation(addr, function(status, result) {
+                if (status === 'complete' && result.geocodes.length > 0) {
+                    var loc = result.geocodes[0].location;
+                    map.setCenter([loc.getLng(), loc.getLat()]);
+                    map.setZoom(16);
+                    placeMarker(loc.getLng(), loc.getLat());
+                    document.getElementById('addressInput').value = result.geocodes[0].formattedAddress || addr;
+                } else {
+                    alert('未找到该地址，请尝试更详细的地址');
+                }
+            });
+        }
+
+        function locateCurrent() {
+            AMap.plugin('AMap.Geolocation', function() {
+                var geo = new AMap.Geolocation({ enableHighAccuracy: true, timeout: 10000 });
+                geo.getCurrentPosition(function(status, result) {
+                    if (status === 'complete') {
+                        var lng = result.position.lng;
+                        var lat = result.position.lat;
+                        map.setCenter([lng, lat]);
+                        map.setZoom(16);
+                        placeMarker(lng, lat);
+                        geocoder.getAddress([lng, lat], function(s, r) {
+                            if (s === 'complete' && r.regeocode) {
+                                document.getElementById('addressInput').value = r.regeocode.formattedAddress;
+                            }
+                        });
+                    } else {
+                        alert('定位失败，请检查浏览器定位权限或手动搜索地址');
+                    }
+                });
+            });
+        }
+
+        function placeMarker(lng, lat) {
+            if (marker) { map.remove(marker); }
+            marker = new AMap.Marker({
+                position: [lng, lat],
+                animation: 'AMAP_ANIMATION_DROP'
+            });
+            map.add(marker);
+
+            document.getElementById('lngInput').value = lng;
+            document.getElementById('latInput').value = lat;
+            document.getElementById('coordText').className = 'set';
+            document.getElementById('coordText').textContent = '✓ 已选择位置: 经度 ' + lng.toFixed(6) + '°, 纬度 ' + lat.toFixed(6) + '°';
+        }
+
+        var searchTimeout;
+        document.getElementById('addressInput').addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(function() {
+                document.getElementById('mapSearchInput').value = document.getElementById('addressInput').value;
+            }, 500);
+        });
+
+        document.getElementById('mapSearchInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); searchAddress(); }
+        });
+
+        loadAmap();
+    </script>
+</body>
+</html>

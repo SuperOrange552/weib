@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" th:content="${csrf_token}">
+    <title>消息通知 - 微招</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+        .container { max-width: 800px; margin: 0 auto; padding: 30px 20px; }
+
+        .header {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 20px 30px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .logo {
+            font-size: 22px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #00c2b3, #5dd5c8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .nav-links { display: flex; gap: 12px; }
+        .nav-links a {
+            color: #9fa3af;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            transition: all 0.3s;
+            font-size: 14px;
+            position: relative;
+        }
+        .nav-links a:hover, .nav-links a.active {
+            background: rgba(0,194,179,0.2);
+            color: #00c2b3;
+        }
+        .badge {
+            position: absolute;
+            top: 0;
+            right: 2px;
+            background: #ef505e;
+            color: #fff;
+            font-size: 10px;
+            min-width: 16px;
+            height: 16px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 5px;
+        }
+        .logout-btn {
+            background: rgba(255,255,255,0.1);
+            color: #9fa3af;
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .logout-btn:hover { background: rgba(239,80,94,0.2); color: #ef505e; }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .page-title { font-size: 22px; color: #fff; }
+
+        .mark-all-btn {
+            color: #00c2b3;
+            background: none;
+            border: 1px solid rgba(0,194,179,0.3);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+        .mark-all-btn:hover { background: rgba(0,194,179,0.15); }
+
+        .notif-list { display: flex; flex-direction: column; gap: 10px; }
+        .notif-item {
+            background: rgba(255,255,255,0.05);
+            border-radius: 14px;
+            padding: 18px 22px;
+            border: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .notif-item:hover { border-color: rgba(0,194,179,0.2); }
+        .notif-item.unread {
+            border-left: 3px solid #00c2b3;
+            background: rgba(0,194,179,0.06);
+        }
+
+        .notif-icon {
+            width: 40px; height: 40px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; flex-shrink: 0;
+        }
+        .icon-update { background: rgba(94,150,242,0.2); }
+        .icon-message { background: rgba(0,194,179,0.2); }
+        .icon-system { background: rgba(255,193,7,0.2); }
+
+        .notif-content { flex: 1; }
+        .notif-text { font-size: 15px; color: #d0d0d0; margin-bottom: 6px; line-height: 1.5; }
+        .unread .notif-text { color: #fff; font-weight: 500; }
+        .notif-time { font-size: 12px; color: #666; }
+
+        .notif-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: #00c2b3;
+            flex-shrink: 0;
+            margin-top: 6px;
+        }
+        .read .notif-dot { visibility: hidden; }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+        .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
+        .empty-state h3 { color: #888; margin-bottom: 8px; }
+        .empty-state p { color: #555; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">微招</div>
+            <div class="nav-links">
+                <a href="/">职位大厅</a>
+                <a href="/notifications" class="active">
+                    通知
+                    <span class="badge" th:if="${unreadNotifCount > 0}" th:text="${unreadNotifCount}">0</span>
+                </a>
+                <a href="/my/applications">我的投递</a>
+                <a href="/my/favorites">收藏</a>
+                <a href="/resume">我的简历</a>
+                <a href="/chat">
+                    消息
+                    <span class="badge" th:if="${unreadMsgCount > 0}" th:text="${unreadMsgCount}">0</span>
+                </a>
+            </div>
+            <button class="logout-btn" onclick="location.href='/logout'">退出</button>
+        </div>
+
+        <div class="page-header">
+            <h2 class="page-title">消息通知</h2>
+            <button class="mark-all-btn" th:if="${not #lists.isEmpty(notifications)}" onclick="markAllRead()">全部已读</button>
+        </div>
+
+        <div class="notif-list" th:if="${not #lists.isEmpty(notifications)}">
+            <div class="notif-item" th:each="n : ${notifications}"
+                 th:classappend="${!n.isRead ? 'unread' : 'read'}"
+                 th:attr="data-id=${n.id}">
+                <div class="notif-icon"
+                     th:classappend="${n.type == 'application_update' ? 'icon-update' : (n.type == 'new_message' ? 'icon-message' : 'icon-system')}">
+                    <span th:if="${n.type == 'application_update'}">📋</span>
+                    <span th:if="${n.type == 'new_message'}">💬</span>
+                    <span th:if="${n.type != 'application_update' && n.type != 'new_message'}">🔔</span>
+                </div>
+                <div class="notif-content">
+                    <div class="notif-text" th:text="${n.content}">通知内容</div>
+                    <div class="notif-time" th:text="${#temporals.format(n.createdAt, 'yyyy-MM-dd HH:mm')}">2024-01-01 12:00</div>
+                </div>
+                <div class="notif-dot"></div>
+            </div>
+        </div>
+
+        <div class="empty-state" th:if="${#lists.isEmpty(notifications)}">
+            <div class="empty-icon">🔔</div>
+            <h3>暂无通知</h3>
+            <p>当投递状态更新或有新消息时，会在这里显示</p>
+        </div>
+    </div>
+
+    <script>
+    async function markAllRead() {
+        try {
+            await fetch('/api/notifications/read-all', {
+                method: 'POST',
+                headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' }
+            });
+            location.reload();
+        } catch(e) {}
+    }
+    </script>
+</body>
+</html>

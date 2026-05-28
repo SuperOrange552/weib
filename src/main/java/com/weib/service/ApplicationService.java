@@ -40,9 +40,12 @@ public class ApplicationService {
         Resume resume = resumeRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("请先完善简历后再投递"));
 
-        // 检查职位是否存在
-        jobRepository.findById(jobId)
+        // 检查职位是否存在且活跃
+        Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new RuntimeException("职位不存在: " + jobId));
+        if (!"active".equals(job.getStatus())) {
+            throw new RuntimeException("该职位已关闭，无法投递");
+        }
 
         Application application = new Application();
         application.setJobId(jobId);
@@ -68,23 +71,35 @@ public class ApplicationService {
     }
 
     /**
+     * 批量获取多个职位的投递记录（避免 N+1 查询）
+     */
+    @Transactional(readOnly = true)
+    public List<Application> getApplicationsByJobIds(List<Long> jobIds) {
+        if (jobIds.isEmpty()) return List.of();
+        return applicationRepository.findByJobIdIn(jobIds);
+    }
+
+    /**
      * 获取公司的投递记录
      * 通过职位ID间接查询：先查公司所有职位，再查这些职位的投递
      */
     @Transactional(readOnly = true)
     public List<Application> getApplicationsByCompany(Long companyId) {
-        // 查询该公司所有职位
         List<Job> jobs = jobRepository.findByCompanyId(companyId);
         if (jobs.isEmpty()) {
             return List.of();
         }
-        // 收集所有职位的投递
-        java.util.ArrayList<Application> allApps = new java.util.ArrayList<>();
-        for (Job job : jobs) {
-            List<Application> apps = applicationRepository.findByJobId(job.getId());
-            allApps.addAll(apps);
-        }
-        return allApps;
+        List<Long> jobIds = jobs.stream().map(Job::getId).collect(java.util.stream.Collectors.toList());
+        return applicationRepository.findByJobIdIn(jobIds);
+    }
+
+    /**
+     * 根据ID获取投递记录（用于权限校验）
+     */
+    @Transactional(readOnly = true)
+    public Application getApplicationById(Long id) {
+        return applicationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("投递记录不存在: " + id));
     }
 
     /**
@@ -107,5 +122,11 @@ public class ApplicationService {
     @Transactional(readOnly = true)
     public boolean hasApplied(Long jobId, Long userId) {
         return applicationRepository.findByJobIdAndUserId(jobId, userId).isPresent();
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasAppliedToAny(List<Long> jobIds, Long userId) {
+        if (jobIds.isEmpty()) return false;
+        return !applicationRepository.findByJobIdInAndUserId(jobIds, userId).isEmpty();
     }
 }

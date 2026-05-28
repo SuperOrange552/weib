@@ -2,7 +2,11 @@ package com.weib.controller;
 
 import com.weib.entity.User;
 import com.weib.service.UserService;
+import com.weib.util.CookieUtil;
+import com.weib.util.JwtUtil;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -78,6 +82,7 @@ public class UserController {
      * 通过构造器注入，保证不为 null
      */
     private final UserService userService;
+    private final JwtUtil jwtUtil;
 
     /**
      * 显示登录页面
@@ -301,23 +306,48 @@ public class UserController {
     @PostMapping("/login")
     public String login(@RequestParam String username,
                         @RequestParam String password,
+                        @RequestParam String captcha,
                         HttpSession session,
+                        HttpServletRequest request,
+                        HttpServletResponse response,
                         Model model) {
-        
+
+        // 验证码校验
+        if (!CaptchaController.verify(session, captcha)) {
+            model.addAttribute("error", "验证码错误");
+            return "login";
+        }
+
+        // 基本输入校验
+        if (username == null || username.isBlank() || password == null || password.isBlank()) {
+            model.addAttribute("error", "用户名和密码不能为空");
+            return "login";
+        }
+
         // 调用 Service 验证登录
         User user = userService.login(username, password).orElse(null);
-        
+
         // 判断是否登录成功
         if (user == null) {
             // 失败：存入错误信息，返回登录页
             model.addAttribute("error", "用户名或密码错误");
             return "login";
         }
-        
-        // 成功：存入 Session
-        session.setAttribute("user", user);           // 存用户对象
-        session.setAttribute("username", user.getUsername());  // 存用户名（方便页面显示）
-        
+
+        // 防止会话固定攻击：先销毁旧Session，再创建新Session
+        session.invalidate();
+        HttpSession newSession = request.getSession(true);
+        newSession.setAttribute("user", user);
+        newSession.setAttribute("username", user.getUsername());
+
+        // 生成记住我令牌，2 小时内自动登录
+        String token = userService.generateRememberToken(user);
+        CookieUtil.addRememberTokenCookie(response, token);
+
+        // 生成 JWT 令牌，用于安全的身份认证传输
+        String jwt = jwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole());
+        CookieUtil.addJwtCookie(response, jwt);
+
         // 重定向到首页
         return "redirect:/";
     }
@@ -362,18 +392,30 @@ public class UserController {
     public String register(@RequestParam String username,
                            @RequestParam String password,
                            @RequestParam String confirmPassword,
+                           @RequestParam String captcha,
                            @RequestParam(defaultValue = "seeker") String role,
-                           Model model) {
-        
+                           Model model,
+                           HttpSession session) {
+
+        // 验证码校验
+        if (!CaptchaController.verify(session, captcha)) {
+            model.addAttribute("error", "验证码错误");
+            return "register";
+        }
+
         // 1. 密码确认校验
         if (!password.equals(confirmPassword)) {
             model.addAttribute("error", "两次密码不一致");
             return "register";
         }
         
-        // 2. 用户名长度校验
+        // 2. 用户名格式校验
         if (username.length() < 3 || username.length() > 50) {
             model.addAttribute("error", "用户名长度3-50");
+            return "register";
+        }
+        if (!username.matches("^[a-zA-Z0-9_\\u4e00-\\u9fa5]+$")) {
+            model.addAttribute("error", "用户名只能包含字母、数字、下划线和中文");
             return "register";
         }
         
@@ -425,8 +467,15 @@ public class UserController {
      * @return 重定向到登录页
      */
     @GetMapping("/logout")
-    public String logout(HttpSession session) {
+    public String logout(HttpSession session, HttpServletResponse response) {
+        // 清除记住我令牌
+        User user = (User) session.getAttribute("user");
+        if (user != null) {
+            userService.clearRememberToken(user);
+        }
         session.invalidate();  // 销毁 Session
+        CookieUtil.deleteRememberTokenCookie(response);
+        CookieUtil.deleteJwtCookie(response);
         return "redirect:/login";
     }
 
@@ -473,7 +522,14 @@ public class UserController {
      */
     @GetMapping("/check-username")
     @ResponseBody
-    public boolean checkUsername(@RequestParam String username) {
-        return userService.existsByUsername(username);
+    public String checkUsername(@RequestParam String username, HttpSession session) {
+        // 限制未登录用户的查询频率，每session最多查询10次
+        Integer count = (Integer) session.getAttribute("check_username_count");
+        if (count == null) count = 0;
+        if (count >= 10) {
+            return "rate_limited";
+        }
+        session.setAttribute("check_username_count", count + 1);
+        return userService.existsByUsername(username) ? "taken" : "available";
     }
 }

@@ -4,6 +4,9 @@ import com.weib.entity.Job;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.util.List;
 
 /**
@@ -75,9 +78,24 @@ public interface JobRepository extends JpaRepository<Job, Long> {
 
     /**
      * 根据公司ID查询职位，按创建时间降序排列
-     * 
+     *
      * @param companyId 公司ID
      * @return 排序后的职位列表
      */
     List<Job> findByCompanyIdOrderByCreatedAtDesc(Long companyId);
+
+    /**
+     * 分页查询指定状态的职位，按创建时间降序排列
+     */
+    Page<Job> findByStatusOrderByCreatedAtDesc(String status, Pageable pageable);
+
+    /**
+     * 分页模糊搜索职位名称
+     */
+    Page<Job> findByTitleContainingIgnoreCase(String keyword, Pageable pageable);
+
+    /**
+     * 分页查询指定状态的职位
+     */
+    Page<Job> findByStatus(String status, Pageable pageable);
 }

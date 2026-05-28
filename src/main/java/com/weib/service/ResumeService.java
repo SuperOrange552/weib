@@ -6,6 +6,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * ============================================
  * 【Service】简历业务逻辑层
@@ -134,9 +137,15 @@ public class ResumeService {
      */
     @Transactional
     public Resume saveResume(Resume resume) {
-        // 新简历设置默认值
         if (resume.getId() == null) {
-            resume.setStatus("draft");
+            // 防止同一用户创建多份简历
+            if (resumeRepository.existsByUserId(resume.getUserId())) {
+                Resume existing = getResumeByUserId(resume.getUserId());
+                resume.setId(existing.getId());
+                resume.setStatus(existing.getStatus());
+            } else {
+                resume.setStatus("draft");
+            }
         }
         return resumeRepository.save(resume);
     }
@@ -166,5 +175,12 @@ public class ResumeService {
     @Transactional(readOnly = true)
     public boolean existsByUserId(Long userId) {
         return resumeRepository.existsByUserId(userId);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<Long, Resume> getResumeMapByUserIds(List<Long> userIds) {
+        if (userIds.isEmpty()) return Map.of();
+        return resumeRepository.findByUserIdIn(userIds).stream()
+                .collect(java.util.stream.Collectors.toMap(Resume::getUserId, r -> r));
     }
 }

@@ -1,17 +1,25 @@
 package com.weib.controller;
 
 import com.weib.entity.Application;
+import com.weib.entity.Company;
+import com.weib.entity.FavoriteJob;
 import com.weib.entity.Job;
 import com.weib.entity.User;
 import com.weib.service.ApplicationService;
+import com.weib.service.CompanyService;
+import com.weib.service.FavoriteJobService;
 import com.weib.service.JobService;
+import com.weib.dto.Result;
+import com.weib.util.IdObfuscator;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * ============================================
@@ -60,6 +68,9 @@ public class JobController {
      */
     private final JobService jobService;
     private final ApplicationService applicationService;
+    private final FavoriteJobService favoriteJobService;
+    private final CompanyService companyService;
+    private final IdObfuscator idObfuscator;
 
     /**
      * ========================================
@@ -101,24 +112,13 @@ public class JobController {
      * 4. 创建投递记录
      * 5. 返回结果
      */
-    @PostMapping("/job/{id}/apply")
-    @ResponseBody  // 返回 JSON 数据
-    public Result<?> apply(@PathVariable Long id, HttpSession session) {
-        
-        // ========================================
-        // 第一步：获取当前用户
-        // ========================================
-        
-        /**
-         * 【Session 获取用户】
-         * 
-         * 登录时：session.setAttribute("user", user)
-         * 获取时：session.getAttribute("user")
-         * 
-         * 【为什么要转成 User 类型？】
-         * Session 存的是 Object
-         * 需要强转才能使用 User 的方法
-         */
+    @PostMapping("/job/{encodedId}/apply")
+    @ResponseBody
+    public Result<?> apply(@PathVariable String encodedId, HttpSession session) {
+
+        Long id = idObfuscator.decode(encodedId);
+        if (id == null) return Result.error("参数无效");
+
         User user = (User) session.getAttribute("user");
         
         // ========================================
@@ -258,261 +258,81 @@ public class JobController {
          * - 按投递时间降序排列
          */
         List<Application> applications = applicationService.getApplicationsByUser(user.getId());
-        
-        // 加载职位和公司信息
-        /**
-         * 【关联查询】
-         * 
-         * Application 只有 jobId
-         * 需要关联查询：
-         * - Job：职位信息
-         * - Company：公司信息
-         * 
-         * 【为什么不用 JOIN？】
-         * - JPA 的 JOIN 查询比较复杂
-         * - 这里用循环查询，代码更清晰
-         * - 投递记录通常不多（几十条），性能没问题
-         */
+
+        // 批量加载职位信息（避免 N+1 查询）
+        List<Long> jobIds = applications.stream().map(Application::getJobId).distinct().collect(java.util.stream.Collectors.toList());
+        Map<Long, Job> jobMap = new HashMap<>();
+        if (!jobIds.isEmpty()) {
+            List<Job> jobs = jobService.getJobsByIds(jobIds);
+            for (Job job : jobs) jobMap.put(job.getId(), job);
+        }
         for (Application app : applications) {
-            try {
-                Job job = jobService.getJobById(app.getJobId());
-                app.setJobTitle(job.getTitle());
-            } catch (Exception e) {
-                app.setJobTitle("职位已删除");
-            }
+            Job job = jobMap.get(app.getJobId());
+            app.setJobTitle(job != null ? job.getTitle() : "职位已删除");
         }
         
         // 存入模型
         model.addAttribute("user", user);
         model.addAttribute("applications", applications);
-        
+
+        Map<Long, String> encodedApplicationIds = new HashMap<>();
+        for (Application app : applications) encodedApplicationIds.put(app.getId(), idObfuscator.encode(app.getId()));
+        model.addAttribute("encodedApplicationIds", encodedApplicationIds);
+
         return "my-applications";
     }
+
+    @PostMapping("/job/{encodedId}/favorite")
+    @ResponseBody
+    public Result<?> toggleFavorite(@PathVariable String encodedId, HttpSession session) {
+        Long id = idObfuscator.decode(encodedId);
+        if (id == null) return Result.error("参数无效");
+
+        User user = (User) session.getAttribute("user");
+        if (user == null) return Result.error("请先登录");
+        if (!"seeker".equals(user.getRole())) return Result.error("只限求职者");
+
+        favoriteJobService.toggleFavorite(id, user.getId());
+        boolean isFav = favoriteJobService.isFavorited(id, user.getId());
+        return Result.success(Map.of("favorited", isFav));
+    }
+
+    @GetMapping("/my/favorites")
+    public String myFavorites(HttpSession session, Model model) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) return "redirect:/login";
+        if (!"seeker".equals(user.getRole())) return "redirect:/";
+
+        List<FavoriteJob> favorites = favoriteJobService.getUserFavorites(user.getId());
+        List<Long> favJobIds = favorites.stream().map(FavoriteJob::getJobId).distinct().collect(java.util.stream.Collectors.toList());
+        Map<Long, Job> jobMap = new HashMap<>();
+        if (!favJobIds.isEmpty()) {
+            for (Job j : jobService.getJobsByIds(favJobIds)) {
+                jobMap.put(j.getId(), j);
+            }
+        }
+        List<Job> jobs = new java.util.ArrayList<>();
+        for (FavoriteJob fav : favorites) {
+            Job job = jobMap.get(fav.getJobId());
+            if (job != null && "active".equals(job.getStatus())) {
+                jobs.add(job);
+            }
+        }
+        // 批量加载公司信息
+        List<Long> companyIds = jobs.stream().map(Job::getCompanyId).distinct().collect(java.util.stream.Collectors.toList());
+        Map<Long, Company> companyMap = companyService.getCompanyMapByIds(companyIds);
+
+        model.addAttribute("user", user);
+        model.addAttribute("jobs", jobs);
+        model.addAttribute("companyMap", companyMap);
+
+        Map<Long, String> encodedJobIds = new HashMap<>();
+        for (Job j : jobs) encodedJobIds.put(j.getId(), idObfuscator.encode(j.getId()));
+        Map<Long, String> encodedCompanyIds = new HashMap<>();
+        for (Long cid : companyIds) encodedCompanyIds.put(cid, idObfuscator.encode(cid));
+        model.addAttribute("encodedJobIds", encodedJobIds);
+        model.addAttribute("encodedCompanyIds", encodedCompanyIds);
+
+        return "my-favorites";
+    }
 }
-
-/**
- * ============================================
- * 【统一返回结果类】Result<T>
- * ============================================
- * 
- * 为什么需要统一的返回格式？
- * 
- * 【之前的写法】
- * return "登录成功";           // 直接返回字符串
- * return Result.success(1);   // 返回统一格式
- * 
- * 【统一返回格式】
- * {
- *   "code": 200,           // 状态码
- *   "msg": "操作成功",       // 消息
- *   "data": {...}          // 数据
- * }
- * 
- * 【好处】
- * 1. 前端容易处理
- *    - code=200 表示成功
- *    - code=500 表示失败
- *    - 根据 code 判断显示什么
- * 
- * 2. 规范接口
- *    - 所有接口返回格式一致
- *    - 便于调试和联调
- * 
- * 3. 携带更多元信息
- *    - 成功/失败状态
- *    - 错误消息
- *    - 错误码（用于国际化等）
- * 
- * ----------------------------------------
- * 【泛型 T】Result<T>
- * ----------------------------------------
- * 
- * Result<Integer>  → 成功时返回整数
- * Result<String>   → 成功时返回字符串
- * Result<User>     → 成功时返回用户对象
- * Result<?>        → 成功时不返回数据
- * 
- * 【为什么不直接返回数据？】
- * - 需要区分成功和失败
- * - 需要携带错误信息
- * - 需要元数据（如总数、分页等）
- * 
- * ----------------------------------------
- * 【状态码设计】
- * ----------------------------------------
- * 
- * 200：成功
- * 400：请求参数错误
- * 401：未登录
- * 403：没有权限
- * 404：资源不存在
- * 500：服务器内部错误
- */
-
-/**
- * ============================================
- * 【Result 类定义】
- * ============================================
- * 
- * 这是一个内部类，用于统一返回格式
- * 
- * 【为什么用 static 内部类？】
- * - 不需要访问外部类的实例
- * - 独立使用，不依赖外部类
- * - 类似于普通的顶层类
- * 
- * 【为什么不单独写一个文件？】
- * - 这是专门给 JobController 用的
- * - 只在这里使用
- * - 减少文件数量
- * 
- * 【实际项目中的做法】
- * - 通常放在单独的包：com.xxx.common
- * - 多个 Controller 共用
- * - 抽成公共模块
- */
-class Result<T> {
-    
-    /**
-     * 【状态码】
-     * 
-     * 200：成功
-     * 其他：失败（前端根据 code 判断）
-     */
-    private int code;
-    
-    /**
-     * 【消息】
-     * 
-     * 成功：返回成功提示
-     * 失败：返回错误原因
-     */
-    private String msg;
-    
-    /**
-     * 【数据】
-     * 
-     * 泛型，可以是任意类型
-     * - Integer：ID、数量
-     * - String：消息
-     * - User：用户信息
-     * - List：列表数据
-     */
-    private T data;
-    
-    // ========================================
-    // 【构造方法】私有化，禁止外部 new
-    // ========================================
-    
-    private Result(int code, String msg, T data) {
-        this.code = code;
-        this.msg = msg;
-        this.data = data;
-    }
-    
-    // ========================================
-    // 【静态工厂方法】
-    // ========================================
-    
-    /**
-     * 【成功结果】
-     * 
-     * code = 200
-     * msg = "操作成功"
-     * data = 传入的数据
-     * 
-     * 【使用场景】
-     * return Result.success(user);      // 返回用户
-     * return Result.success(list);      // 返回列表
-     * return Result.success("删除成功"); // 返回消息
-     */
-    public static <T> Result<T> success(T data) {
-        return new Result<>(200, "操作成功", data);
-    }
-    
-    /**
-     * 【成功结果（无数据）】
-     * 
-     * code = 200
-     * msg = "操作成功"
-     * data = null
-     * 
-     * 【使用场景】
-     * return Result.success();  // 只提示成功，不返回数据
-     */
-    public static <T> Result<T> success() {
-        return new Result<>(200, "操作成功", null);
-    }
-    
-    /**
-     * 【成功结果（带消息）】
-     * 
-     * code = 200
-     * msg = 自定义消息
-     * data = null
-     * 
-     * 【使用场景】
-     * return Result.success("投递成功！");
-     */
-    public static <T> Result<T> success(String msg) {
-        return new Result<>(200, msg, null);
-    }
-    
-    /**
-     * 【错误结果】
-     * 
-     * code = 500
-     * msg = 错误消息
-     * data = null
-     * 
-     * 【使用场景】
-     * return Result.error("用户名已存在");
-     * return Result.error("服务器异常");
-     */
-    public static <T> Result<T> error(String msg) {
-        return new Result<>(500, msg, null);
-    }
-    
-    /**
-     * 【错误结果（带状态码）】
-     * 
-     * code = 自定义状态码
-     * msg = 错误消息
-     * data = null
-     * 
-     * 【使用场景】
-     * return Result.error(401, "请先登录");
-     */
-    public static <T> Result<T> error(int code, String msg) {
-        return new Result<>(code, msg, null);
-    }
-    
-    // ========================================
-    // 【Getter 方法】Lombok 省略
-    // ========================================
-    
-    public int getCode() { return code; }
-    public String getMsg() { return msg; }
-    public T getData() { return data; }
-}
-
-// ============================================
-// 【Application 扩展】添加临时字段
-// ============================================
-
-/**
- * 【说明】
- * Application 实体类只有数据库字段
- * 模板中需要职位名称等关联信息
- * 
- * 【解决方案】
- * 方案1：在 Application 中添加 @Transient 字段
- *        - 优点：简单直接
- *        - 缺点：污染实体类
- * 
- * 方案2：创建新的 DTO 类
- *        - 优点：不影响原实体
- *        - 缺点：需要创建新类
- * 
- * 这里用方案1，在 Controller 中设置临时字段
- */

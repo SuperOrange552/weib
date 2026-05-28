@@ -6,14 +6,14 @@
     <title>职位管理 - 微招</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; 
+        body {
+            font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             min-height: 100vh;
             color: #e0e0e0;
         }
         .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        
+
         /* 顶部导航 */
         .header {
             background: rgba(255,255,255,0.05);
@@ -26,29 +26,45 @@
             align-items: center;
             border: 1px solid rgba(255,255,255,0.1);
         }
-        .logo { 
-            font-size: 24px; 
+        .logo {
+            font-size: 24px;
             font-weight: bold;
-            background: linear-gradient(135deg, #00d4ff, #8b5cf6);
+            background: linear-gradient(135deg, #00c2b3, #5dd5c8);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-        .nav-links { display: flex; gap: 16px; }
+        .nav-links { display: flex; gap: 12px; flex-wrap: wrap; }
         .nav-links a {
-            color: #a0a0a0;
+            color: #9fa3af;
             text-decoration: none;
             padding: 8px 16px;
             border-radius: 20px;
             transition: all 0.3s;
             font-size: 14px;
+            position: relative;
         }
         .nav-links a:hover, .nav-links a.active {
-            background: rgba(0,212,255,0.2);
-            color: #00d4ff;
+            background: rgba(0,194,179,0.2);
+            color: #00c2b3;
+        }
+        .badge {
+            position: absolute;
+            top: 0;
+            right: 2px;
+            background: #ef505e;
+            color: #fff;
+            font-size: 10px;
+            min-width: 16px;
+            height: 16px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 5px;
         }
         .logout-btn {
             background: rgba(255,255,255,0.1);
-            color: #a0a0a0;
+            color: #9fa3af;
             border: 1px solid rgba(255,255,255,0.2);
             padding: 8px 20px;
             border-radius: 20px;
@@ -56,8 +72,8 @@
             font-size: 14px;
             transition: all 0.3s;
         }
-        .logout-btn:hover { background: rgba(255,100,100,0.2); color: #ff6b6b; }
-        
+        .logout-btn:hover { background: rgba(239,80,94,0.2); color: #ef505e; }
+
         /* 页面标题 */
         .page-header {
             display: flex;
@@ -68,7 +84,7 @@
         .page-title { font-size: 24px; }
         .add-btn {
             padding: 12px 28px;
-            background: linear-gradient(135deg, #00d4ff, #8b5cf6);
+            background: linear-gradient(135deg, #00c2b3, #5dd5c8);
             color: #fff;
             border: none;
             border-radius: 25px;
@@ -80,9 +96,9 @@
         }
         .add-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,212,255,0.4);
+            box-shadow: 0 8px 25px rgba(0,194,179,0.4);
         }
-        
+
         /* 职位列表 */
         .jobs-list { display: flex; flex-direction: column; gap: 16px; }
         .job-card {
@@ -97,7 +113,7 @@
             transition: all 0.3s;
         }
         .job-card:hover {
-            border-color: rgba(0,212,255,0.3);
+            border-color: rgba(0,194,179,0.3);
             transform: translateX(5px);
         }
         .job-info { flex: 1; }
@@ -107,7 +123,7 @@
         .job-salary {
             font-size: 18px;
             font-weight: bold;
-            color: #00d4ff;
+            color: #00c2b3;
             margin: 8px 0;
         }
         .status-badge {
@@ -118,7 +134,7 @@
             margin-left: 12px;
         }
         .status-active { background: rgba(16,185,129,0.2); color: #10b981; }
-        .status-closed { background: rgba(255,107,107,0.2); color: #ff6b6b; }
+        .status-closed { background: rgba(239,80,94,0.2); color: #ef505e; }
         .job-actions { display: flex; gap: 12px; align-items: center; }
         .action-btn {
             padding: 8px 16px;
@@ -130,18 +146,18 @@
             text-decoration: none;
         }
         .edit-btn {
-            background: rgba(0,212,255,0.1);
-            color: #00d4ff;
-            border: 1px solid rgba(0,212,255,0.3);
+            background: rgba(0,194,179,0.1);
+            color: #00c2b3;
+            border: 1px solid rgba(0,194,179,0.3);
         }
-        .edit-btn:hover { background: rgba(0,212,255,0.2); }
+        .edit-btn:hover { background: rgba(0,194,179,0.2); }
         .delete-btn {
-            background: rgba(255,107,107,0.1);
-            color: #ff6b6b;
-            border: 1px solid rgba(255,107,107,0.3);
+            background: rgba(239,80,94,0.1);
+            color: #ef505e;
+            border: 1px solid rgba(239,80,94,0.3);
         }
-        .delete-btn:hover { background: rgba(255,107,107,0.2); }
-        
+        .delete-btn:hover { background: rgba(239,80,94,0.2); }
+
         /* 空状态 */
         .empty-state {
             text-align: center;
@@ -159,53 +175,58 @@
     <div class="container">
         <!-- 顶部导航 -->
         <div class="header">
-            <div class="logo">⚡ 微招 - BOSS管理后台</div>
+            <div class="logo">◆ 微招 - Boss工作台</div>
             <div class="nav-links">
-                <a href="/">← 返回首页</a>
-                <a href="/boss">管理首页</a>
+                <a href="/">职位大厅</a>
+                <a href="/chat">
+                    消息
+                    <span class="badge" th:if="${unreadMsgCount > 0}" th:text="${unreadMsgCount}">0</span>
+                </a>
+                <a href="/boss">Boss入口</a>
                 <a href="/boss/jobs" class="active">职位管理</a>
-                <a href="/boss/applications">投递管理</a>
+                <a href="/boss/applications">简历管理</a>
             </div>
             <button class="logout-btn" onclick="location.href='/logout'">退出登录</button>
         </div>
-        
+
         <!-- 页面标题 -->
         <div class="page-header">
-            <h2 class="page-title">💼 职位管理</h2>
+            <h2 class="page-title">📋 职位管理</h2>
             <a href="/boss/job/new" class="add-btn">+ 发布新职位</a>
         </div>
-        
+
         <!-- 职位列表 -->
         <div class="jobs-list" th:if="${not #lists.isEmpty(jobs)}">
             <div class="job-card" th:each="job : ${jobs}">
                 <div class="job-info">
                     <div class="job-title">
                         <span th:text="${job.title}">职位名称</span>
-                        <span class="status-badge" 
-                              th:classappend="${job.status == 'active'} ? 'status-active' : 'status-closed'"
-                              th:text="${job.status == 'active'} ? '招聘中' : '已关闭'">招聘中</span>
+                        <span class="status-badge"
+                              th:classappend="${job.status == 'active' ? 'status-active' : 'status-closed'}"
+                              th:text="${job.status == 'active' ? '招聘中' : '已关闭'}">招聘中</span>
                     </div>
                     <div class="job-salary" th:if="${job.salaryMin != null && job.salaryMax != null}">
-                        <span th:text="${job.salaryMin/1000}">15</span>k - <span th:text="${job.salaryMax/1000}">25</span>k
+                        <span th:text="${job.salaryMin}">15</span>k - <span th:text="${job.salaryMax}">25</span>k
                     </div>
                     <div class="job-meta">
                         <span>📍 <span th:text="${job.city ?: '未填写'}">北京</span></span>
                         <span>👁 <span th:text="${job.viewCount ?: 0}">0</span>次浏览</span>
-                        <span>📄 <span th:text="${job.viewCount ?: 0}">0</span>份简历</span>
+                        <span>📋 <span th:text="${appCountMap[job.id] ?: 0}">0</span>份简历</span>
                     </div>
                 </div>
                 <div class="job-actions">
-                    <a th:href="'/boss/job/edit/' + ${job.id}" class="action-btn edit-btn">编辑</a>
-                    <form th:if="${job.status == 'active'}" 
-                          th:action="'/boss/job/delete/' + ${job.id}" 
+                    <a th:href="'/boss/job/edit/' + ${encodedJobIds[job.id]}" class="action-btn edit-btn">编辑</a>
+                    <form th:if="${job.status == 'active'}"
+                          th:action="'/boss/job/delete/' + ${encodedJobIds[job.id]}"
                           method="post" style="display:inline;">
-                        <button type="submit" class="action-btn delete-btn" 
-                                onclick="return confirm('确定要关闭该职位吗？')">关闭</button>
+                        <input type="hidden" name="_csrf" th:value="${csrf_token}">
+                        <button type="submit" class="action-btn delete-btn"
+                                onclick="return confirm('确定要关闭该职位吗？')">下线</button>
                     </form>
                 </div>
             </div>
         </div>
-        
+
         <!-- 空状态 -->
         <div class="empty-state" th:if="${#lists.isEmpty(jobs)}">
             <div class="icon">💼</div>

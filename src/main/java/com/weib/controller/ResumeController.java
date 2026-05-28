@@ -148,12 +148,17 @@ public class ResumeController {
                              Model model) {
         
         User user = (User) session.getAttribute("user");
-        
+
         // 未登录
         if (user == null) {
             return "redirect:/login";
         }
-        
+
+        // 非求职者不能创建/编辑简历
+        if (!"seeker".equals(user.getRole())) {
+            return "redirect:/";
+        }
+
         // 构建简历对象
         Resume resume = new Resume();
         
@@ -161,6 +166,14 @@ public class ResumeController {
         if (id != null) {
             try {
                 resume = resumeService.getResumeById(id);
+                // 【水平越权防护】简历必须是当前用户的，防止篡改ID窃取他人简历
+                if (!resume.getUserId().equals(user.getId())) {
+                    model.addAttribute("error", "无权修改他人简历");
+                    model.addAttribute("user", user);
+                    model.addAttribute("resume", resume);
+                    model.addAttribute("isNew", false);
+                    return "resume-edit";
+                }
             } catch (Exception e) {
                 // 简历不存在，当新建处理
             }

@@ -192,4 +192,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return true=存在，false=不存在
      */
     boolean existsByUsername(String username);
+
+    Optional<User> findByRememberToken(String rememberToken);
 }
