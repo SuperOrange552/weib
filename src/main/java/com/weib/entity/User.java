@@ -229,9 +229,14 @@ public class User {
     @Column(nullable = false, unique = true, length = 50)
     private String username;
 
+    @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号格式不正确")
+    @Column(length = 20, unique = true)
+    private String phone;
+
     @NotBlank(message = "密码不能为空")
-    @Size(min = 6, max = 100, message = "密码长度至少6位")
+    @Size(min = 7, max = 100, message = "密码长度至少7位")
     @Column(nullable = false, length = 100)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private String password;
 
     /**
@@ -241,7 +246,7 @@ public class User {
      * - API 更清晰
      * - 不带时区信息
      */
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Column(nullable = false)
@@ -266,7 +271,22 @@ public class User {
     private String nickname;
 
     @Column(length = 64)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private String rememberToken;
+
+    @Column(nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private Integer loginFailCount = 0;
+
+    @Column
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private LocalDateTime lockUntil;
+
+    /**
+     * 用户状态：active=正常, banned=已封禁
+     */
+    @Column(nullable = false, length = 20)
+    private String status = "active";
 
     /**
      * ----------------------------------------

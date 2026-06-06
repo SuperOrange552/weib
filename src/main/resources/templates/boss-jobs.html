@@ -186,7 +186,10 @@
                 <a href="/boss/jobs" class="active">职位管理</a>
                 <a href="/boss/applications">简历管理</a>
             </div>
-            <button class="logout-btn" onclick="location.href='/logout'">退出登录</button>
+            <form id="logoutForm" method="post" action="/logout" style="display:none">
+                <input type="hidden" name="_csrf" th:value="${csrf_token}" />
+            </form>
+            <button class="logout-btn" onclick="document.getElementById('logoutForm').submit()">退出登录</button>
         </div>
 
         <!-- 页面标题 -->

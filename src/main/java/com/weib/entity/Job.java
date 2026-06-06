@@ -55,11 +55,23 @@ public class Job {
     @Column(nullable = false)
     private Integer viewCount = 0;
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    /**
+     * 审核状态：pending=待审核, approved=已通过, rejected=已驳回
+     */
+    @Column(length = 20)
+    private String auditStatus = "pending";
+
+    /**
+     * 审核驳回原因
+     */
+    @Column(length = 500)
+    private String auditReason;
 
     @PrePersist
     protected void onCreate() {

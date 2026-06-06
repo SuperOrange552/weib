@@ -51,7 +51,15 @@ public class ApplicationService {
         application.setJobId(jobId);
         application.setUserId(userId);
         application.setResumeId(resume.getId());
-        return applicationRepository.save(application);
+        try {
+            return applicationRepository.save(application);
+        } catch (Exception e) {
+            // 并发情况下可能因唯一约束冲突抛异常，视为已投递
+            if (hasApplied(jobId, userId)) {
+                throw new RuntimeException("您已投递过该职位，请勿重复投递");
+            }
+            throw e;
+        }
     }
 
     /**
@@ -77,6 +85,16 @@ public class ApplicationService {
     public List<Application> getApplicationsByJobIds(List<Long> jobIds) {
         if (jobIds.isEmpty()) return List.of();
         return applicationRepository.findByJobIdIn(jobIds);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Application> getApplicationsByJobId(Long jobId) {
+        return applicationRepository.findByJobId(jobId);
+    }
+
+    @Transactional(readOnly = true)
+    public long countByJobId(Long jobId) {
+        return applicationRepository.countByJobId(jobId);
     }
 
     /**
@@ -113,6 +131,11 @@ public class ApplicationService {
         if (bossNote != null) {
             application.setBossNote(bossNote);
         }
+        applicationRepository.save(application);
+    }
+
+    @Transactional
+    public void updateStatus(Application application) {
         applicationRepository.save(application);
     }
 

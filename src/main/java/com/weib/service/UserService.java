@@ -7,6 +7,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 /**
@@ -226,7 +227,7 @@ public class UserService {
      * @return 注册成功返回用户对象，失败返回 null
      */
     public User register(String username, String password) {
-        return register(username, password, "seeker");
+        return register(username, password, null, "seeker");
     }
     
     /**
@@ -253,24 +254,44 @@ public class UserService {
      * @param role 用户角色（seeker=求职者，boss=Boss）
      * @return 注册成功返回用户对象，失败返回 null
      */
-    public User register(String username, String password, String role) {
-        // 检查用户名是否已存在
+    public User register(String username, String password, String phone, String role) {
         if (userRepository.existsByUsername(username)) {
-            return null;  // 用户名已存在，返回 null 表示失败
+            return null;
         }
-        
-        // 创建用户对象
+        if (phone != null && !phone.isBlank() && userRepository.existsByPhone(phone)) {
+            return null;
+        }
+
         User user = new User();
         user.setUsername(username);
-        user.setPassword(passwordEncoder.encode(password));  // BCrypt 加密后存库
-        user.setRole(role);           // 设置用户角色
-        user.setNickname(username);   // 默认昵称同用户名
-        
-        // 保存到数据库
-        // save() 方法：
-        // - 如果 id 为 null，执行 INSERT
-        // - 如果 id 不为 null 且存在，执行 UPDATE
+        user.setPassword(passwordEncoder.encode(password));
+        user.setPhone(phone != null && !phone.isBlank() ? phone : null);
+        user.setRole(role);
+        user.setNickname(username);
+
         return userRepository.save(user);
+    }
+
+    /**
+     * 验证密码是否符合规则：长度>=7，必须包含大小写字母和数字
+     */
+    public static String validatePassword(String password) {
+        if (password == null || password.length() < 7) {
+            return "密码长度至少7位";
+        }
+        if (password.length() > 72) {
+            return "密码长度不能超过72位";
+        }
+        if (!password.matches(".*[a-z].*")) {
+            return "密码必须包含小写字母";
+        }
+        if (!password.matches(".*[A-Z].*")) {
+            return "密码必须包含大写字母";
+        }
+        if (!password.matches(".*\\d.*")) {
+            return "密码必须包含数字";
+        }
+        return null;
     }
 
     /**
@@ -342,10 +363,48 @@ public class UserService {
      * @param password 密码
      * @return 登录成功返回 Optional.of(user)，失败返回 Optional.empty()
      */
-    @Transactional(readOnly = true)  // 只读事务，优化查询
-    public Optional<User> login(String username, String password) {
-        return userRepository.findByUsername(username)
-                .filter(user -> passwordEncoder.matches(password, user.getPassword()));
+    // 修复：login 方法需要写操作（更新 loginFailCount/lockUntil），不能用 readOnly
+    @Transactional
+    public Optional<User> login(String account, String password) {
+        // 先按用户名查找
+        Optional<User> userOpt = userRepository.findByUsername(account);
+        // 如果没找到，按手机号查找
+        if (userOpt.isEmpty()) {
+            userOpt = userRepository.findByPhone(account);
+        }
+        if (userOpt.isEmpty()) return Optional.empty();
+
+        User user = userOpt.get();
+
+        // 检查账户是否被锁定
+        if (user.getLockUntil() != null && user.getLockUntil().isAfter(LocalDateTime.now())) {
+            return Optional.empty(); // 账户已锁定
+        }
+
+        // 检查管理员是否已封禁该用户
+        if ("banned".equals(user.getStatus())) {
+            return Optional.empty(); // 已被管理员封禁
+        }
+
+        // 验证密码
+        if (passwordEncoder.matches(password, user.getPassword())) {
+            // 登录成功，重置失败计数
+            if (user.getLoginFailCount() != null && user.getLoginFailCount() > 0) {
+                user.setLoginFailCount(0);
+                user.setLockUntil(null);
+                userRepository.save(user);
+            }
+            return Optional.of(user);
+        } else {
+            // 登录失败，增加失败计数
+            int failCount = (user.getLoginFailCount() != null ? user.getLoginFailCount() : 0) + 1;
+            user.setLoginFailCount(failCount);
+            if (failCount >= 5) {
+                user.setLockUntil(LocalDateTime.now().plusMinutes(15));
+            }
+            userRepository.save(user);
+            return Optional.empty();
+        }
     }
 
     /**
@@ -383,15 +442,92 @@ public class UserService {
         return userRepository.existsByUsername(username);
     }
 
+    @Transactional(readOnly = true)
+    public boolean existsByPhone(String phone) {
+        return userRepository.existsByPhone(phone);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isAccountLocked(String account) {
+        Optional<User> userOpt = userRepository.findByUsername(account);
+        if (userOpt.isEmpty()) {
+            userOpt = userRepository.findByPhone(account);
+        }
+        if (userOpt.isEmpty()) return false;
+        User user = userOpt.get();
+        return user.getLockUntil() != null && user.getLockUntil().isAfter(LocalDateTime.now());
+    }
+
     public String generateRememberToken(User user) {
         String token = java.util.UUID.randomUUID().toString();
-        user.setRememberToken(token);
+        user.setRememberToken(hashToken(token));
         userRepository.save(user);
         return token;
     }
 
     public void clearRememberToken(User user) {
         user.setRememberToken(null);
+        userRepository.save(user);
+    }
+
+    private static String hashToken(String token) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(token.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to hash token", e);
+        }
+    }
+
+    /**
+     * 修改密码（用户自行修改）
+     */
+    @Transactional
+    public void changePassword(Long userId, String oldPassword, String newPassword) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("用户不存在"));
+
+        // 校验旧密码
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new RuntimeException("原密码不正确");
+        }
+
+        // 新旧密码不能相同
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+            throw new RuntimeException("新密码不能与旧密码相同");
+        }
+
+        // 校验新密码强度
+        String error = validatePassword(newPassword);
+        if (error != null) {
+            throw new RuntimeException(error);
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
+    /**
+     * 管理员重置用户密码
+     */
+    @Transactional
+    public void resetPassword(Long userId, String newPassword) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("用户不存在"));
+
+        String error = validatePassword(newPassword);
+        if (error != null) {
+            throw new RuntimeException(error);
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }
 }

@@ -25,7 +25,9 @@ import java.time.LocalDateTime;
  * - bossNote：Boss的备注
  */
 @Entity
-@Table(name = "applications")
+@Table(name = "applications", uniqueConstraints = {
+    @UniqueConstraint(name = "uk_job_user", columnNames = {"jobId", "userId"})
+})
 @Data
 public class Application {
 
@@ -58,8 +60,19 @@ public class Application {
      */
     @Transient
     private String jobTitle;
+
+    /** 面试时间 */
+    private LocalDateTime interviewTime;
+
+    /** 面试地点（空=线上面试） */
+    @Column(length = 200)
+    private String interviewLocation;
+
+    /** 拒绝原因 */
+    @Column(length = 1000)
+    private String rejectReason;
     
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Column(nullable = false)

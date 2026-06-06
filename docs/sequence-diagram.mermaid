@@ -1,0 +1,147 @@
+sequenceDiagram
+    actor Admin as 管理员
+    participant React as React SPA
+    participant Filter as AdminJwtAuthFilter
+    participant AuthCtrl as AdminAuthController
+    participant AuthSvc as AdminAuthService
+    participant UserRepo as UserRepository
+    participant AdminRoleRepo as AdminRoleRepository
+    participant BCrypt as PasswordEncoder
+    participant JwtUtil as JwtUtil
+    participant SecurityCtx as SecurityContextHolder
+    participant CompanyCtrl as AdminCompanyController
+    participant CompanySvc as AdminCompanyService
+    participant CompanyRepo as CompanyRepository
+    participant AuditSvc as AuditLogService
+    participant NotifSvc as NotificationService
+    participant DashboardCtrl as AdminDashboardController
+    participant DashboardSvc as DashboardService
+
+    %% ============ 管理员登录流程 ============
+    rect rgb(240, 248, 255)
+        Note over Admin, JwtUtil: 管理员登录流程
+        Admin->>React: 输入用户名密码，点击登录
+        React->>AuthCtrl: POST /api/admin/auth/login<br/>{username, password}
+        AuthCtrl->>AuthSvc: login(username, password)
+
+        AuthSvc->>UserRepo: findByUsername(username)
+        UserRepo-->>AuthSvc: Optional~User~
+
+        alt 用户不存在
+            AuthSvc-->>AuthCtrl: throw new BadCredentialsException
+            AuthCtrl-->>React: 401 "用户名或密码错误"
+        else 用户存在但非管理员
+            AuthSvc->>AdminRoleRepo: findByUserId(user.id)
+            AdminRoleRepo-->>AuthSvc: Optional.empty()
+            AuthSvc-->>AuthCtrl: throw new AccessDeniedException
+            AuthCtrl-->>React: 403 "非管理员账号"
+        else 用户存在且是管理员
+            AuthSvc->>BCrypt: matches(password, user.password)
+            BCrypt-->>AuthSvc: true/false
+
+            alt 密码正确
+                AuthSvc->>JwtUtil: generateAdminToken(userId, username, adminRole)
+                JwtUtil-->>AuthSvc: JWT Token (2h有效期)
+                AuthSvc-->>AuthCtrl: LoginResponse {token, admin: {...}}
+                AuthCtrl-->>React: 200 {token, admin}
+                React->>React: 存储 token 到 localStorage<br/>设置 axios 默认 header<br/>跳转 /dashboard
+            else 密码错误
+                AuthSvc->>UserRepo: 更新 loginFailCount + lockUntil
+                AuthSvc-->>AuthCtrl: throw new BadCredentialsException
+                AuthCtrl-->>React: 401 "密码错误，剩余尝试次数: N"
+            end
+        end
+    end
+
+    %% ============ JWT 认证拦截 ============
+    rect rgb(255, 248, 240)
+        Note over React, SecurityCtx: 后续请求 JWT 认证流程
+        React->>Filter: GET /api/admin/dashboard/stats<br/>Authorization: Bearer <token>
+        Filter->>JwtUtil: validateAdminToken(token)
+
+        alt Token 无效或过期
+            JwtUtil-->>Filter: null
+            Filter-->>React: 401 "Token 无效或已过期"
+            React->>React: 清除 token，跳转 /login
+        else Token 有效
+            JwtUtil-->>Filter: Claims {sub, username, adminRole}
+            Filter->>SecurityCtx: 设置 Authentication<br/>（UsernamePasswordAuthenticationToken）<br/>含 ROLE_ADMIN, ROLE_SUPER_ADMIN 等
+            Filter->>DashboardCtrl: 放行请求
+        end
+    end
+
+    %% ============ 公司审核流程 ============
+    rect rgb(240, 255, 240)
+        Note over Admin, NotifSvc: 公司审核通过流程
+        Admin->>React: 点击 "通过" 按钮
+        React->>React: 弹出确认对话框
+        Admin->>React: 确认通过
+        React->>CompanyCtrl: PUT /api/admin/companies/42/approve<br/>Authorization: Bearer <token>
+
+        CompanyCtrl->>CompanySvc: approveCompany(companyId=42, adminId=1)
+
+        CompanySvc->>CompanyRepo: findById(42)
+        CompanyRepo-->>CompanySvc: Company{auditStatus="pending"}
+
+        alt 公司不存在或已审核
+            CompanySvc-->>CompanyCtrl: throw new IllegalStateException("该公司已审核")
+            CompanyCtrl-->>React: 400 "该公司已审核"
+        else 审核通过
+            CompanySvc->>CompanyRepo: save(company.auditStatus="approved")
+            CompanySvc->>AuditSvc: log(adminId=1, action="approve_company",<br/>targetType="company", targetId=42)
+
+            Note over AuditSvc: INSERT INTO audit_logs<br/>(admin_id, action, target_type, target_id, created_at)
+
+            CompanySvc->>NotifSvc: sendNotification(userId=bossId,<br/>type="company_approved", content="您的公司已通过审核")
+
+            Note over NotifSvc: INSERT INTO notifications<br/>(user_id, type, content, related_id, created_at)
+
+            CompanySvc-->>CompanyCtrl: void
+            CompanyCtrl-->>React: 200 "操作成功"
+            React->>React: Snackbar 提示 "审核通过"<br/>刷新列表
+        end
+    end
+
+    %% ============ 驳回流程 ============
+    rect rgb(255, 240, 240)
+        Note over Admin, NotifSvc: 公司审核驳回流程
+        Admin->>React: 点击 "驳回" 按钮
+        React->>React: 弹出驳回理由对话框
+        Admin->>React: 输入驳回理由，确认
+        React->>CompanyCtrl: PUT /api/admin/companies/42/reject<br/>{reason: "公司名称与实际不符"}
+
+        CompanyCtrl->>CompanySvc: rejectCompany(42, "公司名称与实际不符", adminId=1)
+
+        CompanySvc->>CompanyRepo: findById(42)
+        CompanyRepo-->>CompanySvc: Company{auditStatus="pending"}
+        CompanySvc->>CompanyRepo: save(company.auditStatus="rejected",<br/>company.auditReason="公司名称与实际不符")
+        CompanySvc->>AuditSvc: log(adminId=1, action="reject_company",<br/>targetType="company", targetId=42, reason="...")
+        CompanySvc->>NotifSvc: sendNotification(userId=bossId,<br/>type="company_rejected", content="您的公司审核未通过...")
+        CompanySvc-->>CompanyCtrl: void
+        CompanyCtrl-->>React: 200 "操作成功"
+        React->>React: Snackbar 提示 "已驳回"<br/>刷新列表
+    end
+
+    %% ============ 仪表盘数据获取 ============
+    rect rgb(248, 240, 255)
+        Note over Admin, DashboardSvc: 仪表盘数据获取（读缓存）
+        Admin->>React: 进入仪表盘页面
+        React->>DashboardCtrl: GET /api/admin/dashboard/stats<br/>GET /api/admin/dashboard/charts
+        DashboardCtrl->>DashboardSvc: getStats()
+        DashboardSvc->>DashboardSvc: 从 ConcurrentHashMap 读缓存
+        DashboardSvc-->>DashboardCtrl: DashboardStatsResponse
+        DashboardCtrl-->>React: 200 {totalUsers, totalJobs, todayNewUsers, pendingCount}
+        React->>React: 渲染 4 个 StatCard + 图表
+    end
+
+    %% ============ 缓存刷新（后台定时任务） ============
+    rect rgb(255, 255, 240)
+        Note over DashboardSvc: 每5分钟定时刷新缓存（后台）
+        DashboardSvc->>DashboardSvc: @Scheduled(fixedRate=300000)<br/>refreshCache()
+        DashboardSvc->>UserRepo: count()
+        DashboardSvc->>JobRepo: count()
+        DashboardSvc->>UserRepo: countByCreatedAtAfter(today)
+        DashboardSvc->>CompanyRepo: countByAuditStatus("pending")
+        DashboardSvc->>JobRepo: countByAuditStatus("pending")
+        DashboardSvc->>DashboardSvc: 更新 ConcurrentHashMap 缓存
+    end

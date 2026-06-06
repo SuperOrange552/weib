@@ -4,6 +4,7 @@ import com.weib.entity.Job;
 import com.weib.repository.JobRepository;
 import com.weib.repository.ApplicationRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -88,6 +89,11 @@ public class JobService {
         return jobRepository.findByStatusOrderByCreatedAtDesc("active");
     }
 
+    @Transactional(readOnly = true)
+    public List<Job> getRecentActiveJobs(int limit) {
+        return jobRepository.findByStatusOrderByCreatedAtDesc("active", PageRequest.of(0, limit)).getContent();
+    }
+
     /**
      * ========================================
      * 【根据ID获取职位】
@@ -103,6 +109,7 @@ public class JobService {
      * - 异常消息包含职位ID，方便排查
      */
     @Transactional(readOnly = true)
+    // @Cacheable 不用于 JPA 实体 —— PageImpl 无默认构造器，反序列化会失败
     public Job getJobById(Long id) {
         return jobRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("职位不存在: " + id));
@@ -167,7 +174,8 @@ public class JobService {
          */
         List<Job> result;
         if (keyword != null) {
-            result = jobRepository.findByTitleContainingIgnoreCase(keyword);
+            // 修复：keyword 搜索也只查活跃职位，避免返回已关闭职位
+            result = jobRepository.findByTitleContainingIgnoreCaseAndStatus(keyword, "active");
         } else {
             result = jobRepository.findByStatus("active");
         }
@@ -204,6 +212,7 @@ public class JobService {
      * @return 保存后的职位（包含生成的ID）
      */
     @Transactional
+    @CacheEvict(value = "jobs", allEntries = true)
     public Job createJob(Job job) {
         return jobRepository.save(job);
     }
@@ -224,11 +233,23 @@ public class JobService {
      * @return 保存后的职位
      */
     @Transactional
+    @CacheEvict(value = "jobs", allEntries = true)
     public Job updateJob(Job job) {
-        // 查询原职位，保留创建时间
+        // 查询原职位，逐字段更新，避免传入对象字段缺失导致数据被覆盖为 null
         Job existing = getJobById(job.getId());
-        job.setCreatedAt(existing.getCreatedAt());
-        return jobRepository.save(job);
+        if (job.getTitle() != null) existing.setTitle(job.getTitle());
+        if (job.getSalaryMin() != null) existing.setSalaryMin(job.getSalaryMin());
+        if (job.getSalaryMax() != null) existing.setSalaryMax(job.getSalaryMax());
+        if (job.getEducation() != null) existing.setEducation(job.getEducation());
+        if (job.getExperience() != null) existing.setExperience(job.getExperience());
+        if (job.getCity() != null) existing.setCity(job.getCity());
+        if (job.getAddress() != null) existing.setAddress(job.getAddress());
+        if (job.getDescription() != null) existing.setDescription(job.getDescription());
+        if (job.getRequirements() != null) existing.setRequirements(job.getRequirements());
+        if (job.getTags() != null) existing.setTags(job.getTags());
+        if (job.getStatus() != null) existing.setStatus(job.getStatus());
+        // createdAt 和 companyId 不允许通过此方法修改
+        return jobRepository.save(existing);
     }
 
     /**
@@ -248,6 +269,7 @@ public class JobService {
      * @param id 职位ID
      */
     @Transactional
+    @CacheEvict(value = "jobs", allEntries = true)
     public void deleteJob(Long id) {
         jobRepository.deleteById(id);
     }
@@ -310,6 +332,7 @@ public class JobService {
      * 分页获取活跃职位
      */
     @Transactional(readOnly = true)
+    // PageImpl 不可缓存（无默认构造器，反序列化失败）
     public Page<Job> getActiveJobsPaged(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         return jobRepository.findByStatusOrderByCreatedAtDesc("active", pageable);
@@ -324,31 +347,31 @@ public class JobService {
                                       Integer salaryMin, Integer salaryMax,
                                       String sort, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Job> result;
+        List<Job> allJobs;
 
         if (keyword != null && !keyword.isEmpty()) {
-            result = jobRepository.findByTitleContainingIgnoreCase(keyword, pageable);
+            // keyword 搜索：先查出所有匹配的活跃职位，再内存过滤+分页
+            allJobs = jobRepository.findByTitleContainingIgnoreCaseAndStatus(keyword, "active");
         } else {
-            result = jobRepository.findByStatus("active", pageable);
+            // 无 keyword：查出所有活跃职位，内存过滤+分页（避免 JPA 分页后再手工分页导致的双重分页）
+            allJobs = jobRepository.findByStatus("active");
         }
 
-        List<Job> filtered = new ArrayList<>(result.getContent());
-        // 只展示活跃职位
-        filtered = filtered.stream().filter(j -> "active".equals(j.getStatus())).toList();
+        List<Job> filtered = new ArrayList<>(allJobs);
         if (city != null && !city.isEmpty()) {
-            filtered = filtered.stream().filter(j -> city.equals(j.getCity())).toList();
+            filtered = filtered.stream().filter(j -> city.equals(j.getCity())).collect(java.util.stream.Collectors.toList());
         }
         if (education != null && !education.isEmpty()) {
-            filtered = filtered.stream().filter(j -> education.equals(j.getEducation())).toList();
+            filtered = filtered.stream().filter(j -> education.equals(j.getEducation())).collect(java.util.stream.Collectors.toList());
         }
         if (experience != null && !experience.isEmpty()) {
-            filtered = filtered.stream().filter(j -> experience.equals(j.getExperience())).toList();
+            filtered = filtered.stream().filter(j -> experience.equals(j.getExperience())).collect(java.util.stream.Collectors.toList());
         }
         if (salaryMin != null) {
-            filtered = filtered.stream().filter(j -> j.getSalaryMax() != null && j.getSalaryMax() >= salaryMin).toList();
+            filtered = filtered.stream().filter(j -> j.getSalaryMax() != null && j.getSalaryMax() >= salaryMin).collect(java.util.stream.Collectors.toList());
         }
         if (salaryMax != null) {
-            filtered = filtered.stream().filter(j -> j.getSalaryMin() != null && j.getSalaryMin() <= salaryMax).toList();
+            filtered = filtered.stream().filter(j -> j.getSalaryMin() != null && j.getSalaryMin() <= salaryMax).collect(java.util.stream.Collectors.toList());
         }
 
         if ("salary_high".equals(sort)) {
@@ -357,7 +380,6 @@ public class JobService {
             filtered.sort(Comparator.comparing(Job::getSalaryMin, Comparator.nullsLast(Comparator.naturalOrder())));
         }
 
-        // 分页：totalElements 必须反映过滤后的真实数量，否则前端分页数字错误
         int total = filtered.size();
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), total);

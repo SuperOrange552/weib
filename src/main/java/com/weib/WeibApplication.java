@@ -10,6 +10,6 @@ public class WeibApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(WeibApplication.class, args);
-        System.out.println("微招启动成功！");
+        System.out.println("微招启动成功！http://localhost:8888/");
     }
 }

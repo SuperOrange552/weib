@@ -335,4 +335,33 @@ public class JobController {
 
         return "my-favorites";
     }
+
+    /**
+     * 求职者撤回投递
+     */
+    @PostMapping("/application/{encodedId}/withdraw")
+    @ResponseBody
+    public Result<?> withdraw(@PathVariable String encodedId, HttpSession session) {
+        Long id = idObfuscator.decode(encodedId);
+        if (id == null) return Result.error("参数无效");
+
+        User user = (User) session.getAttribute("user");
+        if (user == null) return Result.error("请先登录");
+        if (!"seeker".equals(user.getRole())) return Result.error("只限求职者");
+
+        try {
+            Application app = applicationService.getApplicationById(id);
+            if (!app.getUserId().equals(user.getId())) {
+                return Result.error("无权撤回他人的投递");
+            }
+            if ("withdrawn".equals(app.getStatus())) {
+                return Result.error("已撤回");
+            }
+            app.setStatus("withdrawn");
+            applicationService.updateStatus(app);
+            return Result.success(Map.of("status", "withdrawn"));
+        } catch (Exception e) {
+            return Result.error("撤回失败：" + e.getMessage());
+        }
+    }
 }

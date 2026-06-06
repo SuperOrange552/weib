@@ -1,9 +1,13 @@
 package com.weib.repository;
 
 import com.weib.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -169,6 +173,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
      */
     Optional<User> findByUsername(String username);
 
+    Optional<User> findByPhone(String phone);
+
+    boolean existsByPhone(String phone);
+
     /**
      * 检查用户名是否存在
      * 
@@ -194,4 +202,34 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByUsername(String username);
 
     Optional<User> findByRememberToken(String rememberToken);
+
+    // ========================================
+    // 管理员用户管理相关查询
+    // ========================================
+
+    Page<User> findByRoleAndStatus(String role, String status, Pageable pageable);
+    Page<User> findByRole(String role, Pageable pageable);
+    Page<User> findByStatus(String status, Pageable pageable);
+    Page<User> findByUsernameContainingIgnoreCase(String keyword, Pageable pageable);
+    Page<User> findByUsernameContainingIgnoreCaseAndRole(String keyword, String role, Pageable pageable);
+    Page<User> findByUsernameContainingIgnoreCaseAndStatus(String keyword, String status, Pageable pageable);
+    Page<User> findByUsernameContainingIgnoreCaseAndRoleAndStatus(String keyword, String role, String status, Pageable pageable);
+
+    // ========================================
+    // 统计相关查询
+    // ========================================
+
+    long countByRole(String role);
+    long countByStatus(String status);
+    long countByRoleAndStatus(String role, String status);
+    long countByCreatedAtAfter(LocalDateTime since);
+
+    /**
+     * 根据角色查询所有用户（不分页，返回 List）
+     * 用于 AdminAdminService.listAdmins 批量查询管理员列表
+     *
+     * @param role 角色名（如 "admin"）
+     * @return 用户列表
+     */
+    List<User> findByRole(String role);
 }

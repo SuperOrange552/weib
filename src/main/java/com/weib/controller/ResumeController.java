@@ -170,33 +170,38 @@ public class ResumeController {
                 if (!resume.getUserId().equals(user.getId())) {
                     model.addAttribute("error", "无权修改他人简历");
                     model.addAttribute("user", user);
-                    model.addAttribute("resume", resume);
-                    model.addAttribute("isNew", false);
+                    // 不将他人简历放入 model，防止数据泄露
+                    Resume safeResume = new Resume();
+                    safeResume.setUserId(user.getId());
+                    model.addAttribute("resume", safeResume);
+                    model.addAttribute("isNew", true);
                     return "resume-edit";
                 }
             } catch (Exception e) {
-                // 简历不存在，当新建处理
+                // 简历不存在，当新建处理：清空 id 防止 JPA 尝试 update 不存在的记录
+                resume = new Resume();
+                resume.setUserId(user.getId());
             }
         }
         
         // 设置用户ID（必须）
         resume.setUserId(user.getId());
         
-        // 设置基本信息
+        // 必填字段：始终设置
         resume.setRealName(realName);
-        resume.setGender(gender);
         resume.setPhone(phone);
         resume.setEmail(email);
-        resume.setBirthday(birthday);
-        resume.setEducation(education);
-        resume.setSchool(school);
-        resume.setMajor(major);
-        
-        // 设置详细经历
-        resume.setWorkExperience(workExperience);
-        resume.setProjectExperience(projectExperience);
-        resume.setSkills(skills);
-        resume.setSelfIntroduction(selfIntroduction);
+
+        // 可选字段：仅在用户填写时更新，防止空值覆盖已有数据
+        if (gender != null && !gender.isBlank()) resume.setGender(gender);
+        if (birthday != null && !birthday.isBlank()) resume.setBirthday(birthday);
+        if (education != null && !education.isBlank()) resume.setEducation(education);
+        if (school != null && !school.isBlank()) resume.setSchool(school);
+        if (major != null && !major.isBlank()) resume.setMajor(major);
+        if (workExperience != null && !workExperience.isBlank()) resume.setWorkExperience(workExperience);
+        if (projectExperience != null && !projectExperience.isBlank()) resume.setProjectExperience(projectExperience);
+        if (skills != null && !skills.isBlank()) resume.setSkills(skills);
+        if (selfIntroduction != null && !selfIntroduction.isBlank()) resume.setSelfIntroduction(selfIntroduction);
         
         // 保存简历
         try {

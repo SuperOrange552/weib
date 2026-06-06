@@ -55,6 +55,8 @@ import java.util.stream.IntStream;
 @RequiredArgsConstructor
 public class IndexController {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(IndexController.class);
+
     /**
      * ----------------------------------------
      * 【依赖注入】Service 层
@@ -196,10 +198,19 @@ public class IndexController {
         User user = (User) session.getAttribute("user");
         model.addAttribute("user", user);
 
+        // 参数校验：防止负数页码和异常页大小
+        if (page < 0) page = 0;
+        if (size < 1) size = 12;
+        if (size > 100) size = 100;
+
         // 搜索或获取所有活跃职位
         Page<Job> jobPage;
-        boolean hasFilters = keyword != null || city != null || education != null
-                || experience != null || salaryMin != null || salaryMax != null;
+        boolean hasFilters = (keyword != null && !keyword.isBlank()) 
+                || (city != null && !city.isBlank()) 
+                || (education != null && !education.isBlank())
+                || (experience != null && !experience.isBlank())
+                || salaryMin != null 
+                || salaryMax != null;
         if (hasFilters) {
             jobPage = jobService.searchJobsPaged(keyword, city, education, experience, salaryMin, salaryMax, sort, page, size);
         } else {
@@ -213,32 +224,35 @@ public class IndexController {
                 .map(Job::getCompanyId).distinct().collect(Collectors.toList());
         Map<Long, Company> companyMap = companyService.getCompanyMapByIds(companyIds);
 
-        // 求职者个性化推荐（基于简历匹配）
-        if (user != null && "seeker".equals(user.getRole()) && !hasFilters) {
+        // 求职者个性化推荐（基于简历匹配，仅取最近50个活跃职位做匹配）
+        if (user != null && "seeker".equals(user.getRole()) && !hasFilters && page == 0) {
             try {
                 Resume resume = resumeService.getResumeByUserId(user.getId());
-                List<Job> allJobs = jobService.getAllActiveJobs();
-                List<Job> recommended = rankJobsByResume(allJobs, resume);
-                // 限制推荐数量，排除当前页已有的职位
-                Set<Long> existingIds = jobs.stream().map(Job::getId).collect(Collectors.toSet());
-                List<Job> topRecommendations = recommended.stream()
-                        .filter(j -> !existingIds.contains(j.getId()))
-                        .limit(6)
-                        .collect(Collectors.toList());
-                if (!topRecommendations.isEmpty()) {
-                    List<Long> recCompanyIds = topRecommendations.stream()
-                            .map(Job::getCompanyId).distinct().collect(Collectors.toList());
-                    Map<Long, Company> recCompanyMap = companyService.getCompanyMapByIds(recCompanyIds);
-                    model.addAttribute("recommendedJobs", topRecommendations);
-                    model.addAttribute("recCompanyMap", recCompanyMap);
-                    Map<Long, String> recEncodedJobIds = new HashMap<>();
-                    for (Job j : topRecommendations) recEncodedJobIds.put(j.getId(), idObfuscator.encode(j.getId()));
-                    Map<Long, String> recEncodedCompanyIds = new HashMap<>();
-                    for (Long cid : recCompanyIds) recEncodedCompanyIds.put(cid, idObfuscator.encode(cid));
-                    model.addAttribute("recEncodedJobIds", recEncodedJobIds);
-                    model.addAttribute("recEncodedCompanyIds", recEncodedCompanyIds);
+                if (resume != null) {
+                    List<Job> candidateJobs = jobService.getRecentActiveJobs(50);
+                    List<Job> recommended = rankJobsByResume(candidateJobs, resume);
+                    Set<Long> existingIds = jobs.stream().map(Job::getId).collect(Collectors.toSet());
+                    List<Job> topRecommendations = recommended.stream()
+                            .filter(j -> !existingIds.contains(j.getId()))
+                            .limit(6)
+                            .collect(Collectors.toList());
+                    if (!topRecommendations.isEmpty()) {
+                        List<Long> recCompanyIds = topRecommendations.stream()
+                                .map(Job::getCompanyId).distinct().collect(Collectors.toList());
+                        Map<Long, Company> recCompanyMap = companyService.getCompanyMapByIds(recCompanyIds);
+                        model.addAttribute("recommendedJobs", topRecommendations);
+                        model.addAttribute("recCompanyMap", recCompanyMap);
+                        Map<Long, String> recEncodedJobIds = new HashMap<>();
+                        for (Job j : topRecommendations) recEncodedJobIds.put(j.getId(), idObfuscator.encode(j.getId()));
+                        Map<Long, String> recEncodedCompanyIds = new HashMap<>();
+                        for (Long cid : recCompanyIds) recEncodedCompanyIds.put(cid, idObfuscator.encode(cid));
+                        model.addAttribute("recEncodedJobIds", recEncodedJobIds);
+                        model.addAttribute("recEncodedCompanyIds", recEncodedCompanyIds);
+                    }
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                log.warn("简历推荐计算失败, userId={}", user != null ? user.getId() : "null", e);
+            }
         }
 
         model.addAttribute("jobs", jobs);
@@ -291,31 +305,21 @@ public class IndexController {
 
     private int matchScore(Job job, Resume resume) {
         int score = 0;
-        // 学历匹配
         if (resume.getEducation() != null && resume.getEducation().equals(job.getEducation())) {
             score += 3;
         }
-        // 技能关键词匹配
         if (resume.getSkills() != null && job.getTags() != null) {
             String[] skills = resume.getSkills().toLowerCase().split("[,\\s、]+");
             String[] tags = job.getTags().toLowerCase().split("[,\\s、]+");
             for (String skill : skills) {
+                String s = skill.trim();
+                if (s.isEmpty()) continue;
                 for (String tag : tags) {
-                    if (skill.contains(tag) || tag.contains(skill)) {
+                    String t = tag.trim();
+                    if (t.isEmpty()) continue;
+                    if (s.contains(t) || t.contains(s)) {
                         score += 5;
-                    }
-                }
-            }
-        }
-        // 工作经历关键词匹配到职位描述
-        if (resume.getWorkExperience() != null && job.getDescription() != null) {
-            String exp = resume.getWorkExperience().toLowerCase();
-            String desc = job.getDescription().toLowerCase();
-            if (exp.length() > 10 && desc.length() > 10) {
-                String[] expWords = exp.split("[\\s,，。、]+");
-                for (String word : expWords) {
-                    if (word.length() > 2 && desc.contains(word)) {
-                        score += 1;
+                        break; // 每技能只计一次
                     }
                 }
             }

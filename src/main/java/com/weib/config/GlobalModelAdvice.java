@@ -21,7 +21,8 @@ public class GlobalModelAdvice {
     public void addCsrfToken(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
         if (session == null) {
-            session = request.getSession(true);
+            // 不强制创建 session，未登录用户访问公开页面不需要 session
+            return;
         }
         String token = (String) session.getAttribute(CSRF_TOKEN_ATTR);
         if (token == null) {

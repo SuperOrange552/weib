@@ -3,6 +3,7 @@ package com.weib.service;
 import com.weib.entity.Resume;
 import com.weib.repository.ResumeRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -138,29 +139,49 @@ public class ResumeService {
     @Transactional
     public Resume saveResume(Resume resume) {
         if (resume.getId() == null) {
-            // 防止同一用户创建多份简历
+            // 防止同一用户创建多份简历：先查后建，并发冲突时自动合并
             if (resumeRepository.existsByUserId(resume.getUserId())) {
-                Resume existing = getResumeByUserId(resume.getUserId());
-                resume.setId(existing.getId());
-                resume.setStatus(existing.getStatus());
+                resume = mergeWithExisting(resume);
             } else {
                 resume.setStatus("draft");
+                // 并发保护：INSERT 时 userId 唯一约束冲突 → 自动重试为 UPDATE
+                try {
+                    return resumeRepository.save(resume);
+                } catch (DataIntegrityViolationException e) {
+                    resume = mergeWithExisting(resume);
+                }
             }
         }
         return resumeRepository.save(resume);
     }
 
     /**
-     * ========================================
-     * 【保存或更新简历】
-     * ========================================
-     * 
-     * 这个方法和上面的是一样的
-     * 保留是为了兼容不同的调用方式
+     * 将新简历的数据合并到已有简历中，保留不可变字段
+     */
+    private Resume mergeWithExisting(Resume newResume) {
+        Resume existing = getResumeByUserId(newResume.getUserId());
+        existing.setRealName(newResume.getRealName() != null ? newResume.getRealName() : existing.getRealName());
+        existing.setGender(newResume.getGender() != null ? newResume.getGender() : existing.getGender());
+        existing.setPhone(newResume.getPhone() != null ? newResume.getPhone() : existing.getPhone());
+        existing.setEmail(newResume.getEmail() != null ? newResume.getEmail() : existing.getEmail());
+        existing.setBirthday(newResume.getBirthday() != null ? newResume.getBirthday() : existing.getBirthday());
+        existing.setEducation(newResume.getEducation() != null ? newResume.getEducation() : existing.getEducation());
+        existing.setSchool(newResume.getSchool() != null ? newResume.getSchool() : existing.getSchool());
+        existing.setMajor(newResume.getMajor() != null ? newResume.getMajor() : existing.getMajor());
+        existing.setWorkExperience(newResume.getWorkExperience() != null ? newResume.getWorkExperience() : existing.getWorkExperience());
+        existing.setProjectExperience(newResume.getProjectExperience() != null ? newResume.getProjectExperience() : existing.getProjectExperience());
+        existing.setSkills(newResume.getSkills() != null ? newResume.getSkills() : existing.getSkills());
+        existing.setSelfIntroduction(newResume.getSelfIntroduction() != null ? newResume.getSelfIntroduction() : existing.getSelfIntroduction());
+        existing.setStatus("draft".equals(existing.getStatus()) ? newResume.getStatus() : existing.getStatus());
+        return existing;
+    }
+
+    /**
+     * 保存或更新简历（委托给 saveResume，保持防重复逻辑一致）
      */
     @Transactional
     public Resume saveOrUpdateResume(Resume resume) {
-        return resumeRepository.save(resume);
+        return saveResume(resume);
     }
 
     /**

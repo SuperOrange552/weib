@@ -166,7 +166,10 @@
                     <span class="badge" th:if="${unreadMsgCount > 0}" th:text="${unreadMsgCount}">0</span>
                 </a>
             </div>
-            <button class="logout-btn" onclick="location.href='/logout'">退出</button>
+            <form id="logoutForm" method="post" action="/logout" style="display:none">
+                <input type="hidden" name="_csrf" th:value="${csrf_token}" />
+            </form>
+            <button class="logout-btn" onclick="document.getElementById('logoutForm').submit()">退出</button>
         </div>
 
         <div class="page-header">

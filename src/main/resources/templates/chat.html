@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" th:content="${csrf_token}">
+    <title th:text="'与' + ${otherUserName} + '的对话'">对话 - 微招</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            height: 100vh;
+            overflow: hidden;
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            padding: 14px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            flex-shrink: 0;
+        }
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .back-btn {
+            color: #00c2b3;
+            text-decoration: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            background: rgba(0,194,179,0.1);
+            border: 1px solid rgba(0,194,179,0.2);
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+        .back-btn:hover { background: rgba(0,194,179,0.2); }
+        .chat-title { font-size: 16px; font-weight: 600; color: #fff; }
+        .chat-subtitle { font-size: 12px; color: #666; }
+        .header-right { font-size: 12px; color: #555; }
+
+        /* 对方在线状态指示 */
+        .online-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+        .online-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: #666;
+            transition: background 0.3s;
+        }
+        .online-dot.online { background: #10b981; }
+        .online-dot.offline { background: #666; }
+        .online-text { color: #888; }
+        .online-text.online { color: #10b981; }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+            min-height: 0;
+        }
+
+        .messages-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .msg-row { display: flex; gap: 10px; max-width: 75%; }
+        .msg-other { align-self: flex-start; }
+        .msg-mine { align-self: flex-end; flex-direction: row-reverse; }
+        .msg-avatar {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        .msg-other .msg-avatar { background: rgba(0,194,179,0.2); color: #00c2b3; }
+        .msg-mine .msg-avatar { background: rgba(93,213,200,0.2); color: #5dd5c8; }
+
+        .msg-content-wrapper { display: flex; flex-direction: column; }
+        .msg-mine .msg-content-wrapper { align-items: flex-end; }
+        .msg-other .msg-content-wrapper { align-items: flex-start; }
+
+        .msg-bubble {
+            padding: 12px 16px;
+            border-radius: 14px;
+            font-size: 14px;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+        .msg-other .msg-bubble { background: rgba(255,255,255,0.08); color: #e0e0e0; }
+        .msg-mine .msg-bubble { background: linear-gradient(135deg, rgba(0,194,179,0.3), rgba(93,213,200,0.2)); color: #e0e0e0; }
+
+        .msg-time {
+            font-size: 11px;
+            color: #555;
+            padding: 0 4px;
+        }
+        .msg-mine .msg-time { text-align: right; }
+
+        /* 已读/未读状态指示 */
+        .msg-status {
+            font-size: 11px;
+            margin-top: 2px;
+            padding: 0 4px;
+        }
+        .msg-mine .msg-status { text-align: right; }
+        .msg-status.read { color: #10b981; }
+        .msg-status.unread { color: #666; }
+
+        /* 离线提示条 */
+        .offline-banner {
+            text-align: center;
+            padding: 8px 16px;
+            font-size: 12px;
+            color: #f5a623;
+            background: rgba(245,166,35,0.1);
+            border-bottom: 1px solid rgba(245,166,35,0.15);
+            flex-shrink: 0;
+            display: none;
+        }
+        .offline-banner.show { display: block; }
+
+        .file-bubble {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 18px;
+        }
+        .file-icon {
+            font-size: 28px;
+            flex-shrink: 0;
+        }
+        .file-info { min-width: 0; }
+        .file-name {
+            font-size: 14px;
+            color: #e0e0e0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .file-size { font-size: 12px; color: #888; margin-top: 4px; }
+        .file-download {
+            padding: 8px 18px;
+            border-radius: 8px;
+            border: 1px solid rgba(0,194,179,0.4);
+            background: rgba(0,194,179,0.15);
+            color: #00c2b3;
+            cursor: pointer;
+            font-size: 13px;
+            text-decoration: none;
+            transition: all 0.3s;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+        .file-download:hover {
+            background: rgba(0,194,179,0.25);
+            border-color: rgba(0,194,179,0.6);
+        }
+
+        .date-divider {
+            text-align: center;
+            font-size: 12px;
+            color: #555;
+            padding: 8px 0;
+        }
+
+        .input-area {
+            padding: 16px 20px;
+            background: rgba(255,255,255,0.03);
+            border-top: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            flex-shrink: 0;
+        }
+        .input-actions { display: flex; gap: 8px; }
+        .upload-btn {
+            width: 42px; height: 42px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #888;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+        .upload-btn:hover { background: rgba(0,194,179,0.15); color: #00c2b3; border-color: rgba(0,194,179,0.3); }
+        .upload-btn input[type="file"] { display: none; }
+
+        .msg-input {
+            flex: 1;
+            padding: 12px 16px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #e0e0e0;
+            font-size: 15px;
+            font-family: inherit;
+            resize: none;
+            outline: none;
+            transition: border-color 0.3s;
+            max-height: 120px;
+        }
+        .msg-input:focus { border-color: rgba(0,194,179,0.4); }
+        .msg-input::placeholder { color: #555; }
+
+        .send-btn {
+            width: 46px; height: 46px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #00c2b3, #5dd5c8);
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+        .send-btn:hover { transform: scale(1.05); }
+        .send-btn:disabled { background: #333; cursor: not-allowed; transform: none; }
+
+        .upload-toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 28px;
+            border-radius: 10px;
+            background: rgba(16,185,129,0.9);
+            color: #fff;
+            font-size: 14px;
+            z-index: 999;
+            display: none;
+            backdrop-filter: blur(8px);
+        }
+        .upload-toast.error { background: rgba(239,80,94,0.9); }
+
+        .connection-status {
+            display: flex; align-items: center; gap: 8px;
+            padding: 6px 16px;
+            font-size: 12px; color: #888;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .connection-status .status-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #f5a623; transition: background 0.3s;
+        }
+        .connection-status.online .status-dot { background: #10b981; }
+        .connection-status.offline .status-dot { background: #ef505e; }
+        .connection-status.connecting .status-dot { background: #f5a623; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <a th:href="${isBoss ? '/boss/applications' : '/my/applications'}" class="back-btn">← 返回</a>
+            <div>
+                <div class="chat-title">与 <span th:text="${otherUserName}">对方</span> 对话</div>
+                <div class="online-indicator" id="otherOnlineIndicator">
+                    <span class="online-dot offline" id="otherOnlineDot"></span>
+                    <span class="online-text" id="otherOnlineText">加载中...</span>
+                </div>
+                <div class="chat-subtitle" th:text="'关于职位：' + ${job.title}">职位名称</div>
+            </div>
+        </div>
+        <div class="header-right" th:text="${isBoss ? 'Boss视角' : '求职者视角'}"></div>
+    </div>
+
+    <div class="offline-banner" id="offlineBanner">
+        对方当前离线，消息将在对方上线后送达
+    </div>
+
+    <div class="chat-container">
+        <div class="messages-area" id="messagesArea">
+            <div th:if="${#lists.isEmpty(messages)}" style="text-align:center;color:#555;margin-top:60px;">
+                <div style="font-size:48px;margin-bottom:16px;">💬</div>
+                <div>暂无消息，发送第一条消息开始沟通吧</div>
+            </div>
+
+            <th:block th:each="msg,iter : ${messages}">
+                <div th:if="${iter.first or #temporals.format(msg.createdAt, 'yyyy-MM-dd') != #temporals.format(messages[iter.index-1].createdAt, 'yyyy-MM-dd')}"
+                     class="date-divider" th:text="${#temporals.format(msg.createdAt, 'yyyy-MM-dd')}"></div>
+
+                <div class="msg-row" th:classappend="${msg.senderId == user.id ? 'msg-mine' : 'msg-other'}"
+                     th:attr="data-msg-id=${msg.id}">
+                    <div class="msg-avatar" th:text="${msg.senderId == user.id ? '我' : '对'}"></div>
+                    <div class="msg-content-wrapper">
+                        <!-- 文本消息 -->
+                        <div class="msg-bubble" th:if="${msg.messageType == 'text'}" th:text="${msg.content}"></div>
+                        <!-- 文件消息 -->
+                        <div class="msg-bubble file-bubble" th:if="${msg.messageType == 'file'}">
+                            <div class="file-icon">📄</div>
+                            <div class="file-info">
+                                <div class="file-name" th:text="${msg.fileName}">file.pdf</div>
+                                <div class="file-size" th:text="${msg.fileSize != null ? #numbers.formatDecimal(msg.fileSize / 1024.0, 1, 1) + ' KB' : ''}"></div>
+                            </div>
+                            <a class="file-download" th:href="@{/chat/file/{name}(name=${msg.filePath?.replace('/chat/','')})}">下载</a>
+                        </div>
+                        <div class="msg-time" th:text="${#temporals.format(msg.createdAt, 'HH:mm')}"></div>
+                        <!-- 已读/未读状态：仅在自己发的消息上显示 -->
+                        <div class="msg-status" th:if="${msg.senderId == user.id}"
+                             th:classappend="${msg.isRead ? 'read' : 'unread'}"
+                             th:text="${msg.isRead ? '已读' : '未读'}">未读</div>
+                    </div>
+                </div>
+            </th:block>
+        </div>
+
+        <div class="input-area">
+            <div class="input-actions">
+                <label class="upload-btn" title="发送PDF文件">
+                    📎
+                    <input type="file" id="fileInput" accept=".pdf" />
+                </label>
+            </div>
+            <textarea class="msg-input" id="msgInput" placeholder="输入消息......" rows="1"
+                      onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendText();}"></textarea>
+            <button class="send-btn" id="sendBtn" onclick="sendText()">➤</button>
+        </div>
+    </div>
+
+    <div class="upload-toast" id="uploadToast"></div>
+
+    <div class="connection-status" id="connectionStatus">
+        <span class="status-dot"></span>
+        <span class="status-text">连接中...</span>
+    </div>
+
+    <script src="/js/sockjs.min.js"></script>
+    <script src="/js/stomp.min.js"></script>
+    <script th:inline="javascript">
+        var currentUserId = /*[[${user.id}]]*/ 1;
+        var conversationId = /*[[${conversationId}]]*/ '';
+        var otherUserId = /*[[${otherUserId}]]*/ 0;
+
+        var stompClient = null;
+        var messagesArea = document.getElementById('messagesArea');
+        var connected = false;
+        var reconnectAttempts = 0;
+        var maxReconnectAttempts = 10;
+        var isPageVisible = true;
+        var markReadTimer = null;
+        var otherOnline = false;
+        var onlinePollTimer = null;
+        // 已追加到界面的消息ID集合，用于去重（防止自己发的消息同时通过 echo 和本地追加重复显示）
+        var appendedMsgIds = {};
+
+        // 页面可见性检测
+        document.addEventListener('visibilitychange', function() {
+            var wasHidden = !isPageVisible;
+            isPageVisible = !document.hidden;
+            if (isPageVisible && wasHidden) {
+                markConversationRead();
+                checkOtherOnline();
+            }
+        });
+        isPageVisible = !document.hidden;
+
+        function updateStatus(state, text) {
+            var el = document.getElementById('connectionStatus');
+            el.className = 'connection-status ' + state;
+            el.querySelector('.status-text').textContent = text;
+            if (state === 'online') {
+                connected = true;
+                document.getElementById('sendBtn').disabled = false;
+            } else if (state === 'connecting') {
+                connected = false;
+                document.getElementById('sendBtn').disabled = false;
+            } else {
+                connected = false;
+            }
+        }
+
+        /**
+         * 查询对方在线状态
+         */
+        function checkOtherOnline() {
+            if (!otherUserId) return;
+            fetch('/api/chat/online-status/' + otherUserId)
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.code === 200 && data.data) {
+                        setOtherOnlineStatus(data.data.online);
+                    }
+                })
+                .catch(function() {});
+        }
+
+        function setOtherOnlineStatus(online) {
+            otherOnline = online;
+            var dot = document.getElementById('otherOnlineDot');
+            var text = document.getElementById('otherOnlineText');
+            var banner = document.getElementById('offlineBanner');
+            if (online) {
+                dot.className = 'online-dot online';
+                text.className = 'online-text online';
+                text.textContent = '在线';
+                banner.classList.remove('show');
+            } else {
+                dot.className = 'online-dot offline';
+                text.className = 'online-text';
+                text.textContent = '离线';
+                banner.classList.add('show');
+            }
+        }
+
+        /**
+         * WebSocket 连接
+         * 订阅：
+         * 1. /user/{userId}/queue/messages — 新消息 + 自己的消息回显
+         * 2. /user/{userId}/queue/read-receipts — 已读回执
+         */
+        function connect() {
+            if (reconnectAttempts >= maxReconnectAttempts) {
+                updateStatus('offline', '连接失败，60秒后重试...');
+                // 不放弃：60秒后重置计数器再次尝试
+                setTimeout(function() {
+                    reconnectAttempts = 0;
+                    connect();
+                }, 60000);
+                return;
+            }
+            updateStatus('connecting', '连接中...');
+            var socket = new SockJS('/ws');
+            stompClient = Stomp.over(socket);
+            stompClient.debug = null;
+            stompClient.heartbeat.outgoing = 10000;
+            stompClient.heartbeat.incoming = 10000;
+            stompClient.connect({}, function(frame) {
+                reconnectAttempts = 0;
+                updateStatus('online', '已连接');
+                checkOtherOnline();
+
+                // 订阅新消息（包括自己的回显）
+                stompClient.subscribe('/user/' + currentUserId + '/queue/messages', function(msg) {
+                    var message = JSON.parse(msg.body);
+                    if (message.conversationId !== conversationId) return;
+                    // 去重：已通过本地追加显示的消息不再重复添加
+                    if (message.id && appendedMsgIds[message.id]) return;
+                    var isMine = message.senderId == currentUserId;
+                    appendMessage(message, isMine);
+                    // 对方发的消息且页面可见，自动标记已读
+                    if (!isMine && isPageVisible) {
+                        scheduleMarkRead();
+                    }
+                });
+
+                // 订阅已读回执
+                stompClient.subscribe('/user/' + currentUserId + '/queue/read-receipts', function(msg) {
+                    var receipt = JSON.parse(msg.body);
+                    if (receipt.type === 'read_receipt' && receipt.conversationId === conversationId) {
+                        updateMyMessagesToRead();
+                    }
+                });
+
+                // 补拉窗口期内可能错过的消息（页面加载→WebSocket订阅之间的消息）
+                syncMissedMessages();
+            }, function(error) {
+                updateStatus('offline', '实时连接断开，消息将通过HTTP发送');
+                stompClient = null;
+                var delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+                reconnectAttempts++;
+                setTimeout(connect, delay);
+            });
+        }
+
+        /**
+         * 同步可能错过的消息（窗口期补偿）
+         * 在 WebSocket 订阅建立后立即调用
+         */
+        function syncMissedMessages() {
+            var maxId = 0;
+            var existingMsgs = messagesArea.querySelectorAll('[data-msg-id]');
+            existingMsgs.forEach(function(el) {
+                var id = parseInt(el.getAttribute('data-msg-id'));
+                if (id > maxId) maxId = id;
+            });
+            fetch('/api/chat/messages/' + conversationId + '?sinceId=' + maxId)
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.code === 200 && data.data) {
+                        data.data.forEach(function(msg) {
+                            if (!appendedMsgIds[msg.id]) {
+                                var isMine = msg.senderId == currentUserId;
+                                appendMessage(msg, isMine);
+                                if (!isMine && isPageVisible) {
+                                    scheduleMarkRead();
+                                }
+                            }
+                        });
+                    }
+                })
+                .catch(function() {});
+        }
+
+        function scheduleMarkRead() {
+            if (markReadTimer) clearTimeout(markReadTimer);
+            markReadTimer = setTimeout(markConversationRead, 300);
+        }
+
+        function markConversationRead() {
+            fetch('/api/chat/mark-read', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                body: JSON.stringify({ conversationId: conversationId })
+            }).catch(function() {});
+        }
+
+        function updateMyMessagesToRead() {
+            var myMessages = messagesArea.querySelectorAll('.msg-mine');
+            myMessages.forEach(function(row) {
+                var statusEl = row.querySelector('.msg-status');
+                if (statusEl) {
+                    statusEl.textContent = '已读';
+                    statusEl.className = 'msg-status read';
+                }
+            });
+        }
+
+        /**
+         * 追加消息到聊天区域
+         */
+        function appendMessage(msg, isMine) {
+            // 去重检查
+            if (msg.id && appendedMsgIds[msg.id]) return;
+            if (msg.id) appendedMsgIds[msg.id] = true;
+
+            var existingEmpty = messagesArea.querySelector('[style*="text-align:center"]');
+            if (existingEmpty) existingEmpty.remove();
+
+            var row = document.createElement('div');
+            row.className = 'msg-row ' + (isMine ? 'msg-mine' : 'msg-other');
+            row.setAttribute('data-msg-id', msg.id || '');
+
+            var avatar = document.createElement('div');
+            avatar.className = 'msg-avatar';
+            avatar.textContent = isMine ? '我' : '对';
+
+            var wrapper = document.createElement('div');
+            wrapper.className = 'msg-content-wrapper';
+
+            var bubble = document.createElement('div');
+            bubble.className = 'msg-bubble';
+
+            if (msg.messageType === 'file') {
+                bubble.classList.add('file-bubble');
+
+                var icon = document.createElement('div');
+                icon.className = 'file-icon';
+                icon.textContent = '📄';
+
+                var info = document.createElement('div');
+                info.className = 'file-info';
+
+                var name = document.createElement('div');
+                name.className = 'file-name';
+                name.textContent = msg.fileName || 'file.pdf';
+
+                var size = document.createElement('div');
+                size.className = 'file-size';
+                if (msg.fileSize) {
+                    size.textContent = (msg.fileSize / 1024).toFixed(1) + ' KB';
+                }
+
+                info.appendChild(name);
+                info.appendChild(size);
+
+                var downloadLink = document.createElement('a');
+                downloadLink.className = 'file-download';
+                downloadLink.textContent = '下载';
+                downloadLink.href = '/chat/file/' + (msg.filePath || '').replace('/chat/', '');
+                downloadLink.target = '_blank';
+
+                bubble.appendChild(icon);
+                bubble.appendChild(info);
+                bubble.appendChild(downloadLink);
+            } else {
+                bubble.textContent = msg.content || '';
+            }
+
+            var time = document.createElement('div');
+            time.className = 'msg-time';
+            var d = msg.createdAt ? new Date(msg.createdAt) : new Date();
+            time.textContent = d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+
+            // 已读/未读状态（仅在自己发的消息上显示）
+            var status = document.createElement('div');
+            status.className = 'msg-status';
+            if (isMine) {
+                status.textContent = msg.isRead ? '已读' : '未读';
+                status.className += msg.isRead ? ' read' : ' unread';
+            }
+
+            wrapper.appendChild(bubble);
+            wrapper.appendChild(time);
+            if (isMine) wrapper.appendChild(status);
+            row.appendChild(avatar);
+            row.appendChild(wrapper);
+
+            messagesArea.appendChild(row);
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+        }
+
+        /**
+         * 发送文本消息：始终通过 REST API 发送，保证发送方立即看到消息
+         */
+        function sendText() {
+            var input = document.getElementById('msgInput');
+            var content = input.value.trim();
+            if (!content) return;
+
+            var payload = {
+                conversationId: conversationId,
+                senderId: currentUserId,
+                receiverId: otherUserId,
+                content: content,
+                messageType: 'text'
+            };
+
+            input.value = '';
+            input.focus();
+            sendViaHttp(payload);
+        }
+
+        /**
+         * REST API 发送消息（WebSocket 断开时的后备方案）
+         */
+        function sendViaHttp(payload) {
+            var btn = document.getElementById('sendBtn');
+            btn.disabled = true;
+            fetch('/api/chat/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.code === 200 && data.data) {
+                    var msg = data.data;
+                    appendMessage(msg, true);
+                    // 如果对方在线则对方已推送到，无需额外操作
+                    // 离线横幅会在在线状态轮询中更新
+                } else {
+                    showToast(data.msg || '发送失败', true);
+                }
+            })
+            .catch(function() {
+                showToast('网络错误，发送失败', true);
+            })
+            .finally(function() {
+                btn.disabled = false;
+            });
+        }
+
+        // 文件上传逻辑
+        document.getElementById('fileInput').addEventListener('change', function() {
+            var file = this.files[0];
+            if (!file) return;
+            if (!file.name.toLowerCase().endsWith('.pdf')) {
+                showToast('仅支持PDF文件', true);
+                this.value = '';
+                return;
+            }
+
+            var formData = new FormData();
+            formData.append('file', file);
+            formData.append('conversationId', conversationId);
+            formData.append('_csrf', document.querySelector('meta[name="csrf-token"]')?.content || '');
+
+            var btn = document.getElementById('sendBtn');
+            btn.disabled = true;
+
+            fetch('/chat/upload', { method: 'POST', body: formData })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.code === 200) {
+                        var payload = {
+                            conversationId: conversationId,
+                            senderId: currentUserId,
+                            receiverId: otherUserId,
+                            content: '',
+                            messageType: 'file',
+                            fileName: data.data.fileName,
+                            filePath: data.data.filePath,
+                            fileSize: data.data.fileSize
+                        };
+                        sendViaHttp(payload);
+                    } else {
+                        showToast(data.msg || '上传失败', true);
+                    }
+                })
+                .catch(function() {
+                    showToast('上传失败，请重试', true);
+                })
+                .finally(function() {
+                    btn.disabled = false;
+                    document.getElementById('fileInput').value = '';
+                });
+        });
+
+        function showToast(msg, isError) {
+            var toast = document.getElementById('uploadToast');
+            toast.textContent = msg;
+            toast.className = 'upload-toast' + (isError ? ' error' : '');
+            toast.style.display = 'block';
+            setTimeout(function() { toast.style.display = 'none'; }, 2500);
+        }
+
+        // 初始化
+        scrollToBottom();
+        connect();
+        // 初始查询对方在线状态
+        checkOtherOnline();
+        // 每30秒轮询对方在线状态
+        onlinePollTimer = setInterval(checkOtherOnline, 30000);
+        // 每10秒轮询新消息（兜底：防止 WebSocket 推送丢失时消息不更新）
+        var msgPollTimer = setInterval(syncMissedMessages, 10000);
+    </script>
+</body>
+</html>

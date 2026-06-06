@@ -1,5 +1,6 @@
 package com.weib.controller;
 
+import com.weib.annotation.RateLimit;
 import com.weib.entity.User;
 import com.weib.service.UserService;
 import com.weib.util.CookieUtil;
@@ -303,6 +304,7 @@ public class UserController {
      * @param model    数据模型
      * @return 成功重定向首页，失败返回登录页
      */
+    @RateLimit(maxRequests = 10, windowSeconds = 60, key = "ip")
     @PostMapping("/login")
     public String login(@RequestParam String username,
                         @RequestParam String password,
@@ -320,17 +322,21 @@ public class UserController {
 
         // 基本输入校验
         if (username == null || username.isBlank() || password == null || password.isBlank()) {
-            model.addAttribute("error", "用户名和密码不能为空");
+            model.addAttribute("error", "用户名/手机号和密码不能为空");
             return "login";
         }
 
-        // 调用 Service 验证登录
+        // 调用 Service 验证登录（支持用户名或手机号）
         User user = userService.login(username, password).orElse(null);
 
         // 判断是否登录成功
         if (user == null) {
-            // 失败：存入错误信息，返回登录页
-            model.addAttribute("error", "用户名或密码错误");
+            // 检查是否因为账户被锁定
+            if (userService.isAccountLocked(username)) {
+                model.addAttribute("error", "账户已锁定，请15分钟后重试");
+            } else {
+                model.addAttribute("error", "用户名/手机号或密码错误");
+            }
             return "login";
         }
 
@@ -339,6 +345,10 @@ public class UserController {
         HttpSession newSession = request.getSession(true);
         newSession.setAttribute("user", user);
         newSession.setAttribute("username", user.getUsername());
+
+        // 修复 BUG-012: 在新 Session 中立即生成 CSRF Token
+        String csrfToken = com.weib.config.CsrfInterceptor.generateCsrfToken(newSession);
+        newSession.setAttribute("csrf_token", csrfToken);
 
         // 生成记住我令牌，2 小时内自动登录
         String token = userService.generateRememberToken(user);
@@ -388,10 +398,12 @@ public class UserController {
      * @param model         数据模型
      * @return 成功跳转登录页，失败返回注册页
      */
+    @RateLimit(maxRequests = 3, windowSeconds = 60, key = "ip")
     @PostMapping("/register")
     public String register(@RequestParam String username,
                            @RequestParam String password,
                            @RequestParam String confirmPassword,
+                           @RequestParam String phone,
                            @RequestParam String captcha,
                            @RequestParam(defaultValue = "seeker") String role,
                            Model model,
@@ -408,7 +420,7 @@ public class UserController {
             model.addAttribute("error", "两次密码不一致");
             return "register";
         }
-        
+
         // 2. 用户名格式校验
         if (username.length() < 3 || username.length() > 50) {
             model.addAttribute("error", "用户名长度3-50");
@@ -418,26 +430,37 @@ public class UserController {
             model.addAttribute("error", "用户名只能包含字母、数字、下划线和中文");
             return "register";
         }
-        
-        // 3. 密码长度校验
-        if (password.length() < 6) {
-            model.addAttribute("error", "密码长度至少6位");
+
+        // 3. 手机号校验
+        if (phone == null || phone.isBlank()) {
+            model.addAttribute("error", "手机号不能为空");
             return "register";
         }
-        
-        // 4. 角色校验
+        if (!phone.matches("^1[3-9]\\d{9}$")) {
+            model.addAttribute("error", "手机号格式不正确");
+            return "register";
+        }
+
+        // 4. 密码规则校验
+        String pwdError = UserService.validatePassword(password);
+        if (pwdError != null) {
+            model.addAttribute("error", pwdError);
+            return "register";
+        }
+
+        // 5. 角色校验
         if (!"seeker".equals(role) && !"boss".equals(role)) {
-            role = "seeker";  // 默认求职者
+            role = "seeker";
         }
-        
-        // 5. 调用 Service 注册（传入角色）
-        User user = userService.register(username, password, role);
+
+        // 6. 调用 Service 注册
+        User user = userService.register(username, password, phone, role);
         if (user == null) {
-            model.addAttribute("error", "用户名已存在");
+            model.addAttribute("error", "用户名或手机号已存在");
             return "register";
         }
-        
-        // 6. 成功：跳转登录页，显示成功提示
+
+        // 7. 成功：跳转登录页
         model.addAttribute("success", "注册成功，请登录");
         return "login";
     }
@@ -466,7 +489,7 @@ public class UserController {
      * @param session HTTP 会话
      * @return 重定向到登录页
      */
-    @GetMapping("/logout")
+    @PostMapping("/logout")
     public String logout(HttpSession session, HttpServletResponse response) {
         // 清除记住我令牌
         User user = (User) session.getAttribute("user");
@@ -520,16 +543,67 @@ public class UserController {
      * @param username 用户名
      * @return true=已存在，false=不存在
      */
+    @RateLimit(maxRequests = 30, windowSeconds = 60, key = "ip")
     @GetMapping("/check-username")
     @ResponseBody
-    public String checkUsername(@RequestParam String username, HttpSession session) {
-        // 限制未登录用户的查询频率，每session最多查询10次
+    public String checkUsername(@RequestParam String username,
+                                @RequestParam(required = false) String phone,
+                                HttpSession session) {
+        // 限制未登录用户的查询频率
         Integer count = (Integer) session.getAttribute("check_username_count");
         if (count == null) count = 0;
-        if (count >= 10) {
+        if (count >= 5) {
             return "rate_limited";
         }
         session.setAttribute("check_username_count", count + 1);
-        return userService.existsByUsername(username) ? "taken" : "available";
+
+        if (userService.existsByUsername(username)) {
+            return "taken";
+        }
+        if (phone != null && !phone.isBlank() && userService.existsByPhone(phone)) {
+            return "phone_taken";
+        }
+        return "available";
+    }
+
+    /**
+     * 修改密码页面
+     */
+    @GetMapping("/change-password")
+    public String changePasswordPage(HttpSession session, Model model) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) return "redirect:/login";
+        model.addAttribute("user", user);
+        return "change-password";
+    }
+
+    /**
+     * 提交修改密码
+     */
+    @PostMapping("/user/change-password")
+    public String changePassword(@RequestParam String oldPassword,
+                                  @RequestParam String newPassword,
+                                  @RequestParam String confirmPassword,
+                                  HttpSession session, Model model) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) return "redirect:/login";
+
+        model.addAttribute("user", user);
+
+        if (!newPassword.equals(confirmPassword)) {
+            model.addAttribute("error", "两次输入的新密码不一致");
+            return "change-password";
+        }
+
+        try {
+            userService.changePassword(user.getId(), oldPassword, newPassword);
+        } catch (RuntimeException e) {
+            model.addAttribute("error", e.getMessage());
+            return "change-password";
+        }
+
+        // 修改成功后销毁会话，要求重新登录
+        session.invalidate();
+        return "redirect:/login?changed";
     }
 }

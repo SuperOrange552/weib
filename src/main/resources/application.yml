@@ -2,9 +2,16 @@ server:
   port: 8443
   ssl:
     key-store: classpath:keystore.p12
-    key-store-password: weib123
+    key-store-password: ${SSL_KEYSTORE_PASSWORD:}
     key-store-type: PKCS12
     key-alias: weib
+  tomcat:
+    threads:
+      max: 300
+      min-spare: 20
+    accept-count: 200
+    max-connections: 10000
+    connection-timeout: 30000
   servlet:
     encoding:
       charset: UTF-8
@@ -18,46 +25,108 @@ server:
       cookie:
         secure: true
         http-only: true
-        same-site: strict
+        same-site: lax
 
 spring:
   application:
     name: weib
 
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
   thymeleaf:
-    cache: false
+    cache: true
     prefix: classpath:/templates/
     suffix: .html
     encoding: UTF-8
     mode: HTML
 
   datasource:
-    url: jdbc:mysql://localhost:3306/weib?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://localhost:3306/weib?useSSL=true&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: root
-    password: 123456
+    password: ${DB_PASSWORD:}
+    hikari:
+      maximum-pool-size: 40
+      minimum-idle: 10
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
 
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
+    open-in-view: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
 
 jwt:
-  secret: ${JWT_SECRET:weib-prod-jwt-secret-2026-please-change-in-env}
+  secret: ${JWT_SECRET:}
+  admin-secret: ${JWT_ADMIN_SECRET:weib-admin-jwt-secret-key-2026-min-256bits!!}
 
 amap:
-  key: ${AMAP_KEY:40e3021845971db336775b94da0326da}
+  key: ${AMAP_KEY:}
 
 storage:
-  upload-dir: /opt/weib/uploads
-  avatar-dir: /opt/weib/uploads/avatars
-  attachment-dir: /opt/weib/uploads/attachments
-  chat-dir: /opt/weib/uploads/chat
+  upload-dir: ./weib/uploads
+  avatar-dir: ./weib/uploads/avatars
+  attachment-dir: ./weib/uploads/attachments
+  chat-dir: ./weib/uploads/chat
+
+websocket:
+  allowed-origins: ${WEBSOCKET_ALLOWED_ORIGINS:https://localhost:8443}
+
+id-obfuscator:
+  secret: ${ID_OBFUSCATOR_SECRET:}
+
+admin:
+  default-password: ${ADMIN_DEFAULT_PASSWORD:Admin@123456}
+
+# ============================================
+# Redis 缓存配置
+# ============================================
+spring.cache:
+  type: redis
+  redis:
+    time-to-live: 600000
+    cache-null-values: false
+
+spring.data.redis:
+  host: ${REDIS_HOST:localhost}
+  port: ${REDIS_PORT:6379}
+  password: ${REDIS_PASSWORD:}
+  database: 0
+  timeout: 3000ms
+  lettuce:
+    pool:
+      max-active: 16
+      max-idle: 8
+      min-idle: 2
+      max-wait: 3000ms
+
+# ============================================
+# 读写分离 — 从库配置
+# ============================================
+# 生产环境：设置 enabled=true 并配置 replica URL
+# 开发环境：保持 enabled=false（读写走同一数据库）
+weib.datasource.replica:
+  enabled: ${REPLICA_ENABLED:false}
+  url: ${REPLICA_URL:jdbc:mysql://localhost:3306/weib?useSSL=true&serverTimezone=Asia/Shanghai}
+  driver-class-name: com.mysql.cj.jdbc.Driver
+  username: ${REPLICA_USERNAME:root}
+  password: ${REPLICA_PASSWORD:}
+  hikari:
+    maximum-pool-size: 20
+    minimum-idle: 5
+    connection-timeout: 30000
+    idle-timeout: 600000
+    max-lifetime: 1800000
 
 logging:
   level:
-    root: info
-    com.weib: debug
+    root: warn
+    com.weib: info

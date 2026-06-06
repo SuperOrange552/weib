@@ -25,7 +25,7 @@ public class IdObfuscator {
 
     private final byte[] secretBytes;
 
-    public IdObfuscator(@Value("${jwt.secret:weib-default-secret}") String secret) {
+    public IdObfuscator(@Value("${id-obfuscator.secret:${jwt.secret:weib-default-secret}}") String secret) {
         // 对 secret 做一次哈希，得到固定长度的密钥材料
         try {
             Mac mac = Mac.getInstance(HMAC_ALGO);

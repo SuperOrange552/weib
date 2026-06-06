@@ -65,4 +65,14 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     List<Application> findByJobIdIn(List<Long> jobIds);
 
     List<Application> findByJobIdInAndUserId(List<Long> jobIds, Long userId);
+
+    /**
+     * 统计指定用户的投递数量
+     *
+     * @param userId 用户ID
+     * @return 投递数量
+     */
+    long countByUserId(Long userId);
+
+    long countByJobId(Long jobId);
 }

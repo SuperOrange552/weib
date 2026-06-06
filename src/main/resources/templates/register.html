@@ -201,8 +201,12 @@
                     <input type="text" name="username" class="form-input" placeholder="3-20位字母或数字" required>
                 </div>
                 <div class="form-group">
+                    <label class="form-label">手机号</label>
+                    <input type="text" name="phone" class="form-input" placeholder="请输入11位手机号" required maxlength="11">
+                </div>
+                <div class="form-group">
                     <label class="form-label">密码</label>
-                    <input type="password" name="password" class="form-input" placeholder="至少6位" required>
+                    <input type="password" name="password" id="password" class="form-input" placeholder="至少7位，含大小写字母和数字" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">确认密码</label>
@@ -258,6 +262,30 @@
         }
         animateCube(document.getElementById('cube1'), 8, 0);
         animateCube(document.getElementById('cube2'), 10, 2000);
+
+        // 密码实时校验
+        document.getElementById('password').addEventListener('input', function() {
+            const pwd = this.value;
+            let msg = '';
+            if (pwd.length < 7) msg = '密码长度至少7位';
+            else if (!/[a-z]/.test(pwd)) msg = '需包含小写字母';
+            else if (!/[A-Z]/.test(pwd)) msg = '需包含大写字母';
+            else if (!/\d/.test(pwd)) msg = '需包含数字';
+            let el = document.getElementById('pwdHint');
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'pwdHint';
+                el.style.cssText = 'font-size:12px;margin-top:4px;';
+                this.parentElement.appendChild(el);
+            }
+            el.style.color = msg ? '#ef505e' : '#10b981';
+            el.textContent = msg || '密码强度合格';
+        });
+
+        // 手机号格式校验
+        document.querySelector('input[name="phone"]').addEventListener('input', function() {
+            this.value = this.value.replace(/\D/g, '');
+        });
     </script>
     <!-- 页脚 -->
     <footer class="footer">

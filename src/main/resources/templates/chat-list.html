@@ -153,7 +153,10 @@
                     <a href="/boss">Boss工作台</a>
                 </th:block>
             </div>
-            <button class="logout-btn" onclick="location.href='/logout'">退出</button>
+            <form id="logoutForm" method="post" action="/logout" style="display:none">
+                <input type="hidden" name="_csrf" th:value="${csrf_token}" />
+            </form>
+            <button class="logout-btn" onclick="document.getElementById('logoutForm').submit()">退出</button>
         </div>
 
         <h2 class="page-title">消息列表</h2>

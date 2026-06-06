@@ -43,6 +43,18 @@ public class Company {
     private Double latitude;   // 纬度，如 39.980557
     private Double longitude;  // 经度，如 116.337649
 
+    /**
+     * 审核状态：pending=待审核, approved=已通过, rejected=已驳回
+     */
+    @Column(length = 20)
+    private String auditStatus = "pending";
+
+    /**
+     * 审核驳回原因
+     */
+    @Column(length = 500)
+    private String auditReason;
+
     @Column(length = 50)
     private String contactName;
 
@@ -55,7 +67,7 @@ public class Company {
     @Column(nullable = false, unique = true)
     private Long bossId;
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Column(nullable = false)

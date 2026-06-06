@@ -35,4 +35,12 @@ public interface ResumeRepository extends JpaRepository<Resume, Long> {
     boolean existsByUserId(Long userId);
 
     List<Resume> findByUserIdIn(List<Long> userIds);
+
+    /**
+     * 统计指定用户的简历数量
+     *
+     * @param userId 用户ID
+     * @return 简历数量
+     */
+    long countByUserId(Long userId);
 }

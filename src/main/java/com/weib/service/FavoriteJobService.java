@@ -20,10 +20,14 @@ public class FavoriteJobService {
                 .ifPresentOrElse(
                         fav -> favoriteJobRepository.delete(fav),
                         () -> {
-                            FavoriteJob fav = new FavoriteJob();
-                            fav.setJobId(jobId);
-                            fav.setUserId(userId);
-                            favoriteJobRepository.save(fav);
+                            try {
+                                FavoriteJob fav = new FavoriteJob();
+                                fav.setJobId(jobId);
+                                fav.setUserId(userId);
+                                favoriteJobRepository.save(fav);
+                            } catch (Exception e) {
+                                // 并发情况下可能因唯一约束冲突抛异常，忽略即可
+                            }
                         }
                 );
     }

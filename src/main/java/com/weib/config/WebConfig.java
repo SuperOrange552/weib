@@ -13,12 +13,17 @@ public class WebConfig implements WebMvcConfigurer {
 
     private final LoginInterceptor loginInterceptor;
     private final CsrfInterceptor csrfInterceptor;
+    private final RateLimitInterceptor rateLimitInterceptor;
 
     @Value("${storage.upload-dir}")
     private String uploadDir;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        // 频率限制拦截器（最外层，优先级最高）
+        registry.addInterceptor(rateLimitInterceptor)
+                .addPathPatterns("/**");
+
         // CSRF 保护：对所有状态变更端点进行 token 校验
         registry.addInterceptor(csrfInterceptor)
                 .addPathPatterns(
@@ -27,8 +32,12 @@ public class WebConfig implements WebMvcConfigurer {
                         "/boss/**",
                         "/job/*/apply",
                         "/job/*/favorite",
-                        "/chat/upload",
+                        "/chat/**",
+                        "/user/**",
                         "/api/**"
+                )
+                .excludePathPatterns(
+                        "/api/admin/**"
                 );
 
         registry.addInterceptor(loginInterceptor)
@@ -48,7 +57,11 @@ public class WebConfig implements WebMvcConfigurer {
                         "/css/**",
                         "/js/**",
                         "/images/**",
-                        "/static/**"
+                        "/static/**",
+                        "/api/admin/**",
+                        "/admin/**",
+                        "/swagger-ui/**",
+                        "/v3/api-docs/**"
                 );
     }
 

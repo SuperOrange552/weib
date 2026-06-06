@@ -137,10 +137,43 @@ spring-boot-starter-* 是 Spring Boot 提供的"一站式依赖包"
             <artifactId>spring-security-crypto</artifactId>
         </dependency>
 
+        <!-- Spring Security 完整框架（管理后台 JWT + RBAC 权限控制） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
         <!-- WebSocket 实时通讯支持 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+
+        <!-- Redis 缓存 + Spring Cache 抽象层 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+        <!-- Lettuce 连接池（Redis 连接复用） -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-pool2</artifactId>
+        </dependency>
+        <!-- Swagger / OpenAPI 文档 -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.5.0</version>
+        </dependency>
+
+        <!-- Spring AOP（读写分离路由拦截） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
 
         <!-- JWT (JSON Web Token) 用于安全的身份认证传输 -->
@@ -172,6 +205,21 @@ spring-boot-starter-* 是 Spring Boot 提供的"一站式依赖包"
 
     <build>
         <plugins>
+            <!-- Maven 编译插件 - 显式声明 Lombok 注解处理器 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+
             <!-- Spring Boot Maven 插件，用于打包可执行 JAR -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>

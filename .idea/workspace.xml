@@ -4,143 +4,224 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8ed339e0-e893-48fb-af18-5f02604260c8" name="更改" comment="">
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/.meta.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/WeibApplication-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/application-yml.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/config-HttpsRedirectConfig-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/config-LoginInterceptor-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/config-PasswordEncoderConfig-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/config-WebConfig-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/config-WebSocketConfig-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/controller-BossController-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/controller-CaptchaController-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/controller-ChatController-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/controller-IndexController-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/controller-JobController-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/controller-ResumeController-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/controller-UserController-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/entity-Application-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/entity-Company-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/entity-Job-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/entity-Message-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/entity-Resume-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/entity-User-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/exception-GlobalExceptionHandler-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/pom-xml.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/repository-ApplicationRepository-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/repository-CompanyRepository-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/repository-JobRepository-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/repository-MessageRepository-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/repository-ResumeRepository-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/repository-UserRepository-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/seed_data-sql.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/service-ApplicationService-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/service-CompanyService-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/service-JobService-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/service-MessageService-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/service-ResumeService-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/service-UserService-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/util-CaptchaUtil-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/files/util-CookieUtil-java.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/graph/architecture.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/graph/dependency.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AI_INDEX/index.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/fix_output.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/config/CsrfInterceptor.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/config/GlobalModelAdvice.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/config/WebSocketSessionManager.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/controller/GlobalControllerAdvice.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/controller/MapController.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/controller/NotificationController.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/dto/Result.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/entity/FavoriteJob.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/entity/Notification.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/repository/FavoriteJobRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/repository/NotificationRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/service/FavoriteJobService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/service/MapService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/service/NotificationService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/util/IdObfuscator.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/util/JwtUtil.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/templates/boss-company-edit.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/templates/chat-list.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/templates/company-detail.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/templates/my-favorites.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/templates/notifications.html" afterDir="false" />
+    <list default="true" id="8ed339e0-e893-48fb-af18-5f02604260c8" name="更改" comment="更改">
+      <change afterPath="$PROJECT_DIR$/admin-frontend/index.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/package-lock.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/package.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/postcss.config.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/App.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/api/admins.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/api/auditLogs.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/api/auth.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/api/client.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/api/companies.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/api/dashboard.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/api/jobs.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/api/users.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/components/AdminLayout.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/components/AdminNavbar.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/components/AdminSidebar.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/components/ConfirmDialog.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/components/ProtectedRoute.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/components/RejectDialog.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/components/StatCard.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/context/AuthContext.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/index.css" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/main.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/pages/AdminManagementPage.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/pages/AuditLogPage.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/pages/CompanyAuditPage.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/pages/DashboardPage.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/pages/JobAuditPage.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/pages/LoginPage.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/pages/UserDetailDrawer.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/pages/UserManagementPage.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/types/index.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/utils/index.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/src/vite-env.d.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/tailwind.config.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/tsconfig.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/tsconfig.node.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/admin-frontend/vite.config.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/build-admin.bat" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/class-diagram.mermaid" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/sequence-diagram.mermaid" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/system_design.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/quick_compare.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/annotation/RateLimit.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/config/AdminSecurityConfig.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/config/CorsConfig.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/config/DataInitializer.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/config/DataSourceCleanupFilter.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/config/DataSourceConfig.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/config/DataSourceContextHolder.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/config/DataSourceType.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/config/RateLimitInterceptor.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/config/ReadOnlyRouteAspect.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/config/RedisConfig.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/config/RoutingDataSource.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/config/SwaggerConfig.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/config/TolerantRedisCacheWriter.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/controller/AdminSpaController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/controller/admin/AdminAdminController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/controller/admin/AdminAuditLogController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/controller/admin/AdminAuthController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/controller/admin/AdminCompanyController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/controller/admin/AdminDashboardController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/controller/admin/AdminExportController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/controller/admin/AdminJobController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/controller/admin/AdminUserController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/dto/admin/AuditLogResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/dto/admin/CompanyListResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/dto/admin/CreateAdminRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/dto/admin/DashboardStatsResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/dto/admin/JobListResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/dto/admin/LoginRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/dto/admin/LoginResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/dto/admin/PageResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/dto/admin/UserDetailResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/dto/admin/UserListResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/entity/AdminRole.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/entity/AuditLog.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/repository/AdminRoleRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/repository/AuditLogRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/security/AdminJwtAuthenticationFilter.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/service/admin/AdminAdminService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/service/admin/AdminAuthService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/service/admin/AdminCompanyService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/service/admin/AdminJobService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/service/admin/AdminUserService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/service/admin/AuditLogService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/service/admin/CsvExportService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/weib/service/admin/DashboardService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/db/migration.sql" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/index-6-h5c6Tm.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/index-tZFadXEs.css" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-cyrillic-300-normal-DEFNdjk5.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-cyrillic-300-normal-DzUz0kzv.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-cyrillic-400-normal-Bjg-1-sg.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-cyrillic-400-normal-CBPI_iaY.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-cyrillic-500-normal-CBKMylY4.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-cyrillic-500-normal-CLao9AfR.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-cyrillic-700-normal-C2o7G-SM.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-cyrillic-700-normal-DhZFXDSN.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-cyrillic-ext-300-normal-D7ank4TF.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-cyrillic-ext-300-normal-DIxttMbC.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-cyrillic-ext-400-normal-CaK1767H.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-cyrillic-ext-400-normal-qHufge6k.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-cyrillic-ext-500-normal-BWC_xYeb.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-cyrillic-ext-500-normal-DqF2hftb.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-cyrillic-ext-700-normal-CI7FH63F.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-cyrillic-ext-700-normal-DmFxo5wj.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-greek-300-normal-C_Dgaih9.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-greek-300-normal-DJEM9B4Z.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-greek-400-normal-Bb5mj_fZ.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-greek-400-normal-ai2Z1K3C.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-greek-500-normal-C9AnhcmC.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-greek-500-normal-oCqhoyfc.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-greek-700-normal-0aHWxGLu.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-greek-700-normal-DjRqqLBV.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-latin-300-normal-BARJ-h6h.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-latin-300-normal-CCzlftfr.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-latin-400-normal-BqEyEoaF.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-latin-400-normal-DyYNIH4P.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-latin-500-normal-7RbcRiD8.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-latin-500-normal-DQZyH_nt.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-latin-700-normal-BZpUvMxY.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-latin-700-normal-DLgJJpmK.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-latin-ext-300-normal-B90pq-BC.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-latin-ext-300-normal-CTCCHkZF.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-latin-ext-400-normal-C3tdtHj3.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-latin-ext-400-normal-scX0fKtV.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-latin-ext-500-normal-Cyc0AKLz.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-latin-ext-500-normal-pMCM9Ixg.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-latin-ext-700-normal-BUhwtWwy.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-latin-ext-700-normal-DSBUz0N1.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-math-300-normal-5dF_7mZP.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-math-300-normal-Ds0YpBw2.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-math-400-normal-BEFej5gc.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-math-400-normal-C9RxBKAh.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-math-500-normal-C-7mKPO3.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-math-500-normal-C4NU9gLX.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-math-700-normal-B8YqGHVc.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-math-700-normal-DVoD5t2k.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-symbols-300-normal-BCnjhQd_.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-symbols-300-normal-DDU7avhj.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-symbols-400-normal-CB1Ce4Gk.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-symbols-400-normal-DLYbZahX.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-symbols-500-normal-B_CZKVJS.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-symbols-500-normal-F7c8nfcH.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-symbols-700-normal-BiFDindJ.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-symbols-700-normal-BoS6HWkc.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-vietnamese-300-normal-BPvXm_f1.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-vietnamese-300-normal-INUupD3o.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-vietnamese-400-normal-D2PTxGxD.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-vietnamese-400-normal-DnpnVwnf.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-vietnamese-500-normal-B3ncpOoB.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-vietnamese-500-normal-D380IkQ8.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-vietnamese-700-normal-BEVeWqJt.woff2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/assets/roboto-vietnamese-700-normal-DsFyXAL4.woff" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/admin/index.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/js/sockjs.min.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/static/js/stomp.min.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/templates/change-password.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/templates/error.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/templates/error/500.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stress_test.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/weib/uploads/chat/20260531170340_940a2244.pdf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/weib_db.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/WeibApplication.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/WeibApplication.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/config/CsrfInterceptor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/config/CsrfInterceptor.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/config/GlobalModelAdvice.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/config/GlobalModelAdvice.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/config/LoginInterceptor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/config/LoginInterceptor.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/config/WebConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/config/WebConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/config/WebSocketSessionManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/config/WebSocketSessionManager.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/controller/BossController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/controller/BossController.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/controller/IndexController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/controller/IndexController.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/controller/JobController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/controller/JobController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/controller/MapController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/controller/MapController.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/controller/ResumeController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/controller/ResumeController.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/controller/UserController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/controller/UserController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/entity/Application.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/entity/Application.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/entity/Company.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/entity/Company.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/entity/FavoriteJob.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/entity/FavoriteJob.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/entity/Job.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/entity/Job.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/entity/Notification.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/entity/Notification.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/entity/Resume.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/entity/Resume.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/entity/User.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/entity/User.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/exception/GlobalExceptionHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/exception/GlobalExceptionHandler.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/repository/ApplicationRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/repository/ApplicationRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/repository/CompanyRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/repository/CompanyRepository.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/repository/JobRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/repository/JobRepository.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/repository/ResumeRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/repository/ResumeRepository.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/repository/UserRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/repository/UserRepository.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/service/ApplicationService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/service/ApplicationService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/service/CompanyService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/service/CompanyService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/service/FavoriteJobService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/service/FavoriteJobService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/service/JobService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/service/JobService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/service/MapService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/service/MapService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/service/NotificationService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/service/NotificationService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/service/ResumeService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/service/ResumeService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/service/UserService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/service/UserService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/util/IdObfuscator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/util/IdObfuscator.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/weib/util/JwtUtil.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/weib/util/JwtUtil.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/resources/application.yml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/application.yml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/resources/templates/boss-applications.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/templates/boss-applications.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/resources/templates/boss-home.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/templates/boss-home.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/templates/boss-job-edit.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/templates/boss-job-edit.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/resources/templates/boss-jobs.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/templates/boss-jobs.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/resources/templates/boss-register.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/templates/boss-register.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/templates/chat-list.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/templates/chat-list.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/resources/templates/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/templates/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/templates/job-detail.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/templates/job-detail.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/resources/templates/login.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/templates/login.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/resources/templates/my-applications.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/templates/my-applications.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/templates/my-favorites.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/templates/my-favorites.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/templates/notifications.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/templates/notifications.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/resources/templates/register.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/templates/register.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/resources/templates/resume-edit.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/templates/resume-edit.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/resources/templates/resume-preview.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/templates/resume-preview.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/application.yml" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/application.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/weib/WeibApplication.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/weib/WeibApplication.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/weib/config/LoginInterceptor.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/weib/config/LoginInterceptor.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/weib/config/WebConfig.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/weib/config/WebConfig.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/weib/controller/BossController.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/weib/controller/BossController.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/weib/controller/IndexController.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/weib/controller/IndexController.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/weib/controller/JobController.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/weib/controller/JobController.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/weib/controller/Result.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/weib/controller/ResumeController.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/weib/controller/ResumeController.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/weib/controller/UserController.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/weib/controller/UserController.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/weib/entity/Company.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/weib/entity/Company.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/weib/entity/User.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/weib/entity/User.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/weib/exception/GlobalExceptionHandler.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/weib/exception/GlobalExceptionHandler.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/weib/repository/ApplicationRepository.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/weib/repository/ApplicationRepository.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/weib/repository/JobRepository.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/weib/repository/JobRepository.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/weib/repository/ResumeRepository.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/weib/repository/ResumeRepository.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/weib/repository/UserRepository.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/weib/repository/UserRepository.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/weib/service/ApplicationService.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/weib/service/ApplicationService.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/weib/service/CompanyService.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/weib/service/CompanyService.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/weib/service/JobService.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/weib/service/JobService.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/weib/service/ResumeService.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/weib/service/ResumeService.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/weib/service/UserService.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/weib/service/UserService.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/templates/boss-applications.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/templates/boss-applications.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/templates/boss-home.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/templates/boss-home.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/templates/boss-job-edit.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/templates/boss-job-edit.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/templates/boss-jobs.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/templates/boss-jobs.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/templates/boss-register.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/templates/boss-register.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/templates/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/templates/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/templates/job-detail.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/templates/job-detail.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/templates/login.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/templates/login.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/templates/my-applications.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/templates/my-applications.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/templates/register.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/templates/register.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/templates/resume-edit.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/templates/resume-edit.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/templates/resume-preview.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/templates/resume-preview.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/weib-1.0.0.jar" beforeDir="false" afterPath="$PROJECT_DIR$/target/weib-1.0.0.jar" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/weib-1.0.0.jar.original" beforeDir="false" afterPath="$PROJECT_DIR$/target/weib-1.0.0.jar.original" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -174,31 +255,32 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_ADD_EXTERNAL_FILES": "true",
-    "RequestMappingsPanelOrder0": "0",
-    "RequestMappingsPanelOrder1": "1",
-    "RequestMappingsPanelWidth0": "75",
-    "RequestMappingsPanelWidth1": "75",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "Spring Boot.WeibApplication.executor": "Run",
-    "git-widget-placeholder": "master",
-    "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "C:/java/weib",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "project.structure.last.edited": "Project",
-    "project.structure.proportion": "0.0",
-    "project.structure.side.proportion": "0.0",
-    "settings.editor.selected.configurable": "org.jetbrains.plugins.github.ui.GithubSettingsConfigurable",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
+    &quot;RequestMappingsPanelOrder0&quot;: &quot;0&quot;,
+    &quot;RequestMappingsPanelOrder1&quot;: &quot;1&quot;,
+    &quot;RequestMappingsPanelWidth0&quot;: &quot;75&quot;,
+    &quot;RequestMappingsPanelWidth1&quot;: &quot;75&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;Spring Boot.WeibApplication.executor&quot;: &quot;Run&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/cg/Desktop/weib&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Project&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.0&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\cg\\Desktop\\weib\\admin-frontend\\node_modules\\typescript\\lib&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager">
     <configuration name="WeibApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
       <module name="weib" />
@@ -239,8 +321,20 @@
       <workItem from="1779861563032" duration="2966000" />
       <workItem from="1779900389260" duration="2724000" />
       <workItem from="1779938663863" duration="13185000" />
-      <workItem from="1779968386169" duration="6926000" />
+      <workItem from="1779968386169" duration="13565000" />
+      <workItem from="1780029258031" duration="1182000" />
+      <workItem from="1780059368630" duration="35087000" />
+      <workItem from="1780573508077" duration="881000" />
     </task>
+    <task id="LOCAL-00001" summary="更改">
+      <option name="closed" value="true" />
+      <created>1779977483057</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1779977483057</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -248,6 +342,18 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
+    <MESSAGE value="更改" />
+    <option name="LAST_COMMIT_MESSAGE" value="更改" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <breakpoint enabled="true" type="java-exception">
+          <properties class="java.lang.IllegalArgumentException" package="java.lang" />
+          <option name="timeStamp" value="2" />
+        </breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

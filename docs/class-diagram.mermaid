@@ -1,0 +1,407 @@
+classDiagram
+    direction TB
+
+    %% ── 现有实体（修改） ──
+    class User {
+        +Long id
+        +String username
+        +String password
+        +String phone
+        +String role
+        +String nickname
+        +String avatar
+        +String rememberToken
+        +Integer loginFailCount
+        +LocalDateTime lockUntil
+        +String status
+        +LocalDateTime createdAt
+        +LocalDateTime updatedAt
+    }
+
+    class Company {
+        +Long id
+        +String name
+        +String logo
+        +String industry
+        +String scale
+        +String description
+        +String address
+        +Double latitude
+        +Double longitude
+        +String contactName
+        +String contactPhone
+        +String contactEmail
+        +Long bossId
+        +String auditStatus
+        +String auditReason
+        +LocalDateTime createdAt
+        +LocalDateTime updatedAt
+    }
+
+    class Job {
+        +Long id
+        +String title
+        +Long companyId
+        +Integer salaryMin
+        +Integer salaryMax
+        +String education
+        +String experience
+        +String city
+        +String address
+        +String description
+        +String requirements
+        +String tags
+        +String status
+        +Integer viewCount
+        +String auditStatus
+        +String auditReason
+        +LocalDateTime createdAt
+        +LocalDateTime updatedAt
+    }
+
+    class Notification {
+        +Long id
+        +Long userId
+        +String type
+        +String content
+        +Long relatedId
+        +Boolean isRead
+        +LocalDateTime createdAt
+    }
+
+    %% ── 新建实体 ──
+    class AdminRole {
+        +Long id
+        +Long userId
+        +String roleType
+        +LocalDateTime createdAt
+    }
+
+    class AuditLog {
+        +Long id
+        +Long adminId
+        +String action
+        +String targetType
+        +Long targetId
+        +String reason
+        +LocalDateTime createdAt
+    }
+
+    %% ── 关系 ──
+    User "1" --> "0..1" AdminRole : has
+    User "1" --> "0..*" AuditLog : performs
+    User "1" --> "0..*" Company : owns (bossId)
+    User "1" --> "0..*" Notification : receives
+    Company "1" --> "0..*" Job : publishes
+
+    %% ── Repository 层 ──
+    class UserRepository {
+        +findByUsername(String) Optional~User~
+        +findByPhone(String) Optional~User~
+        +existsByUsername(String) boolean
+        +existsByPhone(String) boolean
+        +findByRememberToken(String) Optional~User~
+        +findByRoleAndStatus(String, String, Pageable) Page~User~
+        +findByUsernameContaining(String, Pageable) Page~User~
+        +countByRoleAndStatus(String, String) long
+        +countByCreatedAtAfter(LocalDateTime) long
+    }
+
+    class CompanyRepository {
+        +findByAuditStatus(String, Pageable) Page~Company~
+        +findByAuditStatusAndIndustry(String, String, Pageable) Page~Company~
+        +countByAuditStatus(String) long
+    }
+
+    class JobRepository {
+        +findByAuditStatus(String, Pageable) Page~Job~
+        +countByAuditStatus(String) long
+        +countByStatus(String) long
+        +countByCreatedAtAfter(LocalDateTime) long
+    }
+
+    class AdminRoleRepository {
+        +findByUserId(Long) Optional~AdminRole~
+        +findAllWithUser() List~AdminRole~
+    }
+
+    class AuditLogRepository {
+        +findAll(Specification~AuditLog~, Pageable) Page~AuditLog~
+    }
+
+    %% ── Service 层 ──
+    class AdminAuthService {
+        -UserRepository userRepository
+        -AdminRoleRepository adminRoleRepository
+        -PasswordEncoder passwordEncoder
+        -JwtUtil jwtUtil
+        +login(String, String) LoginResponse
+        +getCurrentAdmin(Long) AdminInfo
+    }
+
+    class DashboardService {
+        -UserRepository userRepository
+        -JobRepository jobRepository
+        -CompanyRepository companyRepository
+        -AuditLogRepository auditLogRepository
+        -DashboardCache cache
+        +getStats() DashboardStatsResponse
+        +getCharts() ChartDataResponse
+        +getRecentLogs(int) List~AuditLogResponse~
+        +refreshCache()
+    }
+
+    class AdminCompanyService {
+        -CompanyRepository companyRepository
+        -AuditLogService auditLogService
+        -NotificationService notificationService
+        +listCompanies(String, String, String, Pageable) Page~CompanyListResponse~
+        +getCompanyDetail(Long) CompanyListResponse
+        +approveCompany(Long, Long) void
+        +rejectCompany(Long, String, Long) void
+    }
+
+    class AdminJobService {
+        -JobRepository jobRepository
+        -AuditLogService auditLogService
+        -NotificationService notificationService
+        +listJobs(String, String, Pageable) Page~JobListResponse~
+        +getJobDetail(Long) JobListResponse
+        +approveJob(Long, Long) void
+        +rejectJob(Long, String, Long) void
+        +batchOffline(List~Long~, Long) int
+    }
+
+    class AdminUserService {
+        -UserRepository userRepository
+        -AuditLogService auditLogService
+        +listUsers(String, String, String, Pageable) Page~UserListResponse~
+        +getUserDetail(Long) UserDetailResponse
+        +banUser(Long, Long) void
+        +unbanUser(Long, Long) void
+    }
+
+    class AdminAdminService {
+        -UserRepository userRepository
+        -AdminRoleRepository adminRoleRepository
+        -PasswordEncoder passwordEncoder
+        +listAdmins() List~AdminInfo~
+        +createAdmin(String, String, String) User
+        +updateRole(Long, String) void
+        +disableAdmin(Long) void
+    }
+
+    class AuditLogService {
+        -AuditLogRepository auditLogRepository
+        +log(Long, String, String, Long, String) void
+        +listLogs(String, Long, LocalDateTime, LocalDateTime, Pageable) Page~AuditLogResponse~
+    }
+
+    class CsvExportService {
+        +exportUsers(List~UserListResponse~) byte[]
+        +exportAuditLogs(List~AuditLogResponse~) byte[]
+    }
+
+    %% ── 安全层 ──
+    class AdminJwtAuthenticationFilter {
+        -JwtUtil jwtUtil
+        -UserRepository userRepository
+        -AdminRoleRepository adminRoleRepository
+        +doFilterInternal(HttpServletRequest, HttpServletResponse, FilterChain) void
+    }
+
+    class AdminSecurityConfig {
+        +adminFilterChain(HttpSecurity) SecurityFilterChain
+        +passThroughFilterChain(HttpSecurity) SecurityFilterChain
+    }
+
+    class CorsConfig {
+        +corsConfigurationSource() CorsConfigurationSource
+    }
+
+    %% ── Controller 层 ──
+    class AdminAuthController {
+        -AdminAuthService adminAuthService
+        +login(LoginRequest) Result~LoginResponse~
+        +me(Authentication) Result~AdminInfo~
+        +logout() Result~Void~
+    }
+
+    class AdminDashboardController {
+        -DashboardService dashboardService
+        +getStats() Result~DashboardStatsResponse~
+        +getCharts() Result~ChartDataResponse~
+        +getRecentLogs(int) Result~List~AuditLogResponse~~
+    }
+
+    class AdminCompanyController {
+        -AdminCompanyService adminCompanyService
+        +listCompanies(String, String, String, Pageable) Result~PageResponse~
+        +getCompany(Long) Result~CompanyListResponse~
+        +approveCompany(Long, Authentication) Result~Void~
+        +rejectCompany(Long, Map, Authentication) Result~Void~
+    }
+
+    class AdminJobController {
+        -AdminJobService adminJobService
+        +listJobs(String, String, Pageable) Result~PageResponse~
+        +getJob(Long) Result~JobListResponse~
+        +approveJob(Long, Authentication) Result~Void~
+        +rejectJob(Long, Map, Authentication) Result~Void~
+        +batchOffline(Map, Authentication) Result~Map~
+    }
+
+    class AdminUserController {
+        -AdminUserService adminUserService
+        +listUsers(String, String, String, Pageable) Result~PageResponse~
+        +getUserDetail(Long) Result~UserDetailResponse~
+        +banUser(Long, Authentication) Result~Void~
+        +unbanUser(Long, Authentication) Result~Void~
+    }
+
+    class AdminAdminController {
+        -AdminAdminService adminAdminService
+        +listAdmins() Result~List~AdminInfo~~
+        +createAdmin(CreateAdminRequest) Result~AdminInfo~
+        +updateRole(Long, Map) Result~Void~
+        +disableAdmin(Long) Result~Void~
+    }
+
+    class AdminAuditLogController {
+        -AuditLogService auditLogService
+        +listLogs(String, Long, String, String, Pageable) Result~PageResponse~
+    }
+
+    class AdminExportController {
+        -AdminUserService adminUserService
+        -AuditLogService auditLogService
+        -CsvExportService csvExportService
+        +exportUsers(String, String, String, HttpServletResponse) void
+        +exportAuditLogs(String, Long, String, String, HttpServletResponse) void
+    }
+
+    %% ── DTO 层 ──
+    class LoginRequest {
+        +String username
+        +String password
+    }
+
+    class LoginResponse {
+        +String token
+        +AdminInfo admin
+    }
+
+    class AdminInfo {
+        +Long id
+        +String username
+        +String nickname
+        +String roleType
+    }
+
+    class DashboardStatsResponse {
+        +long totalUsers
+        +long totalJobs
+        +long todayNewUsers
+        +long pendingCount
+    }
+
+    class PageResponse~T~ {
+        +List~T~ content
+        +long totalElements
+        +int totalPages
+        +int currentPage
+        +int pageSize
+    }
+
+    class CompanyListResponse {
+        +Long id
+        +String name
+        +String industry
+        +String scale
+        +String bossName
+        +String auditStatus
+        +String auditReason
+        +LocalDateTime createdAt
+    }
+
+    class JobListResponse {
+        +Long id
+        +String title
+        +String companyName
+        +Integer salaryMin
+        +Integer salaryMax
+        +String city
+        +String status
+        +String auditStatus
+        +String auditReason
+        +LocalDateTime createdAt
+    }
+
+    class UserListResponse {
+        +Long id
+        +String username
+        +String nickname
+        +String role
+        +String status
+        +String avatar
+        +long applicationCount
+        +LocalDateTime createdAt
+    }
+
+    class UserDetailResponse {
+        +Long id
+        +String username
+        +String nickname
+        +String phone
+        +String role
+        +String status
+        +String avatar
+        +long resumeCount
+        +long applicationCount
+        +LocalDateTime createdAt
+    }
+
+    class CreateAdminRequest {
+        +String username
+        +String password
+        +String roleType
+    }
+
+    class AuditLogResponse {
+        +Long id
+        +String adminName
+        +String action
+        +String targetType
+        +Long targetId
+        +String reason
+        +LocalDateTime createdAt
+    }
+
+    %% ── Controller → Service 依赖 ──
+    AdminAuthController --> AdminAuthService
+    AdminDashboardController --> DashboardService
+    AdminCompanyController --> AdminCompanyService
+    AdminJobController --> AdminJobService
+    AdminUserController --> AdminUserService
+    AdminAdminController --> AdminAdminService
+    AdminAuditLogController --> AuditLogService
+    AdminExportController --> AdminUserService
+    AdminExportController --> AuditLogService
+    AdminExportController --> CsvExportService
+
+    %% ── Service → Repository 依赖 ──
+    AdminAuthService --> UserRepository
+    AdminAuthService --> AdminRoleRepository
+    DashboardService --> UserRepository
+    DashboardService --> JobRepository
+    DashboardService --> CompanyRepository
+    DashboardService --> AuditLogRepository
+    AdminCompanyService --> CompanyRepository
+    AdminCompanyService --> AuditLogService
+    AdminJobService --> JobRepository
+    AdminJobService --> AuditLogService
+    AdminUserService --> UserRepository
+    AdminUserService --> AuditLogService
+    AdminAdminService --> UserRepository
+    AdminAdminService --> AdminRoleRepository
+    AuditLogService --> AuditLogRepository

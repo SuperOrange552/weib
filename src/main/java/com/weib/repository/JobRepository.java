@@ -46,15 +46,20 @@ public interface JobRepository extends JpaRepository<Job, Long> {
 
     /**
      * 根据职位名称模糊查询（忽略大小写）
-     * 
+     *
      * @param keyword 搜索关键词
      * @return 匹配的职位列表
      */
     List<Job> findByTitleContainingIgnoreCase(String keyword);
 
     /**
+     * 根据职位名称模糊查询且状态为活跃（忽略大小写）
+     */
+    List<Job> findByTitleContainingIgnoreCaseAndStatus(String keyword, String status);
+
+    /**
      * 根据城市查询职位
-     * 
+     *
      * @param city 城市名称
      * @return 该城市的职位列表
      */
@@ -95,7 +100,21 @@ public interface JobRepository extends JpaRepository<Job, Long> {
     Page<Job> findByTitleContainingIgnoreCase(String keyword, Pageable pageable);
 
     /**
+     * 分页模糊搜索职位名称且状态为活跃
+     */
+    Page<Job> findByTitleContainingIgnoreCaseAndStatus(String keyword, String status, Pageable pageable);
+
+    /**
      * 分页查询指定状态的职位
      */
     Page<Job> findByStatus(String status, Pageable pageable);
+
+    // ========================================
+    // 管理员审核相关查询
+    // ========================================
+
+    Page<Job> findByAuditStatusOrderByCreatedAtDesc(String auditStatus, Pageable pageable);
+    Page<Job> findByTitleContainingIgnoreCaseAndAuditStatus(String title, String auditStatus, Pageable pageable);
+    long countByAuditStatus(String auditStatus);
+    long countByStatus(String status);
 }

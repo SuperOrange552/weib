@@ -11,3 +11,6 @@ target/
 .project
 .classpath
 .orig
+node_modules/
+weib/uploads/
+keystore.p12

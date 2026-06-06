@@ -3,6 +3,8 @@ package com.weib.config;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -12,8 +14,20 @@ import java.util.Base64;
 @Component
 public class CsrfInterceptor implements HandlerInterceptor {
 
+    private static final Logger log = LoggerFactory.getLogger(CsrfInterceptor.class);
     private static final String CSRF_TOKEN_ATTR = "csrf_token";
     private static final SecureRandom RANDOM = new SecureRandom();
+
+    public static String generateCsrfToken(HttpSession session) {
+        String token = (String) session.getAttribute(CSRF_TOKEN_ATTR);
+        if (token == null) {
+            byte[] bytes = new byte[32];
+            RANDOM.nextBytes(bytes);
+            token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+            session.setAttribute(CSRF_TOKEN_ATTR, token);
+        }
+        return token;
+    }
 
     private String generateToken() {
         byte[] bytes = new byte[32];
@@ -29,16 +43,12 @@ public class CsrfInterceptor implements HandlerInterceptor {
         HttpSession session = request.getSession(false);
 
         if ("GET".equalsIgnoreCase(request.getMethod())) {
-            // GET: 生成 CSRF token 放入 session 和 request
-            if (session == null) {
-                session = request.getSession(true);
+            // GET: 如果已有 session，确保 CSRF token 存在
+            if (session != null) {
+                String token = generateCsrfToken(session);
+                request.setAttribute(CSRF_TOKEN_ATTR, token);
             }
-            String token = (String) session.getAttribute(CSRF_TOKEN_ATTR);
-            if (token == null) {
-                token = generateToken();
-                session.setAttribute(CSRF_TOKEN_ATTR, token);
-            }
-            request.setAttribute(CSRF_TOKEN_ATTR, token);
+            // session 为 null 时不强制创建，公开页面不需要 CSRF token
             return true;
         }
 
@@ -56,6 +66,12 @@ public class CsrfInterceptor implements HandlerInterceptor {
             if (formToken == null) {
                 formToken = request.getHeader("X-CSRF-Token");
             }
+
+            log.warn("CSRF校验: URI={}, sessionToken存在={}, formToken长度={}, 匹配={}",
+                    request.getRequestURI(),
+                    sessionToken != null,
+                    formToken != null ? formToken.length() : 0,
+                    sessionToken != null && sessionToken.equals(formToken));
 
             if (sessionToken == null || formToken == null || !sessionToken.equals(formToken)) {
                 response.sendRedirect("/login");

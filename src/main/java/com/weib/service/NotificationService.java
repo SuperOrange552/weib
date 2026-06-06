@@ -24,6 +24,15 @@ public class NotificationService {
         notificationRepository.save(notification);
     }
 
+    @Transactional
+    public void createNotification(Long userId, String type, String title, String content) {
+        Notification notification = new Notification();
+        notification.setUserId(userId);
+        notification.setType(type);
+        notification.setContent(content);
+        notificationRepository.save(notification);
+    }
+
     @Transactional(readOnly = true)
     public List<Notification> getUserNotifications(Long userId) {
         return notificationRepository.findTop10ByUserIdOrderByCreatedAtDesc(userId);
@@ -48,5 +57,21 @@ public class NotificationService {
     @Transactional
     public void markAllAsRead(Long userId) {
         notificationRepository.markAllAsReadByUserId(userId);
+    }
+
+    /**
+     * 创建系统通知（管理后台审核后触发）
+     *
+     * 当管理后台完成审核操作后，通过此方法向目标用户发送系统通知。
+     * 例如：公司审核通过/驳回、职位审核通过/驳回、用户封禁等。
+     *
+     * @param userId    接收通知的用户 ID
+     * @param type      通知类型（如 approve_company / reject_company / ban_user）
+     * @param content   通知内容
+     * @param relatedId 关联目标 ID（公司 ID / 职位 ID 等）
+     */
+    @Transactional
+    public void createSystemNotification(Long userId, String type, String content, Long relatedId) {
+        createNotification(userId, type, content, relatedId);
     }
 }

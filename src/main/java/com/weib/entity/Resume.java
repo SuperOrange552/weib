@@ -66,7 +66,7 @@ public class Resume {
     @Column(nullable = false, length = 20)
     private String status = "draft";
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Column(nullable = false)

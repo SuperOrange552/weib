@@ -1,7 +1,10 @@
 package com.weib.repository;
 
 import com.weib.entity.Company;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -58,4 +61,25 @@ public interface CompanyRepository extends JpaRepository<Company, Long> {
      * @return true=已创建，false=未创建
      */
     boolean existsByBossId(Long bossId);
+
+    // ========================================
+    // 管理员审核相关查询
+    // ========================================
+
+    Page<Company> findByAuditStatusOrderByCreatedAtDesc(String auditStatus, Pageable pageable);
+    Page<Company> findByNameContainingIgnoreCaseAndAuditStatus(String name, String auditStatus, Pageable pageable);
+    Page<Company> findByNameContainingIgnoreCase(String name, Pageable pageable);
+    long countByAuditStatus(String auditStatus);
+
+    // ========================================
+    // 仪表盘统计相关查询
+    // ========================================
+
+    /**
+     * 统计各行业的公司数量（用于仪表盘行业分布图）
+     *
+     * @return List<Object[]> 每行 [industry: String, count: Long]，按 count 降序排列
+     */
+    @Query("SELECT c.industry, COUNT(c) FROM Company c WHERE c.industry IS NOT NULL AND c.industry != '' GROUP BY c.industry ORDER BY COUNT(c) DESC")
+    List<Object[]> countGroupByIndustry();
 }

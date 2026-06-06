@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.time.LocalDateTime;
 
 /**
  * ============================================
@@ -63,6 +64,8 @@ import java.util.Map;
 @Controller
 @RequiredArgsConstructor
 public class BossController {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(BossController.class);
 
     /**
      * ----------------------------------------
@@ -196,6 +199,7 @@ public class BossController {
             model.addAttribute("recentApps", recentApps);
 
         } catch (Exception e) {
+            log.warn("操作异常: {}", e.getMessage());
             // 未入驻
             model.addAttribute("needRegister", true);
         }
@@ -233,7 +237,8 @@ public class BossController {
             Company company = companyService.getCompanyByBossId(user.getId());
             return "redirect:/boss";
         } catch (Exception e) {
-            // 未入驻，继续
+            // 未入驻，继续（已入驻的Boss尝试再次访问入驻页时，正常重定向）
+            log.warn("入驻检查异常: {}", e.getMessage());
         }
         
         model.addAttribute("user", user);
@@ -423,6 +428,7 @@ public class BossController {
             model.addAttribute("isEdit", true);
             
         } catch (Exception e) {
+            log.warn("操作异常: {}", e.getMessage());
             return "redirect:/boss/jobs";
         }
         
@@ -557,7 +563,7 @@ public class BossController {
             jobService.updateJob(job);
             
         } catch (Exception e) {
-            // 忽略错误
+            log.error("删除职位失败, jobId={}: {}", id, e.getMessage());
         }
         
         return "redirect:/boss/jobs";
@@ -650,6 +656,7 @@ public class BossController {
             model.addAttribute("encodedSeekerIds", encodedSeekerIds);
 
         } catch (Exception e) {
+            log.warn("操作异常: {}", e.getMessage());
             return "redirect:/boss/register";
         }
 
@@ -724,7 +731,7 @@ public class BossController {
             return Result.error("请先登录");
         }
 
-        if (!List.of("viewed", "accepted", "rejected").contains(status)) {
+        if (!List.of("viewed", "interviewing", "offered", "accepted", "rejected").contains(status)) {
             return Result.error("无效的投递状态: " + status);
         }
 
@@ -817,5 +824,114 @@ public class BossController {
         }
         model.addAttribute("user", user);
         return "boss-company-edit";
+    }
+
+    /**
+     * 发起面试邀约
+     */
+    @PostMapping("/boss/application/{encodedId}/interview")
+    @ResponseBody
+    public Result<?> scheduleInterview(@PathVariable String encodedId,
+                                        @RequestBody Map<String, String> body,
+                                        HttpSession session) {
+        Long id = idObfuscator.decode(encodedId);
+        if (id == null) return Result.error("参数无效");
+
+        User user = (User) session.getAttribute("user");
+        if (user == null || !"boss".equals(user.getRole())) return Result.error("请先登录");
+
+        try {
+            Application app = applicationService.getApplicationById(id);
+            Job job = jobService.getJobById(app.getJobId());
+            Company company = companyService.getCompanyByBossId(user.getId());
+            if (!job.getCompanyId().equals(company.getId())) {
+                return Result.error("无权操作此投递");
+            }
+
+            String dateTime = body.get("interviewTime");
+            String location = body.get("interviewLocation");
+            if (dateTime != null && !dateTime.isBlank()) {
+                app.setInterviewTime(LocalDateTime.parse(dateTime));
+            }
+            app.setInterviewLocation(location);
+            app.setBossNote(body.get("bossNote"));
+            app.setStatus("interviewing");
+            applicationService.updateStatus(app);
+
+            // 通知求职者
+            notificationService.createNotification(app.getUserId(), "interview_invite",
+                    "面试邀请", "你收到了 " + company.getName() + " 的面试邀请 - " + job.getTitle());
+
+            return Result.success(Map.of("status", "interviewing"));
+        } catch (Exception e) {
+            log.error("面试邀约异常: encodedId={}", encodedId, e);
+            return Result.error("操作失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 重新开放已关闭的职位
+     */
+    @PostMapping("/boss/job/reopen/{encodedId}")
+    @ResponseBody
+    public Result<?> reopenJob(@PathVariable String encodedId, HttpSession session) {
+        Long id = idObfuscator.decode(encodedId);
+        if (id == null) return Result.error("参数无效");
+
+        User user = (User) session.getAttribute("user");
+        if (user == null || !"boss".equals(user.getRole())) return Result.error("请先登录");
+
+        try {
+            Job job = jobService.getJobById(id);
+            Company company = companyService.getCompanyByBossId(user.getId());
+            if (!job.getCompanyId().equals(company.getId())) {
+                return Result.error("无权操作此职位");
+            }
+            if (!"closed".equals(job.getStatus())) {
+                return Result.error("该职位未关闭，无需重开");
+            }
+            job.setStatus("active");
+            jobService.updateJob(job);
+            return Result.success(Map.of("status", "active"));
+        } catch (Exception e) {
+            log.error("职位重开异常: encodedId={}", encodedId, e);
+            return Result.error("操作失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 职位分析数据
+     */
+    @GetMapping("/boss/job/{encodedId}/stats")
+    @ResponseBody
+    public Result<Map<String, Object>> jobStats(@PathVariable String encodedId, HttpSession session) {
+        Long id = idObfuscator.decode(encodedId);
+        if (id == null) return Result.error("参数无效");
+
+        User user = (User) session.getAttribute("user");
+        if (user == null || !"boss".equals(user.getRole())) return Result.error("请先登录");
+
+        try {
+            Job job = jobService.getJobById(id);
+            Company company = companyService.getCompanyByBossId(user.getId());
+            if (!job.getCompanyId().equals(company.getId())) {
+                return Result.error("无权查看此职位");
+            }
+
+            Map<String, Object> stats = new HashMap<>();
+            stats.put("viewCount", job.getViewCount());
+            stats.put("applyCount", applicationService.countByJobId(id));
+
+            Map<String, Long> breakdown = new HashMap<>();
+            List<Application> apps = applicationService.getApplicationsByJobId(id);
+            for (Application a : apps) {
+                breakdown.merge(a.getStatus(), 1L, Long::sum);
+            }
+            stats.put("statusBreakdown", breakdown);
+            return Result.success(stats);
+        } catch (Exception e) {
+            log.error("职位统计异常: encodedId={}", encodedId, e);
+            return Result.error("查询失败：" + e.getMessage());
+        }
     }
 }

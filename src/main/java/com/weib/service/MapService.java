@@ -12,6 +12,8 @@ import java.nio.charset.StandardCharsets;
 @Service
 public class MapService {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(MapService.class);
+
     private static final String GEOCODE_URL = "https://restapi.amap.com/v3/geocode/geo";
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -38,7 +40,7 @@ public class MapService {
                 }
             }
         } catch (Exception e) {
-            // 地理编码失败，返回null
+            log.warn("地理编码失败, address={}", address, e);
         }
         return null;
     }
