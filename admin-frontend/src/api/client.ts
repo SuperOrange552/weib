@@ -15,6 +15,10 @@ client.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+    const method = (config.method || 'get').toLowerCase()
+    if (!['get', 'head', 'options'].includes(method) && !config.headers['Idempotency-Key']) {
+      config.headers['Idempotency-Key'] = crypto.randomUUID()
+    }
     return config
   },
   (error) => Promise.reject(error)

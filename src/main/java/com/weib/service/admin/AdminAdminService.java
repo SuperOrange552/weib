@@ -73,11 +73,15 @@ public class AdminAdminService {
      */
     @Transactional
     public Map<String, Object> createAdmin(String username, String password, String roleType) {
+        String usernameError = com.weib.security.CredentialPolicy.validateUsername(username);
+        if (usernameError != null) throw new IllegalArgumentException(usernameError);
+        String passwordError = com.weib.security.CredentialPolicy.validatePassword(password, username, null);
+        if (passwordError != null) throw new IllegalArgumentException(passwordError);
         if (userRepository.existsByUsername(username)) {
             throw new RuntimeException("用户名已存在");
         }
         User user = new User();
-        user.setUsername(username);
+        user.setUsername(com.weib.security.CredentialPolicy.normalizeUsername(username));
         user.setPassword(passwordEncoder.encode(password));
         user.setRole("admin");
         user.setNickname(username);

@@ -54,6 +54,8 @@ const LoginPage: React.FC = () => {
               value={username}
               onChange={e => setUsername(e.target.value)}
               autoFocus
+              inputProps={{ minLength: 1, maxLength: 32 }}
+              autoComplete="username"
             />
             <TextField
               fullWidth
@@ -61,6 +63,8 @@ const LoginPage: React.FC = () => {
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
+              inputProps={{ maxLength: 64 }}
+              autoComplete="current-password"
             />
             <Button
               type="submit"

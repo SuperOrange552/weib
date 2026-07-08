@@ -5,7 +5,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "messages")
+@Table(name = "messages", uniqueConstraints = @UniqueConstraint(name="uk_message_sender_client", columnNames={"senderId","clientMessageId"}))
 @Data
 public class Message {
 
@@ -21,6 +21,9 @@ public class Message {
 
     @Column(nullable = false)
     private Long receiverId;
+
+    @Column(length = 64)
+    private String clientMessageId;
 
     @Column(length = 2000)
     private String content;

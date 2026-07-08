@@ -3,6 +3,7 @@ package com.weib.controller;
 import com.weib.annotation.RateLimit;
 import com.weib.entity.User;
 import com.weib.service.UserService;
+import com.weib.service.CaptchaService;
 import com.weib.util.CookieUtil;
 import com.weib.util.JwtUtil;
 import jakarta.servlet.http.HttpServletResponse;
@@ -84,6 +85,7 @@ public class UserController {
      */
     private final UserService userService;
     private final JwtUtil jwtUtil;
+    private final CaptchaService captchaService;
 
     /**
      * 显示登录页面
@@ -315,7 +317,12 @@ public class UserController {
                         Model model) {
 
         // 验证码校验
-        if (!CaptchaController.verify(session, captcha)) {
+        if (!com.weib.security.CredentialPolicy.validLoginInput(username, password)) {
+            model.addAttribute("error", "\u8d26\u53f7\u6216\u5bc6\u7801\u683c\u5f0f\u4e0d\u6b63\u786e");
+            return "login";
+        }
+
+        if (captchaService.verify(session, captcha) != CaptchaService.VerifyStatus.VALID) {
             model.addAttribute("error", "验证码错误");
             return "login";
         }
@@ -400,6 +407,7 @@ public class UserController {
      */
     @RateLimit(maxRequests = 3, windowSeconds = 60, key = "ip")
     @PostMapping("/register")
+    @com.weib.security.Idempotent
     public String register(@RequestParam String username,
                            @RequestParam String password,
                            @RequestParam String confirmPassword,
@@ -410,7 +418,7 @@ public class UserController {
                            HttpSession session) {
 
         // 验证码校验
-        if (!CaptchaController.verify(session, captcha)) {
+        if (captchaService.verify(session, captcha) != CaptchaService.VerifyStatus.VALID) {
             model.addAttribute("error", "验证码错误");
             return "register";
         }
@@ -422,8 +430,8 @@ public class UserController {
         }
 
         // 2. 用户名格式校验
-        if (username.length() < 3 || username.length() > 50) {
-            model.addAttribute("error", "用户名长度3-50");
+        if (username.length() < 3 || username.length() > 32) {
+            model.addAttribute("error", "用户名长度3-32位");
             return "register";
         }
         if (!username.matches("^[a-zA-Z0-9_\\u4e00-\\u9fa5]+$")) {
@@ -442,7 +450,7 @@ public class UserController {
         }
 
         // 4. 密码规则校验
-        String pwdError = UserService.validatePassword(password);
+        String pwdError = com.weib.security.CredentialPolicy.validatePassword(password, username, phone);
         if (pwdError != null) {
             model.addAttribute("error", pwdError);
             return "register";

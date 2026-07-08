@@ -224,9 +224,9 @@ public class User {
      * );
      */
     @NotBlank(message = "用户名不能为空")
-    @Size(min = 3, max = 50, message = "用户名长度3-50")
+    @Size(min = 3, max = 32, message = "用户名长度3-32")
     @Pattern(regexp = "^[a-zA-Z0-9_\\u4e00-\\u9fa5]+$", message = "用户名只能包含字母、数字、下划线和中文")
-    @Column(nullable = false, unique = true, length = 50)
+    @Column(nullable = false, unique = true, length = 32)
     private String username;
 
     @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号格式不正确")
@@ -234,7 +234,7 @@ public class User {
     private String phone;
 
     @NotBlank(message = "密码不能为空")
-    @Size(min = 7, max = 100, message = "密码长度至少7位")
+    @Size(max = 100, message = "密码哈希长度不能超过100位")
     @Column(nullable = false, length = 100)
     @com.fasterxml.jackson.annotation.JsonIgnore
     private String password;

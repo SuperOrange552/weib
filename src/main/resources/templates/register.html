@@ -198,25 +198,25 @@
 
                 <div class="form-group">
                     <label class="form-label">用户名</label>
-                    <input type="text" name="username" class="form-input" placeholder="3-20位字母或数字" required>
+                    <input type="text" name="username" minlength="3" maxlength="32" autocomplete="username" class="form-input" placeholder="3-20位字母或数字" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">手机号</label>
-                    <input type="text" name="phone" class="form-input" placeholder="请输入11位手机号" required maxlength="11">
+                    <input type="text" name="phone" minlength="11" maxlength="11" pattern="1[3-9][0-9]{9}" class="form-input" placeholder="请输入11位手机号" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">密码</label>
-                    <input type="password" name="password" id="password" class="form-input" placeholder="至少7位，含大小写字母和数字" required>
+                    <input type="password" name="password" id="password" minlength="8" maxlength="64" autocomplete="new-password" class="form-input" placeholder="8-64位，含大小写字母和数字" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">确认密码</label>
-                    <input type="password" name="confirmPassword" class="form-input" placeholder="再次输入密码" required>
+                    <input type="password" name="confirmPassword" minlength="8" maxlength="64" autocomplete="new-password" class="form-input" placeholder="再次输入密码" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">验证码</label>
                     <div class="captcha-row">
                         <input type="text" name="captcha" class="form-input captcha-input" placeholder="请输入验证码" maxlength="4" required autocomplete="off">
-                        <img src="/captcha" alt="验证码" class="captcha-img" id="captchaImg" onclick="this.src='/captcha?'+new Date().getTime()" title="点击刷新验证码">
+                        <img alt="验证码" class="captcha-img" id="captchaImg" title="点击刷新验证码"><span id="captchaStatus" class="captcha-status">请先输入账号和密码</span>
                     </div>
                 </div>
                 <button type="submit" class="submit-btn">注册</button>
@@ -267,7 +267,8 @@
         document.getElementById('password').addEventListener('input', function() {
             const pwd = this.value;
             let msg = '';
-            if (pwd.length < 7) msg = '密码长度至少7位';
+            if (pwd.length < 8) msg = '密码长度至少8位';
+            else if (pwd.length > 64) msg = '密码长度不能超过64位';
             else if (!/[a-z]/.test(pwd)) msg = '需包含小写字母';
             else if (!/[A-Z]/.test(pwd)) msg = '需包含大写字母';
             else if (!/\d/.test(pwd)) msg = '需包含数字';
@@ -332,5 +333,7 @@
         }
     </style>
 
+<script src="/js/captcha.js"></script>
+<script src="/js/submit-guard.js"></script>
 </body>
 </html>

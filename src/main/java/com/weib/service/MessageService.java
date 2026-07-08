@@ -24,10 +24,22 @@ public class MessageService {
     public Message saveMessage(String conversationId, Long senderId, Long receiverId,
                                String content, String messageType,
                                String fileName, String filePath, Long fileSize) {
+        return saveMessage(conversationId, senderId, receiverId, content, messageType, fileName, filePath, fileSize, null);
+    }
+
+    public Message saveMessage(String conversationId, Long senderId, Long receiverId,
+                               String content, String messageType,
+                               String fileName, String filePath, Long fileSize, String clientMessageId) {
+        if (clientMessageId != null && !clientMessageId.matches("^[A-Za-z0-9._:-]{8,64}$")) throw new IllegalArgumentException("Invalid client message id");
+        if (clientMessageId != null) {
+            var existing = messageRepository.findBySenderIdAndClientMessageId(senderId, clientMessageId);
+            if (existing.isPresent()) return existing.get();
+        }
         Message message = new Message();
         message.setConversationId(conversationId);
         message.setSenderId(senderId);
         message.setReceiverId(receiverId);
+        message.setClientMessageId(clientMessageId);
         message.setContent(content);
         message.setMessageType(messageType);
         message.setFileName(fileName);

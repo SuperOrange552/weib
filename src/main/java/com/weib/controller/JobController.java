@@ -113,6 +113,7 @@ public class JobController {
      * 5. 返回结果
      */
     @PostMapping("/job/{encodedId}/apply")
+    @com.weib.security.Idempotent
     @ResponseBody
     public Result<?> apply(@PathVariable String encodedId, HttpSession session) {
 
@@ -283,6 +284,7 @@ public class JobController {
     }
 
     @PostMapping("/job/{encodedId}/favorite")
+    @com.weib.security.Idempotent
     @ResponseBody
     public Result<?> toggleFavorite(@PathVariable String encodedId, HttpSession session) {
         Long id = idObfuscator.decode(encodedId);
@@ -340,6 +342,7 @@ public class JobController {
      * 求职者撤回投递
      */
     @PostMapping("/application/{encodedId}/withdraw")
+    @com.weib.security.Idempotent
     @ResponseBody
     public Result<?> withdraw(@PathVariable String encodedId, HttpSession session) {
         Long id = idObfuscator.decode(encodedId);

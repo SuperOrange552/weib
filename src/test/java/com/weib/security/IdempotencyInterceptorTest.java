@@ -1,0 +1,9 @@
+package com.weib.security;
+import org.junit.jupiter.api.Test;import org.springframework.mock.web.*;import org.springframework.web.method.HandlerMethod;import java.lang.reflect.Method;import static org.junit.jupiter.api.Assertions.*;import static org.mockito.Mockito.*;
+class IdempotencyInterceptorTest {
+ static class Endpoint { @Idempotent public void write(){} }
+ HandlerMethod handler()throws Exception{Method m=Endpoint.class.getMethod("write");return new HandlerMethod(new Endpoint(),m);}
+ @Test void missingKeyIsRejected()throws Exception{var i=new IdempotencyInterceptor(mock(IdempotencyService.class));var req=new MockHttpServletRequest("POST","/write");var res=new MockHttpServletResponse();assertFalse(i.preHandle(req,res,handler()));assertEquals(400,res.getStatus());}
+ @Test void processingDuplicateIsConflict()throws Exception{var service=mock(IdempotencyService.class);when(service.acquire(anyString(),eq("valid-key"))).thenReturn(IdempotencyService.State.PROCESSING);var i=new IdempotencyInterceptor(service);var req=new MockHttpServletRequest("POST","/write");req.addHeader("Idempotency-Key","valid-key");var res=new MockHttpServletResponse();assertFalse(i.preHandle(req,res,handler()));assertEquals(409,res.getStatus());}
+ @Test void completedDuplicateIsSuccessfulNoOp()throws Exception{var service=mock(IdempotencyService.class);when(service.acquire(anyString(),eq("valid-key"))).thenReturn(IdempotencyService.State.COMPLETED);var i=new IdempotencyInterceptor(service);var req=new MockHttpServletRequest("POST","/write");req.addHeader("Idempotency-Key","valid-key");var res=new MockHttpServletResponse();assertFalse(i.preHandle(req,res,handler()));assertEquals(200,res.getStatus());assertTrue(res.getContentAsString().contains("duplicate"));}
+}

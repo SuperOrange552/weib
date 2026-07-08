@@ -10,6 +10,7 @@ import com.weib.repository.UserRepository;
 import com.weib.service.admin.AdminAuthService;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import java.util.Map;
 
@@ -41,7 +42,7 @@ public class AdminAuthController {
      * @return JWT Token + 管理员信息
      */
     @PostMapping("/login")
-    public Result<LoginResponse> login(@RequestBody LoginRequest request) {
+    public Result<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         try {
             LoginResponse resp = adminAuthService.login(request);
             return Result.success(resp);

@@ -640,6 +640,7 @@
             if (!content) return;
 
             var payload = {
+                clientMessageId: window.newIdempotencyKey ? window.newIdempotencyKey() : (Date.now()+"-message"),
                 conversationId: conversationId,
                 senderId: currentUserId,
                 receiverId: otherUserId,
@@ -749,5 +750,6 @@
         // 每10秒轮询新消息（兜底：防止 WebSocket 推送丢失时消息不更新）
         var msgPollTimer = setInterval(syncMissedMessages, 10000);
     </script>
+<script src="/js/submit-guard.js"></script>
 </body>
 </html>

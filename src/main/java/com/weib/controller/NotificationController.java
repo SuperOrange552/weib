@@ -30,6 +30,7 @@ public class NotificationController {
     }
 
     @PostMapping("/api/notifications/read-all")
+    @com.weib.security.Idempotent
     @ResponseBody
     public Result<?> markAllRead(HttpSession session) {
         User user = (User) session.getAttribute("user");
@@ -39,6 +40,7 @@ public class NotificationController {
     }
 
     @PostMapping("/api/notifications/{id}/read")
+    @com.weib.security.Idempotent
     @ResponseBody
     public Result<?> markRead(@PathVariable Long id, HttpSession session) {
         User user = (User) session.getAttribute("user");

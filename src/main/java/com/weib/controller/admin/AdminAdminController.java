@@ -6,6 +6,7 @@ import com.weib.service.admin.AdminAdminService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import java.util.List;
 import java.util.Map;
@@ -43,7 +44,8 @@ public class AdminAdminController {
      * @return 创建结果
      */
     @PostMapping
-    public Result<Map<String, Object>> create(@RequestBody CreateAdminRequest request) {
+    @com.weib.security.Idempotent
+    public Result<Map<String, Object>> create(@Valid @RequestBody CreateAdminRequest request) {
         return Result.success(service.createAdmin(request.getUsername(), request.getPassword(), request.getRoleType()));
     }
 
@@ -55,6 +57,7 @@ public class AdminAdminController {
      * @return 操作结果
      */
     @PutMapping("/{userId}")
+    @com.weib.security.Idempotent
     public Result<Void> updateRole(@PathVariable Long userId, @RequestBody Map<String, String> body) {
         if (isSelf(userId)) return Result.error("不能修改自己的角色");
         service.updateRole(userId, body.get("roleType"));
@@ -68,6 +71,7 @@ public class AdminAdminController {
      * @return 操作结果
      */
     @PutMapping("/{userId}/disable")
+    @com.weib.security.Idempotent
     public Result<Void> disable(@PathVariable Long userId) {
         if (isSelf(userId)) return Result.error("不能禁用自己");
         service.disable(userId);

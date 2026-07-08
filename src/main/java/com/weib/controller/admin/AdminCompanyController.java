@@ -65,6 +65,7 @@ public class AdminCompanyController {
      * @return 操作结果
      */
     @PutMapping("/{id}/approve")
+    @com.weib.security.Idempotent
     public Result<Void> approve(@PathVariable Long id) {
         service.approve(getAdminId(), id);
         return Result.success();
@@ -78,6 +79,7 @@ public class AdminCompanyController {
      * @return 操作结果
      */
     @PutMapping("/{id}/reject")
+    @com.weib.security.Idempotent
     public Result<Void> reject(@PathVariable Long id, @RequestBody Map<String, String> body) {
         service.reject(getAdminId(), id, body.get("reason"));
         return Result.success();

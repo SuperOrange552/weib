@@ -69,19 +69,19 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     }
 
     private String buildKey(HttpServletRequest request, RateLimit rateLimit) {
-        String suffix;
+        String identity;
         String keyType = rateLimit.key();
         if ("ip".equals(keyType)) {
-            suffix = getClientIp(request);
+            identity = getClientIp(request);
         } else if ("user".equals(keyType)) {
-            User user = (User) request.getSession(false) != null
+            User user = request.getSession(false) != null
                     ? (User) request.getSession(false).getAttribute("user") : null;
-            suffix = user != null ? String.valueOf(user.getId()) : getClientIp(request);
+            identity = user != null ? String.valueOf(user.getId()) : getClientIp(request);
         } else {
-            // 默认：类名+方法名
-            suffix = request.getMethod() + ":" + request.getRequestURI();
+            identity = "global";
         }
-        return REDIS_PREFIX + suffix;
+        return REDIS_PREFIX + request.getMethod() + ":" + request.getRequestURI()
+                + ":" + (keyType.isBlank() ? "endpoint" : keyType) + ":" + identity;
     }
 
     private String getClientIp(HttpServletRequest request) {

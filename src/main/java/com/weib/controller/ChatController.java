@@ -519,6 +519,7 @@ public class ChatController {
      */
     @RateLimit(maxRequests = 30, windowSeconds = 60, key = "user")
     @PostMapping("/api/chat/send")
+    @com.weib.security.Idempotent
     @ResponseBody
     public Result<Message> sendMessage(@RequestBody Map<String, Object> payload, HttpSession session) {
         User user = (User) session.getAttribute("user");
@@ -556,8 +557,9 @@ public class ChatController {
         Object fileSizeObj = payload.get("fileSize");
         Long fileSize = fileSizeObj != null ? Long.valueOf(fileSizeObj.toString()) : null;
 
+        String clientMessageId = payload.get("clientMessageId") == null ? null : payload.get("clientMessageId").toString();
         Message saved = messageService.saveMessage(conversationId, senderId, receiverId,
-                content, messageType, fileName, filePath, fileSize);
+                content, messageType, fileName, filePath, fileSize, clientMessageId);
 
         // 接收者在线则实时推送
         messagingTemplate.convertAndSendToUser(

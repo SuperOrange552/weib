@@ -255,6 +255,11 @@ public class UserService {
      * @return 注册成功返回用户对象，失败返回 null
      */
     public User register(String username, String password, String phone, String role) {
+        String usernameError = com.weib.security.CredentialPolicy.validateUsername(username);
+        if (usernameError != null) throw new IllegalArgumentException(usernameError);
+        String passwordError = com.weib.security.CredentialPolicy.validatePassword(password, username, phone);
+        if (passwordError != null) throw new IllegalArgumentException(passwordError);
+        username = com.weib.security.CredentialPolicy.normalizeUsername(username);
         if (userRepository.existsByUsername(username)) {
             return null;
         }
@@ -263,7 +268,7 @@ public class UserService {
         }
 
         User user = new User();
-        user.setUsername(username);
+        user.setUsername(com.weib.security.CredentialPolicy.normalizeUsername(username));
         user.setPassword(passwordEncoder.encode(password));
         user.setPhone(phone != null && !phone.isBlank() ? phone : null);
         user.setRole(role);
@@ -276,22 +281,7 @@ public class UserService {
      * 验证密码是否符合规则：长度>=7，必须包含大小写字母和数字
      */
     public static String validatePassword(String password) {
-        if (password == null || password.length() < 7) {
-            return "密码长度至少7位";
-        }
-        if (password.length() > 72) {
-            return "密码长度不能超过72位";
-        }
-        if (!password.matches(".*[a-z].*")) {
-            return "密码必须包含小写字母";
-        }
-        if (!password.matches(".*[A-Z].*")) {
-            return "密码必须包含大写字母";
-        }
-        if (!password.matches(".*\\d.*")) {
-            return "密码必须包含数字";
-        }
-        return null;
+        return com.weib.security.CredentialPolicy.validatePassword(password);
     }
 
     /**
@@ -505,7 +495,7 @@ public class UserService {
         }
 
         // 校验新密码强度
-        String error = validatePassword(newPassword);
+        String error = com.weib.security.CredentialPolicy.validatePassword(newPassword, user.getUsername(), user.getPhone());
         if (error != null) {
             throw new RuntimeException(error);
         }
@@ -522,7 +512,7 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("用户不存在"));
 
-        String error = validatePassword(newPassword);
+        String error = com.weib.security.CredentialPolicy.validatePassword(newPassword, user.getUsername(), user.getPhone());
         if (error != null) {
             throw new RuntimeException(error);
         }

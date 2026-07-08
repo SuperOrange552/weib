@@ -14,6 +14,7 @@ public class WebConfig implements WebMvcConfigurer {
     private final LoginInterceptor loginInterceptor;
     private final CsrfInterceptor csrfInterceptor;
     private final RateLimitInterceptor rateLimitInterceptor;
+    private final com.weib.security.IdempotencyInterceptor idempotencyInterceptor;
 
     @Value("${storage.upload-dir}")
     private String uploadDir;
@@ -23,6 +24,8 @@ public class WebConfig implements WebMvcConfigurer {
         // 频率限制拦截器（最外层，优先级最高）
         registry.addInterceptor(rateLimitInterceptor)
                 .addPathPatterns("/**");
+
+        registry.addInterceptor(idempotencyInterceptor).addPathPatterns("/**");
 
         // CSRF 保护：对所有状态变更端点进行 token 校验
         registry.addInterceptor(csrfInterceptor)
@@ -37,7 +40,9 @@ public class WebConfig implements WebMvcConfigurer {
                         "/api/**"
                 )
                 .excludePathPatterns(
-                        "/api/admin/**"
+                        "/api/admin/**",
+                        "/api/seeker/**",
+                        "/api/chat/**"
                 );
 
         registry.addInterceptor(loginInterceptor)

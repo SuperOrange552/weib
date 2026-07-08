@@ -1,39 +1,41 @@
 package com.weib.controller;
 
+import com.weib.service.CaptchaService;
 import com.weib.util.CaptchaUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.*;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.*;
 
 import javax.imageio.ImageIO;
-import jakarta.servlet.http.HttpServletResponse;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Map;
 
 @Controller
+@RequiredArgsConstructor
 public class CaptchaController {
+    private final CaptchaService captchaService;
 
-    private static final String SESSION_KEY = "captcha_code";
-
-    @GetMapping("/captcha")
-    public void captcha(HttpSession session, HttpServletResponse response) throws IOException {
-        String code = CaptchaUtil.generateCode();
-        session.setAttribute(SESSION_KEY, code);
-
-        response.setContentType("image/png");
-        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-        response.setHeader("Pragma", "no-cache");
-        response.setDateHeader("Expires", 0);
-
-        ImageIO.write(CaptchaUtil.generateImage(code), "png", response.getOutputStream());
+    @GetMapping("/captcha") @ResponseBody
+    public ResponseEntity<?> captcha(HttpSession session, HttpServletRequest request) throws IOException {
+        String code=CaptchaUtil.generateCode();
+        var issued=captchaService.issue(session,clientIp(request),code);
+        if (!issued.success()) return ResponseEntity.status(429).contentType(MediaType.APPLICATION_JSON)
+                .header("Retry-After",String.valueOf(issued.retryAfterSeconds()))
+                .body(Map.of("message",issued.message(),"retryAfterSeconds",issued.retryAfterSeconds()));
+        ByteArrayOutputStream out=new ByteArrayOutputStream();
+        ImageIO.write(CaptchaUtil.generateImage(code),"png",out);
+        return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG)
+                .cacheControl(CacheControl.noCache().noStore().mustRevalidate())
+                .header("X-Captcha-Expires-In",String.valueOf(CaptchaService.CODE_TTL_SECONDS)).body(out.toByteArray());
     }
-
-    public static boolean verify(HttpSession session, String input) {
-        if (input == null) return false;
-        String code = (String) session.getAttribute(SESSION_KEY);
-        if (code != null && code.equalsIgnoreCase(input.trim())) {
-            session.removeAttribute(SESSION_KEY); // 验证成功才清除，防止重放
-            return true;
-        }
-        return false;
+    private String clientIp(HttpServletRequest request) {
+        String ip=request.getHeader("X-Forwarded-For");
+        if (ip!=null && !ip.isBlank()) return ip.split(",")[0].trim();
+        ip=request.getHeader("X-Real-IP");
+        return ip==null||ip.isBlank()?request.getRemoteAddr():ip.trim();
     }
 }

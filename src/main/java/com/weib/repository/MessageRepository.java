@@ -19,6 +19,8 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
 
     Optional<Message> findByFilePath(String filePath);
 
+    Optional<Message> findBySenderIdAndClientMessageId(Long senderId, String clientMessageId);
+
     /**
      * 查某会话最新一条消息，用于会话列表预览
      */

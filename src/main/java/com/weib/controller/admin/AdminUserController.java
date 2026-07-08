@@ -70,6 +70,7 @@ public class AdminUserController {
      * @return 操作结果
      */
     @PutMapping("/{id}/ban")
+    @com.weib.security.Idempotent
     public Result<Void> ban(@PathVariable Long id) {
         service.banUser(getAdminId(), id);
         return Result.success();
@@ -82,6 +83,7 @@ public class AdminUserController {
      * @return 操作结果
      */
     @PutMapping("/{id}/unban")
+    @com.weib.security.Idempotent
     public Result<Void> unban(@PathVariable Long id) {
         service.unbanUser(getAdminId(), id);
         return Result.success();
@@ -91,6 +93,7 @@ public class AdminUserController {
      * 重置用户密码（管理员操作）
      */
     @PutMapping("/{id}/reset-password")
+    @com.weib.security.Idempotent
     public Result<Void> resetPassword(@PathVariable Long id, @RequestBody Map<String, String> body) {
         String newPassword = body.get("newPassword");
         if (newPassword == null || newPassword.isBlank()) {

@@ -247,7 +247,7 @@ public class BossController {
 
     /**
      * ----------------------------------------
-     * 【@PostMapping("/boss/register")】提交入驻
+     * 【@PostMapping("/boss/register")
      * ----------------------------------------
      * 
      * 保存公司信息
@@ -260,6 +260,7 @@ public class BossController {
      * - description: 公司介绍
      */
     @PostMapping("/boss/register")
+    @com.weib.security.Idempotent
     public String doRegister(@RequestParam String name,
                              @RequestParam(required = false) String industry,
                              @RequestParam(required = false) String scale,
@@ -437,13 +438,14 @@ public class BossController {
 
     /**
      * ----------------------------------------
-     * 【@PostMapping("/boss/job/save")】保存职位
+     * 【@PostMapping("/boss/job/save")
      * ----------------------------------------
      * 
      * 新建和编辑共用一个方法
      * 通过是否有 id 参数判断
      */
     @PostMapping("/boss/job/save")
+    @com.weib.security.Idempotent
     public String saveJob(@RequestParam(required = false) Long id,
                           @RequestParam String title,
                           @RequestParam(required = false) Integer salaryMin,
@@ -537,6 +539,7 @@ public class BossController {
      * 软删除：设置为 inactive 状态
      */
     @PostMapping("/boss/job/delete/{encodedId}")
+    @com.weib.security.Idempotent
     public String deleteJob(@PathVariable String encodedId,
                              HttpSession session) {
 
@@ -716,6 +719,7 @@ public class BossController {
      * ----------------------------------------
      */
     @PostMapping("/boss/application/{encodedId}/status")
+    @com.weib.security.Idempotent
     @ResponseBody
     public Result<?> updateApplicationStatus(@PathVariable String encodedId,
                                               @RequestParam String status,
@@ -830,6 +834,7 @@ public class BossController {
      * 发起面试邀约
      */
     @PostMapping("/boss/application/{encodedId}/interview")
+    @com.weib.security.Idempotent
     @ResponseBody
     public Result<?> scheduleInterview(@PathVariable String encodedId,
                                         @RequestBody Map<String, String> body,
@@ -873,6 +878,7 @@ public class BossController {
      * 重新开放已关闭的职位
      */
     @PostMapping("/boss/job/reopen/{encodedId}")
+    @com.weib.security.Idempotent
     @ResponseBody
     public Result<?> reopenJob(@PathVariable String encodedId, HttpSession session) {
         Long id = idObfuscator.decode(encodedId);

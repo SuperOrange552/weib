@@ -41,6 +41,14 @@ const AdminManagementPage: React.FC = () => {
       setSnackbar({ open: true, msg: '请填写用户名和密码', severity: 'error' })
       return
     }
+    if (newUsername.trim().length < 3 || newUsername.trim().length > 32 || !/^[a-zA-Z0-9_\u4e00-\u9fa5]+$/.test(newUsername.trim())) {
+      setSnackbar({ open: true, msg: '??????3-32??????????????????', severity: 'error' })
+      return
+    }
+    if (newPassword.length < 8 || newPassword.length > 64 || !/[a-z]/.test(newPassword) || !/[A-Z]/.test(newPassword) || !/\d/.test(newPassword)) {
+      setSnackbar({ open: true, msg: '?????8-64????????????', severity: 'error' })
+      return
+    }
     setCreateLoading(true)
     try {
       await createAdmin({
@@ -141,6 +149,8 @@ const AdminManagementPage: React.FC = () => {
             label="用户名"
             value={newUsername}
             onChange={e => setNewUsername(e.target.value)}
+            inputProps={{ minLength: 3, maxLength: 32 }}
+            helperText="3-32?????????????"
           />
           <TextField
             fullWidth
@@ -148,6 +158,8 @@ const AdminManagementPage: React.FC = () => {
             type="password"
             value={newPassword}
             onChange={e => setNewPassword(e.target.value)}
+            inputProps={{ minLength: 8, maxLength: 64 }}
+            helperText="8-64??????????????"
           />
           <FormControl fullWidth>
             <InputLabel>角色</InputLabel>
