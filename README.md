@@ -126,6 +126,6 @@ npm run build
 
 - 完整练习版（Markdown）：[`docs/API_TESTING_COMPLETE.md`](docs/API_TESTING_COMPLETE.md)
 - 完整练习版（Word）：[`docs/微招系统完整接口测试文档.docx`](docs/微招系统完整接口测试文档.docx)
-- 旧版简要参考：[`docs/API_TESTING.md`](docs/API_TESTING.md)
+- 规则与幂等测试说明：[`docs/API_TESTING.md`](docs/API_TESTING.md)
 - Swagger UI：`http://superorange.top/swagger-ui/index.html`
 - OpenAPI JSON：`http://superorange.top/v3/api-docs`
