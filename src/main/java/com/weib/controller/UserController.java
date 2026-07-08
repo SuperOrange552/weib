@@ -317,11 +317,6 @@ public class UserController {
                         Model model) {
 
         // 验证码校验
-        if (!com.weib.security.CredentialPolicy.validLoginInput(username, password)) {
-            model.addAttribute("error", "\u8d26\u53f7\u6216\u5bc6\u7801\u683c\u5f0f\u4e0d\u6b63\u786e");
-            return "login";
-        }
-
         if (captchaService.verify(session, captcha) != CaptchaService.VerifyStatus.VALID) {
             model.addAttribute("error", "验证码错误");
             return "login";
@@ -407,7 +402,6 @@ public class UserController {
      */
     @RateLimit(maxRequests = 3, windowSeconds = 60, key = "ip")
     @PostMapping("/register")
-    @com.weib.security.Idempotent
     public String register(@RequestParam String username,
                            @RequestParam String password,
                            @RequestParam String confirmPassword,
@@ -430,8 +424,8 @@ public class UserController {
         }
 
         // 2. 用户名格式校验
-        if (username.length() < 3 || username.length() > 32) {
-            model.addAttribute("error", "用户名长度3-32位");
+        if (username.length() < 3 || username.length() > 50) {
+            model.addAttribute("error", "用户名长度3-50");
             return "register";
         }
         if (!username.matches("^[a-zA-Z0-9_\\u4e00-\\u9fa5]+$")) {
@@ -450,7 +444,7 @@ public class UserController {
         }
 
         // 4. 密码规则校验
-        String pwdError = com.weib.security.CredentialPolicy.validatePassword(password, username, phone);
+        String pwdError = UserService.validatePassword(password);
         if (pwdError != null) {
             model.addAttribute("error", pwdError);
             return "register";
