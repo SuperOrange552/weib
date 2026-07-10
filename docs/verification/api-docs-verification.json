@@ -9,7 +9,7 @@
   "misplacedPageEndpoints": [],
   "requiredTextMissing": [],
   "status": "PASS",
-  "verifiedAt": "2026-07-10T21:41:41+08:00",
+  "verifiedAt": "2026-07-10T21:53:27+08:00",
   "live": {
     "baseUrl": "http://superorange.top",
     "openapiVersion": "1.1.0",
@@ -25,15 +25,15 @@
   "deliverables": {
     "markdown": {
       "path": "docs/API_TESTING_COMPLETE.md",
-      "bytes": 57493,
-      "sha256": "fc6f825df11c533b301d7e2f17ed417f64a05568e34b031a9b827c199111b26e",
+      "bytes": 59162,
+      "sha256": "3cb61ffad35b312c7131d7b24fbe19c1737209ef898c00825b57ea1cb6f8d23d",
       "remotePath": "/opt/weib/source/docs/API_TESTING_COMPLETE.md",
       "remoteHashMatch": true
     },
     "word": {
       "path": "docs/微招系统完整接口测试文档.docx",
       "bytes": 78780,
-      "sha256": "bd0d0e689db358799009914400c93ea555734b91b0e328e6293deafc04d9286f",
+      "sha256": "f640eb15f58a862997feb34209793de838681975c693360e204226347e8a7ba0",
       "remotePath": "/opt/weib/source/docs/微招系统完整接口测试文档.docx",
       "remoteHashMatch": true
     }
