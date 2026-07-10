@@ -506,4 +506,3 @@ The implementation is complete only when all of the following are true:
 - Local and remote file hashes match after server synchronization.
 
 **Next skill:** `$superpower-executing-plans` for inline execution in the current session.
-
