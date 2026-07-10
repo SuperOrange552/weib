@@ -1438,12 +1438,232 @@ Cookie: JSESSIONID={{JSESSIONID}}
 
 ## 11. 错误、限流与幂等
 
-> 本节将在后续测试清单中展开。
+### 11.1 常见HTTP状态
+
+| HTTP | 常见含义 | 本项目中的典型场景 |
+|---:|---|---|
+| 200 | 请求已被Controller处理 | JSON成功；也可能是业务失败`code!=200`；表单失败HTML |
+| 302 | 重定向 | 登录成功到`/`；未登录/CSRF失败回`/login`；表单成功跳转 |
+| 400 | 请求不合法 | Bean Validation失败、缺少/非法幂等键、参数类型转换失败 |
+| 401 | 未认证 | 管理员Token缺失/过期；部分接口也可能HTTP 200且业务`code=401` |
+| 403 | 权限不足 | 管理员角色不足、访问他人简历/通知/会话/文件 |
+| 404 | 资源不存在 | 聊天文件不存在、错误路径 |
+| 409 | 冲突 | 相同幂等键对应操作正在处理中 |
+| 429 | 请求过频 | 验证码刷新、登录、注册、聊天等触发限流 |
+| 500 | 未处理异常 | 服务、数据库或外部依赖异常；结合`journalctl`排查 |
+
+### 11.2 限流练习
+
+| 操作 | 当前规则/观察点 |
+|---|---|
+| 普通用户登录 | 同IP 60秒最多10次 |
+| 注册 | 同IP 60秒最多3次 |
+| 用户名检查 | 注解同IP每分钟30次；同Session内部5次后`rate_limited` |
+| 验证码刷新 | 同Session 5秒冷却；每分钟频率限制；错误次数限制 |
+| 聊天发送 | 每用户60秒最多30次 |
+
+限流测试要使用练习账号，逐步增加次数并记录第一次出现429的位置；不要在一次练习后立刻把429误判为接口永久故障。
+
+### 11.3 幂等响应
+
+幂等拦截器的响应字段与普通`Result<T>`不同：
+
+```json
+{"code":409,"message":"操作处理中，请勿重复提交","duplicate":false}
+```
+
+```json
+{"code":200,"message":"操作已完成","duplicate":true}
+```
+
+测试步骤：
+
+1. 为一次业务操作生成`Idempotency-Key=A`。
+2. 并发或快速发送两次相同请求，两个请求都使用A。
+3. 验证只有一次业务变化；另一次为409或完成态重复响应。
+4. 操作完成后继续用A重试，不能再新增第二条业务记录。
+5. 真正发起新操作时改用B。
+
+### 11.4 常见排查顺序
+
+1. 检查请求方法、URL和`Content-Type`。
+2. 检查参数位置：Path、Query、Header、Form和JSON不能混用。
+3. 普通用户检查`JSESSIONID`与`_csrf`是否来自同一Session。
+4. 登录/注册检查验证码是否在120秒内、是否属于同一Session。
+5. 管理员检查`Authorization: Bearer`和角色。
+6. 写请求检查`Idempotency-Key`。
+7. 检查响应是JSON、HTML、图片、PDF还是CSV，不要使用错误解析器。
+8. 服务端使用`sudo journalctl -u weib.service -f`查看实时日志。
 
 ## 12. 练习用例与变量记录表
 
-> 本节将在后续测试清单中展开。
+### 12.1 推荐练习顺序
+
+1. 管理员登录：最简单的JSON登录，理解`data.token`。
+2. 管理员`/me`：理解Bearer Token。
+3. 公开职位列表：练习Query、分页和`encodedId`。
+4. 普通用户登录：练习Cookie Jar、CSRF、图片验证码和302。
+5. 求职者简历：练习GET、JSON POST和Session。
+6. 投递/收藏：练习CSRF和幂等键。
+7. Boss公司/职位：练习表单和角色权限。
+8. 聊天：练习JSON、文件上传、客户端消息ID和参与者权限。
+9. 管理后台审核：练习JWT、RBAC和批量请求。
+10. 异常/边界/限流：最后集中练习错误路径。
+
+### 12.2 重点测试用例
+
+| 编号 | 类型 | 接口/操作 | 输入变化 | 预期 |
+|---|---|---|---|---|
+| T01 | 正常 | `POST /api/admin/auth/login` | 正确管理员 | `data.token`非空 |
+| T02 | 异常 | 管理员登录 | 错误密码 | 业务`code=401` |
+| T03 | 认证 | `/api/admin/auth/me` | 无Token/损坏Token | HTTP 401 |
+| T04 | 权限 | `/api/admin/users` | auditor或viewer Token | HTTP 403 |
+| T05 | 正常 | 普通用户登录 | 同Session正确CSRF/验证码 | 302到`/` |
+| T06 | 会话 | 普通用户登录 | 验证码和登录用不同Cookie | 验证码失败/跳转登录 |
+| T07 | CSRF | 普通用户写请求 | 缺`_csrf`/请求头 | 302到登录 |
+| T08 | 边界 | 注册用户名 | 2、3、32、33位 | 拒绝、接受、接受、拒绝 |
+| T09 | 边界 | 新密码 | 7、8、64、65位 | 拒绝、按复杂度判断、接受、拒绝 |
+| T10 | 格式 | 手机号 | 非1开头/10位/合法11位 | 拒绝、拒绝、接受 |
+| T11 | 分页 | 求职者职位 | `page=-1`,`size=0`,`size=101` | 归一为0、12、100 |
+| T12 | 权限 | Boss看简历 | 未向本公司投递的用户ID | 业务403 |
+| T13 | 权限 | 撤回投递 | 他人投递ID | 拒绝 |
+| T14 | 幂等 | 投递/审核 | 相同键并发两次 | 只执行一次 |
+| T15 | 切换 | 收藏 | 不同键连续两次 | 收藏后取消 |
+| T16 | 消息 | 文本消息 | 空`content` | 拒绝 |
+| T17 | 消息 | 文件消息 | 伪PDF/超过10MB | 拒绝 |
+| T18 | 消息 | `clientMessageId` | 同发送者重复 | 只保留一条 |
+| T19 | 时间 | 安排面试 | 非ISO时间 | 操作失败 |
+| T20 | 批量 | 批量下架 | `ids=[]` | “请选择要下架的职位” |
+| T21 | 导出 | 用户CSV | 正确Token | CSV二进制，不按JSON解析 |
+| T22 | 限流 | 验证码刷新 | 5秒内重复 | HTTP 429 |
+
+### 12.3 变量记录表
+
+复制下面内容到测试笔记，测试过程中逐项填写：
+
+```text
+baseUrl=http://superorange.top
+JSESSIONID=
+csrfToken=
+captcha=
+userJwt=
+adminToken=
+encodedJobId=
+numericJobId=
+encodedApplicationId=
+encodedCompanyId=
+conversationId=
+receiverId=
+notificationId=
+adminUserId=
+idempotencyKey=
+clientMessageId=
+```
+
+### 12.4 完成标准
+
+- 能独立完成普通用户和管理员两种登录。
+- 能说明Cookie Session、JWT、CSRF、验证码和幂等键的区别。
+- 能从前置响应取得`encodedId`，不把它和数字数据库ID混淆。
+- 能判断HTTP状态、业务`code`、HTML重定向和二进制响应。
+- 每个模块至少完成一个正常、一个异常、一个权限和一个边界用例。
 
 ## 13. 页面型路由附录
 
-> 本节仅列出返回 HTML 的页面路由，后续补全。
+以下路由主要返回HTML或管理后台SPA，不作为JSON业务接口。练习时可用于验证页面权限、Session和跳转。
+
+### `GET /`
+
+首页职位列表。可匿名访问，支持页面自身的搜索参数；主要业务查询建议使用`GET /api/seeker/jobs`。
+
+### `GET /index`
+
+首页别名，行为同`GET /`。
+
+### `GET /login`
+
+普通用户登录页。创建Session、生成CSRF并返回HTML；接口登录流程必须先调用它。
+
+### `GET /register`
+
+普通用户注册页。创建/复用Session并生成注册表单CSRF。
+
+### `GET /change-password`
+
+修改密码页。需要普通用户Session；未登录重定向`/login`。
+
+### `GET /job/{encodedId}`
+
+职位详情HTML页。`encodedId`为职位混淆ID。
+
+### `GET /company/{encodedId}`
+
+公司详情HTML页。`encodedId`为公司混淆ID。
+
+### `GET /my/applications`
+
+求职者投递记录HTML页；需要求职者Session。
+
+### `GET /my/favorites`
+
+求职者收藏HTML页；需要求职者Session。
+
+### `GET /resume`
+
+求职者简历编辑页；需要求职者Session。
+
+### `GET /resume/preview`
+
+简历预览页；需要普通用户Session。
+
+### `GET /notifications`
+
+通知HTML页；需要普通用户Session。
+
+### `GET /chat`
+
+聊天会话列表HTML页；需要普通用户Session。
+
+### `GET /chat/{encodedId}`
+
+指定投递会话的聊天HTML页；`encodedId`为投递混淆ID，且当前用户必须是参与者。
+
+### `GET /boss`
+
+Boss工作台首页；需要Boss Session。
+
+### `GET /boss/register`
+
+Boss公司入驻页；已入驻时重定向Boss首页。
+
+### `GET /boss/jobs`
+
+Boss职位管理页。
+
+### `GET /boss/job/new`
+
+Boss新建职位页。
+
+### `GET /boss/job/edit/{encodedId}`
+
+Boss编辑职位页；只能编辑本公司职位。
+
+### `GET /boss/applications`
+
+Boss收到的投递列表页；用于取得投递、求职者等页面数据。
+
+### `GET /boss/company/edit`
+
+Boss公司信息编辑页；未入驻时重定向入驻页。
+
+### `GET /admin`
+
+管理后台React SPA入口。
+
+### `GET /admin/{path:[^.]+}`
+
+管理后台一级前端路由回退到SPA入口，例如`/admin/users`。
+
+### `GET /admin/{path1:[^.]+}/{path2:[^.]+}`
+
+管理后台二级前端路由回退到SPA入口。
