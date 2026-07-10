@@ -8,5 +8,50 @@
   "unknownDocumentedEndpoints": [],
   "misplacedPageEndpoints": [],
   "requiredTextMissing": [],
-  "status": "PASS"
+  "status": "PASS",
+  "verifiedAt": "2026-07-10T21:41:41+08:00",
+  "live": {
+    "baseUrl": "http://superorange.top",
+    "openapiVersion": "1.1.0",
+    "openapiOperationCount": 55,
+    "adminLoginPublished": true,
+    "loginStatus": 200,
+    "loginSetsJsessionId": true,
+    "loginContainsCsrf": true,
+    "captchaStatus": 200,
+    "captchaContentType": "image/png",
+    "captchaExpiresInSeconds": 120
+  },
+  "deliverables": {
+    "markdown": {
+      "path": "docs/API_TESTING_COMPLETE.md",
+      "bytes": 57493,
+      "sha256": "fc6f825df11c533b301d7e2f17ed417f64a05568e34b031a9b827c199111b26e",
+      "remotePath": "/opt/weib/source/docs/API_TESTING_COMPLETE.md",
+      "remoteHashMatch": true
+    },
+    "word": {
+      "path": "docs/微招系统完整接口测试文档.docx",
+      "bytes": 78780,
+      "sha256": "bd0d0e689db358799009914400c93ea555734b91b0e328e6293deafc04d9286f",
+      "remotePath": "/opt/weib/source/docs/微招系统完整接口测试文档.docx",
+      "remoteHashMatch": true
+    }
+  },
+  "wordQa": {
+    "pages": 48,
+    "paragraphs": 702,
+    "tables": 31,
+    "markdownEndpointHeadings": 89,
+    "wordEndpointHeadings": 89,
+    "headingOrderMatch": true,
+    "blankPages": 0,
+    "tableGeometry": "PASS",
+    "visualInspection": "PASS",
+    "accessibilityFindings": {
+      "high": 0,
+      "medium": 0,
+      "low": 0
+    }
+  }
 }
