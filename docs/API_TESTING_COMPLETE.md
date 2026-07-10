@@ -413,11 +413,326 @@ Authorization: Bearer {{adminToken}}
 
 ## 5. 账号与公共接口
 
-> 本节将在后续接口清单中展开。
+### `POST /register`
+
+**用途：** 注册求职者或 Boss 账号。  
+**认证：** 不要求登录；必须先用同一 `JSESSIONID` 获取注册页 CSRF 和验证码。  
+**Content-Type：** `application/x-www-form-urlencoded`。  
+**限流：** 同一 IP 60秒最多3次。  
+**幂等：** 必须传 `Idempotency-Key` 请求头或 `_idempotencyKey` 表单字段。
+
+| 表单参数 | 类型 | 必填 | 规则/说明 | 示例 |
+|---|---|---:|---|---|
+| `username` | string | 是 | 3–32位；字母、数字、下划线、中文 | `practice_01` |
+| `password` | string | 是 | 8–64位强密码 | `Practice123` |
+| `confirmPassword` | string | 是 | 必须与`password`相同 | `Practice123` |
+| `phone` | string | 是 | 11位大陆手机号 | `13800138000` |
+| `captcha` | string | 是 | 当前Session的验证码 | 人工识别值 |
+| `role` | string | 否 | `seeker`或`boss`；默认`seeker`；非法值会回落到`seeker` | `seeker` |
+| `_csrf` | string | 是 | 注册页生成的CSRF Token | `{{csrfToken}}` |
+| `_idempotencyKey` | string | 条件必填 | 未传同名请求头时必填 | UUID |
+
+```http
+POST /register HTTP/1.1
+Host: superorange.top
+Cookie: JSESSIONID={{JSESSIONID}}
+Content-Type: application/x-www-form-urlencoded
+Idempotency-Key: {{idempotencyKey}}
+
+username=practice_01&password=Practice123&confirmPassword=Practice123&phone=13800138000&captcha=A7K2&role=seeker&_csrf={{csrfToken}}
+```
+
+成功时返回登录页HTML并显示“注册成功，请登录”；失败时仍可能是HTTP 200的注册页HTML。测试：重复用户名、重复手机号、密码不一致、非法角色、错误/过期验证码、缺少幂等键、同键重复注册。
+
+### `GET /check-username`
+
+**用途：** 检查用户名和可选手机号是否已被占用。  
+**认证：** 无；使用Session记录查询次数。  
+**限流：** 注解上限为同IP每分钟30次；同一Session内部达到5次后直接返回`rate_limited`。
+
+| Query参数 | 类型 | 必填 | 说明 | 示例 |
+|---|---|---:|---|---|
+| `username` | string | 是 | 要检查的用户名 | `practice_01` |
+| `phone` | string | 否 | 同时检查手机号 | `13800138000` |
+
+```http
+GET /check-username?username=practice_01&phone=13800138000 HTTP/1.1
+Host: superorange.top
+Cookie: JSESSIONID={{JSESSIONID}}
+```
+
+响应是纯文本，不是`Result<T>`：
+
+| 响应 | 含义 |
+|---|---|
+| `available` | 用户名可用，传手机号时手机号也可用 |
+| `taken` | 用户名已存在 |
+| `phone_taken` | 手机号已存在 |
+| `rate_limited` | 同一Session检查次数过多 |
+
+### `POST /logout`
+
+**用途：** 普通网页端退出，销毁Session并清除`remember_token`和`jwt_token`。  
+**认证：** 普通用户Session。  
+**CSRF：** 必须传`_csrf`或`X-CSRF-Token`。  
+**Content-Type：** 推荐`application/x-www-form-urlencoded`。
+
+```http
+POST /logout HTTP/1.1
+Host: superorange.top
+Cookie: JSESSIONID={{JSESSIONID}}
+X-CSRF-Token: {{csrfToken}}
+```
+
+成功：`302 Location: /login`。退出后继续使用旧Session访问受保护接口应失败。
+
+### `POST /user/change-password`
+
+**用途：** 已登录用户修改密码；成功后强制退出并重新登录。  
+**认证：** 普通用户Session。  
+**CSRF：** 必须传。  
+**Content-Type：** `application/x-www-form-urlencoded`。
+
+| 表单参数 | 类型 | 必填 | 规则 | 示例 |
+|---|---|---:|---|---|
+| `oldPassword` | string | 是 | 当前密码；最多64位 | `OldPass123` |
+| `newPassword` | string | 是 | 8–64位强密码；不能与旧密码、用户名、手机号相同 | `NewPass456` |
+| `confirmPassword` | string | 是 | 必须与新密码一致 | `NewPass456` |
+| `_csrf` | string | 是 | 当前Session Token | `{{csrfToken}}` |
+
+```http
+POST /user/change-password HTTP/1.1
+Host: superorange.top
+Cookie: JSESSIONID={{JSESSIONID}}
+Content-Type: application/x-www-form-urlencoded
+
+oldPassword=OldPass123&newPassword=NewPass456&confirmPassword=NewPass456&_csrf={{csrfToken}}
+```
+
+成功：`302 Location: /login?changed`，旧Session失效。失败通常返回修改密码HTML，包含“旧密码错误”“两次输入不一致”或密码规则消息。当前源码没有给此接口添加`@Idempotent`，所以不要误加必需幂等键。
 
 ## 6. 求职者接口
 
-> 本节将在后续接口清单中展开。
+### 6.1 职位与公司查询
+
+### `GET /api/seeker/jobs`
+
+**用途：** 分页查询、搜索和筛选在招职位。  
+**认证：** 可匿名；求职者登录后响应会额外正确反映`hasApplied`、`isFavorited`。  
+**请求体：** 无。
+
+| Query参数 | 类型 | 必填 | 默认/规则 | 示例 |
+|---|---|---:|---|---|
+| `keyword` | string | 否 | 职位/公司关键词 | `Java` |
+| `city` | string | 否 | 城市筛选 | `北京` |
+| `education` | string | 否 | 学历筛选 | `本科` |
+| `experience` | string | 否 | 经验筛选 | `1-3年` |
+| `salaryMin` | integer | 否 | 最低期望薪资 | `10000` |
+| `salaryMax` | integer | 否 | 最高期望薪资 | `30000` |
+| `sort` | string | 否 | 默认`newest`；按服务支持值练习 | `newest` |
+| `page` | integer | 否 | 从0开始；负数改为0 | `0` |
+| `size` | integer | 否 | 默认12；小于1改12；最大100 | `12` |
+
+```http
+GET /api/seeker/jobs?keyword=Java&city=北京&page=0&size=12&sort=newest HTTP/1.1
+Host: superorange.top
+```
+
+`data`字段：`content`、`totalElements`、`totalPages`、`number`、`size`、`first`、`last`、`empty`。从`content[].id`保存`encodedJobId`，从公司信息取得`encodedCompanyId`。
+
+### `GET /api/seeker/job/{encodedId}`
+
+**用途：** 查询单个活跃职位详情并增加浏览量。  
+**认证：** 可匿名。  
+**Path：** `encodedId`必填，使用职位列表返回的混淆ID。
+
+```http
+GET /api/seeker/job/{{encodedJobId}} HTTP/1.1
+Host: superorange.top
+Cookie: JSESSIONID={{JSESSIONID}}
+```
+
+成功返回职位、公司、投递/收藏状态。无效ID返回“参数无效”；不存在返回“职位不存在”；已关闭返回“该职位已关闭”。
+
+### `GET /api/seeker/company/{encodedId}`
+
+**用途：** 查询公司详情以及该公司的全部活跃职位。  
+**认证：** 可匿名。  
+**Path：** `encodedId`为公司混淆ID。
+
+```http
+GET /api/seeker/company/{{encodedCompanyId}} HTTP/1.1
+Host: superorange.top
+```
+
+`data`包括`id`、`name`、`logo`、`industry`、`scale`、`address`、`description`、`contactName`、经纬度、`createdAt`和`jobs`。测试无效ID、公司不存在以及无在招职位。
+
+### 6.2 投递与收藏
+
+### `POST /job/{encodedId}/apply`
+
+**用途：** 求职者投递指定职位。  
+**认证：** 求职者Session。  
+**CSRF：** 必须传。  
+**幂等：** 必须传`Idempotency-Key`。  
+**Path：** `encodedId={{encodedJobId}}`。  
+**请求体：** 无。
+
+```http
+POST /job/{{encodedJobId}}/apply HTTP/1.1
+Host: superorange.top
+Cookie: JSESSIONID={{JSESSIONID}}
+X-CSRF-Token: {{csrfToken}}
+Idempotency-Key: {{idempotencyKey}}
+```
+
+测试：正常投递、未登录、Boss身份、未创建简历、重复投递、下架职位、无效ID、相同幂等键重试。
+
+### `GET /api/seeker/applications`
+
+**用途：** 查询当前求职者全部投递。  
+**认证：** 求职者Session。  
+**请求体/参数：** 无。
+
+响应每项包括`id`（保存为`encodedApplicationId`）、`jobId`、`status`、`bossNote`、`interviewTime`、`interviewLocation`、`rejectReason`、`createdAt`、`jobTitle`、`companyName`、`encodedCompanyId`。
+
+### `POST /application/{encodedId}/withdraw`
+
+**用途：** 求职者撤回自己的投递。  
+**认证：** 求职者Session。  
+**CSRF：** 必须传。  
+**幂等：** 必须传。  
+**Path：** `encodedId={{encodedApplicationId}}`。  
+**请求体：** 无。
+
+```http
+POST /application/{{encodedApplicationId}}/withdraw HTTP/1.1
+Host: superorange.top
+Cookie: JSESSIONID={{JSESSIONID}}
+X-CSRF-Token: {{csrfToken}}
+Idempotency-Key: {{idempotencyKey}}
+```
+
+测试他人投递ID、不可撤回状态、重复撤回和无效ID。
+
+### `POST /job/{encodedId}/favorite`
+
+**用途：** 切换职位收藏状态。  
+**认证：** 求职者Session。  
+**CSRF：** 必须传。  
+**幂等：** 必须传。  
+**Path：** `encodedId={{encodedJobId}}`。  
+**请求体：** 无。
+
+成功`data.favorited`表示调用后的状态。注意这是“切换”接口：如果用不同幂等键重复请求会在收藏/取消之间切换；网络重试应复用同一个键。
+
+### `GET /api/seeker/favorites`
+
+**用途：** 查询当前求职者收藏的活跃职位。  
+**认证：** 求职者Session。  
+**参数：** 无。
+
+返回项包括`favoriteId`、`jobId`、`title`、薪资、城市、学历、经验、标签、`companyName`、`encodedCompanyId`。下架职位不会显示。
+
+### 6.3 简历
+
+### `GET /api/seeker/resume`
+
+**用途：** 查询当前求职者简历。  
+**认证：** 求职者Session。  
+**参数：** 无。
+
+已有简历时`data.exists=true`并返回全部字段；没有简历时返回：
+
+```json
+{"code":200,"msg":"success","data":{"exists":false,"userId":12}}
+```
+
+### `POST /api/seeker/resume`
+
+**用途：** 使用JSON新建或局部更新当前求职者简历。  
+**认证：** 求职者Session。  
+**CSRF：** `/api/seeker/**`已从CSRF拦截器排除。  
+**Content-Type：** `application/json`。  
+**幂等：** 当前源码未标注`@Idempotent`。
+
+| JSON字段 | 类型 | 必填 | 说明 | 示例 |
+|---|---|---:|---|---|
+| `id` | integer | 更新时 | 数字简历ID；不传表示新建 | `3` |
+| `realName` | string | 建议 | 姓名 | `张三` |
+| `gender` | string | 否 | 性别 | `男` |
+| `phone` | string | 建议 | 联系手机号 | `13800138000` |
+| `email` | string | 建议 | 邮箱 | `tester@example.com` |
+| `birthday` | string | 否 | 当前实体使用字符串 | `2000-01-01` |
+| `education` | string | 否 | 学历 | `本科` |
+| `school` | string | 否 | 学校 | `测试大学` |
+| `major` | string | 否 | 专业 | `软件工程` |
+| `workExperience` | string | 否 | 工作经历文本 | `2024-2026 ...` |
+| `projectExperience` | string | 否 | 项目经历文本 | `招聘系统测试` |
+| `skills` | string | 否 | 技能文本 | `Java, MySQL, Postman` |
+| `selfIntroduction` | string | 否 | 自我介绍 | `两年测试经验` |
+
+```json
+{
+  "realName": "张三",
+  "gender": "男",
+  "phone": "13800138000",
+  "email": "tester@example.com",
+  "birthday": "2000-01-01",
+  "education": "本科",
+  "school": "测试大学",
+  "major": "软件工程",
+  "workExperience": "2024-2026 软件测试",
+  "projectExperience": "招聘系统接口测试",
+  "skills": "Java, MySQL, Postman",
+  "selfIntroduction": "重视边界和异常测试"
+}
+```
+
+更新时只有Body中出现的字段会覆盖。传入他人简历ID返回“无权修改他人简历”。
+
+### `POST /resume/save`
+
+**用途：** 传统表单方式新建/更新简历。  
+**认证：** 求职者Session。  
+**CSRF：** 必须传。  
+**Content-Type：** `application/x-www-form-urlencoded`。  
+**幂等：** 当前源码未标注。
+
+参数与JSON接口基本一致，但`realName`、`phone`、`email`为必填；`id`为可选数字简历ID；还必须传`_csrf`。成功或失败都返回简历编辑HTML，不是JSON。
+
+### 6.4 通知、会话与退出
+
+### `GET /api/seeker/notifications`
+
+**用途：** 查询当前求职者通知和未读数量。  
+**认证：** 求职者Session。  
+**参数：** 无。
+
+`data.notifications[]`包括`id`、`type`、`content`、`relatedId`、`isRead`、`createdAt`；`data.unreadCount`为未读数。
+
+### `GET /api/seeker/conversations`
+
+**用途：** 查询求职者聊天会话。  
+**认证：** 求职者Session。  
+**参数：** 无。
+
+每项包括`applicationId`、`conversationId`、`status`、`unread`、`lastMessage`、`jobTitle`、`companyName`、`otherUserId`、`otherUserName`。保存`conversationId`和`otherUserId`用于聊天接口。
+
+### `POST /api/seeker/logout`
+
+**用途：** JSON方式退出求职者会话并清除JWT/记住我Cookie。  
+**认证：** 普通用户Session。  
+**CSRF：** `/api/seeker/**`已排除。  
+**请求体：** 无。
+
+```http
+POST /api/seeker/logout HTTP/1.1
+Host: superorange.top
+Cookie: JSESSIONID={{JSESSIONID}}
+```
+
+成功返回`Result`；随后旧Session访问求职者接口应得到“请先以求职者身份登录”。
 
 ## 7. Boss、公司与职位管理接口
 
@@ -433,7 +748,30 @@ Authorization: Bearer {{adminToken}}
 
 ## 10. 地图与公共数据接口
 
-> 本节将在后续接口清单中展开。
+### `GET /api/geocode`
+
+**用途：** 把地址转换为经纬度，供公司地址定位。  
+**认证：** 普通用户Session。未登录时响应体业务码401。  
+**请求体：** 无。
+
+| Query参数 | 类型 | 必填 | 说明 | 示例 |
+|---|---|---:|---|---|
+| `address` | string | 是 | 详细地址 | `北京市海淀区中关村` |
+| `city` | string | 否 | 城市提示 | `北京` |
+
+```http
+GET /api/geocode?address=北京市海淀区中关村&city=北京 HTTP/1.1
+Host: superorange.top
+Cookie: JSESSIONID={{JSESSIONID}}
+```
+
+成功：
+
+```json
+{"code":200,"msg":"success","data":{"lng":116.3,"lat":39.9}}
+```
+
+失败可能返回“请先登录”或“地理编码失败，请手动在地图上选择位置”。后者还可能表示上游地图服务不可用，不一定是参数格式错误。
 
 ## 11. 错误、限流与幂等
 
@@ -446,4 +784,3 @@ Authorization: Bearer {{adminToken}}
 ## 13. 页面型路由附录
 
 > 本节仅列出返回 HTML 的页面路由，后续补全。
-
