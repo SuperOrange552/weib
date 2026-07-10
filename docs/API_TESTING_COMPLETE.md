@@ -736,7 +736,190 @@ Cookie: JSESSIONID={{JSESSIONID}}
 
 ## 7. Boss、公司与职位管理接口
 
-> 本节将在后续接口清单中展开。
+> 前置条件：使用`role=boss`的普通用户完成`POST /login`。除特别说明外，本节写请求需要同一Session的CSRF Token。
+
+### 7.1 公司入驻与维护
+
+### `POST /boss/register`
+
+**用途：** Boss首次创建公司/完成入驻。  
+**认证：** Boss Session；非Boss会重定向首页。  
+**CSRF：** 必须传。  
+**幂等：** 必须传；同一Boss只允许一家公司。  
+**Content-Type：** `application/x-www-form-urlencoded`。
+
+| 表单参数 | 类型 | 必填 | 说明 | 示例 |
+|---|---|---:|---|---|
+| `name` | string | 是 | 公司名称 | `微招测试公司` |
+| `industry` | string | 否 | 行业 | `互联网` |
+| `scale` | string | 否 | 公司规模 | `50-150人` |
+| `address` | string | 否 | 地址；未传坐标时可能异步地理编码 | `北京市海淀区` |
+| `description` | string | 否 | 公司介绍 | `接口练习公司` |
+| `contactName` | string | 否 | 联系人 | `李经理` |
+| `contactPhone` | string | 否 | 联系电话 | `13800138000` |
+| `contactEmail` | string | 否 | 联系邮箱 | `hr@example.com` |
+| `longitude` | number | 否 | 经度；通常与纬度同时传 | `116.397` |
+| `latitude` | number | 否 | 纬度 | `39.908` |
+| `_csrf` | string | 是 | 当前Session CSRF | `{{csrfToken}}` |
+
+```http
+POST /boss/register HTTP/1.1
+Host: superorange.top
+Cookie: JSESSIONID={{JSESSIONID}}
+X-CSRF-Token: {{csrfToken}}
+Idempotency-Key: {{idempotencyKey}}
+Content-Type: application/x-www-form-urlencoded
+
+name=微招测试公司&industry=互联网&scale=50-150人&address=北京市海淀区&contactName=李经理
+```
+
+成功：`302 Location: /boss`。重复入驻也会重定向`/boss`；服务异常时返回入驻HTML并显示错误。
+
+### `POST /boss/company/edit`
+
+**用途：** 修改当前Boss公司的资料。  
+**认证：** Boss Session。  
+**CSRF：** 必须传。  
+**幂等：** 当前源码未标注`@Idempotent`。  
+**Content-Type：** `application/x-www-form-urlencoded`。
+
+可传字段：`industry`、`scale`、`address`、`description`、`contactName`、`contactPhone`、`contactEmail`、`longitude`、`latitude`。字段均可选；出现的字段覆盖原值。经纬度同时传时直接保存；只更新地址且原坐标为空时同步调用地理编码。
+
+成功和失败都返回公司编辑HTML，通过页面文字判断结果。测试：未入驻Boss、只改一个字段、经纬度成对/缺一个、非法联系方式、缺少CSRF。
+
+### 7.2 职位保存、关闭与重开
+
+### `POST /boss/job/save`
+
+**用途：** 新建或编辑职位；是否传数字`id`决定模式。  
+**认证：** Boss Session且已经入驻公司。  
+**CSRF：** 必须传。  
+**幂等：** 必须传。  
+**Content-Type：** `application/x-www-form-urlencoded`。
+
+| 表单参数 | 类型 | 必填 | 说明 | 示例 |
+|---|---|---:|---|---|
+| `id` | integer | 编辑时 | 这里是数字职位ID，不是`encodedId` | `25` |
+| `title` | string | 是 | 职位名称 | `Java测试开发` |
+| `salaryMin` | integer | 否 | 最低薪资；不得高于最高薪资 | `15` |
+| `salaryMax` | integer | 否 | 最高薪资 | `25` |
+| `city` | string | 否 | 城市 | `北京` |
+| `address` | string | 否 | 办公地址 | `海淀区` |
+| `education` | string | 是 | 学历要求 | `本科` |
+| `experience` | string | 是 | 经验要求 | `1-3年` |
+| `description` | string | 是 | 职位描述 | `负责接口自动化测试` |
+| `requirements` | string | 否 | 任职要求 | `熟悉Java和SQL` |
+| `tags` | string | 否 | 标签文本 | `Java,接口测试` |
+| `_csrf` | string | 是 | 当前Session CSRF | `{{csrfToken}}` |
+
+新建成功时状态设为`active`；编辑保留原状态。成功重定向`/boss/jobs`。测试薪资上下界、编辑他人公司职位、未入驻、缺必填字段、相同幂等键重试。
+
+### `POST /boss/job/delete/{encodedId}`
+
+**用途：** 软关闭当前Boss公司的职位，实际把状态改为`closed`。  
+**认证：** Boss Session。  
+**CSRF：** 必须传。  
+**幂等：** 必须传。  
+**Path：** `encodedId={{encodedJobId}}`。  
+**请求体：** 无。
+
+成功或多数失败均`302`回`/boss/jobs`。因此测试后应查询职位状态，而不能只看302。测试他人职位、无效ID、重复关闭。
+
+### `POST /boss/job/reopen/{encodedId}`
+
+**用途：** 重新开放状态为`closed`的职位。  
+**认证：** Boss Session。  
+**CSRF：** 必须传（路径匹配`/boss/**`）。  
+**幂等：** 必须传。  
+**Path：** `encodedId={{encodedJobId}}`。  
+**请求体：** 无。
+
+成功：
+
+```json
+{"code":200,"msg":"success","data":{"status":"active"}}
+```
+
+常见失败：“参数无效”“无权操作此职位”“该职位未关闭，无需重开”。
+
+### `GET /boss/job/{encodedId}/stats`
+
+**用途：** 查询当前Boss职位的浏览和投递统计。  
+**认证：** Boss Session。  
+**Path：** `encodedId={{encodedJobId}}`。  
+**请求体：** 无。
+
+成功`data`：
+
+```json
+{
+  "viewCount": 120,
+  "applyCount": 8,
+  "statusBreakdown": {"pending": 2, "viewed": 3, "interviewing": 1, "rejected": 2}
+}
+```
+
+测试他人公司职位和无效ID。
+
+### 7.3 候选人和投递处理
+
+### `GET /boss/resume/{encodedUserId}`
+
+**用途：** Boss查看投递过自己公司职位的求职者简历。  
+**认证：** Boss Session。  
+**Path：** `encodedUserId`为求职者混淆ID，应从Boss投递页面的数据/链接取得。  
+**请求体：** 无。
+
+成功`data.resume`为简历，`data.seekerName`为求职者显示名。没有向当前公司投递时返回业务403“无权查看此简历”，用于防止水平越权。
+
+### `POST /boss/application/{encodedId}/status`
+
+**用途：** 更新当前Boss收到的投递状态。  
+**认证：** Boss Session。  
+**CSRF：** 必须传。  
+**幂等：** 必须传。  
+**Content-Type：** Query参数或表单参数。  
+**Path：** `encodedId={{encodedApplicationId}}`。
+
+| 参数 | 位置 | 类型 | 必填 | 规则/示例 |
+|---|---|---|---:|---|
+| `status` | Query/Form | string | 是 | `viewed`、`interviewing`、`offered`、`accepted`、`rejected` |
+| `bossNote` | Query/Form | string | 否 | 给求职者的备注 |
+
+```http
+POST /boss/application/{{encodedApplicationId}}/status?status=viewed&bossNote=已查看简历 HTTP/1.1
+Host: superorange.top
+Cookie: JSESSIONID={{JSESSIONID}}
+X-CSRF-Token: {{csrfToken}}
+Idempotency-Key: {{idempotencyKey}}
+```
+
+成功后会创建求职者通知。测试非法状态、他人公司投递、无效ID、同键重试。
+
+### `POST /boss/application/{encodedId}/interview`
+
+**用途：** 安排面试，把投递状态更新为`interviewing`并通知求职者。  
+**认证：** Boss Session。  
+**CSRF：** 必须传。  
+**幂等：** 必须传。  
+**Content-Type：** `application/json`。  
+**Path：** `encodedId={{encodedApplicationId}}`。
+
+| JSON字段 | 类型 | 必填 | 规则 | 示例 |
+|---|---|---:|---|---|
+| `interviewTime` | string | 否 | 非空时必须是ISO-8601本地时间 | `2026-07-15T14:30:00` |
+| `interviewLocation` | string | 否 | 面试地点/会议链接 | `线上会议` |
+| `bossNote` | string | 否 | 面试备注 | `请提前准备项目介绍` |
+
+```json
+{
+  "interviewTime": "2026-07-15T14:30:00",
+  "interviewLocation": "线上会议",
+  "bossNote": "请提前准备项目介绍"
+}
+```
+
+成功`data.status=interviewing`。错误时间格式会进入“操作失败”响应；他人公司投递返回无权操作。
 
 ## 8. 聊天、文件与通知接口
 
