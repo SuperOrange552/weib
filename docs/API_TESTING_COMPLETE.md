@@ -923,7 +923,182 @@ Idempotency-Key: {{idempotencyKey}}
 
 ## 8. 聊天、文件与通知接口
 
-> 本节将在后续接口清单中展开。
+> 前置条件：普通用户已登录，且当前用户必须是相应投递会话的参与者。会话ID格式为`app_<数字投递ID>`，应直接使用会话列表响应中的`conversationId`。
+
+### 8.1 文件
+
+### `POST /chat/upload`
+
+**用途：** 上传聊天中使用的PDF文件；上传成功后还需要调用发送消息接口创建文件消息。  
+**认证：** 普通用户Session且为会话参与者。  
+**CSRF：** 必须传，因为`/chat/**`受CSRF拦截。  
+**Content-Type：** `multipart/form-data`。  
+**幂等：** 当前源码未标注。
+
+| 参数 | 位置 | 类型 | 必填 | 规则 |
+|---|---|---|---:|---|
+| `file` | multipart | binary | 是 | 最大10MB；文件名以`.pdf`结尾；真实内容头必须为`%PDF` |
+| `conversationId` | multipart/query | string | 是 | 当前用户参与的会话，如`app_123` |
+| `X-CSRF-Token` | Header | string | 是 | 当前Session Token |
+
+```bash
+curl -b cookie.txt \
+  -H "X-CSRF-Token: {{csrfToken}}" \
+  -F "file=@resume.pdf;type=application/pdf" \
+  -F "conversationId={{conversationId}}" \
+  http://superorange.top/chat/upload
+```
+
+成功`data`：
+
+```json
+{
+  "fileName": "resume.pdf",
+  "filePath": "/chat/20260710143000_a1b2c3d4.pdf",
+  "fileSize": 102400
+}
+```
+
+保存这三个字段并传给`POST /api/chat/send`。测试：超过10MB、伪装成PDF的文本、非PDF扩展名、无权会话、缺CSRF、空文件。
+
+### `GET /chat/file/{storedName}`
+
+**用途：** 下载自己参与会话中的PDF。  
+**认证：** 普通用户Session；必须是消息发送者或接收者。  
+**Path：** `storedName`为上传响应`filePath`去掉`/chat/`后的部分。  
+**响应：** `application/pdf`二进制附件。
+
+```http
+GET /chat/file/20260710143000_a1b2c3d4.pdf HTTP/1.1
+Host: superorange.top
+Cookie: JSESSIONID={{JSESSIONID}}
+```
+
+| HTTP | 含义 |
+|---:|---|
+| 200 | 有权限且文件存在 |
+| 302 | 未登录，跳转`/login` |
+| 403 | 路径不安全或当前用户不是收发双方 |
+| 404 | 文件不存在或没有对应消息记录 |
+
+### 8.2 消息
+
+### `POST /api/chat/send`
+
+**用途：** 通过HTTP发送文本或文件消息并触发WebSocket推送。  
+**认证：** 普通用户Session且为会话参与者。  
+**CSRF：** `/api/chat/**`已从CSRF拦截排除。  
+**幂等：** 必须传`Idempotency-Key`。  
+**限流：** 每用户60秒最多30次。  
+**Content-Type：** `application/json`。
+
+| JSON字段 | 类型 | 必填 | 规则/说明 |
+|---|---|---:|---|
+| `conversationId` | string | 是 | 如`app_123` |
+| `receiverId` | integer | 是 | 必须是会话另一方，不能是自己 |
+| `content` | string | 文本消息是 | 会进行HTML清理；`text`类型不能为空 |
+| `messageType` | string | 否 | `text`或`file`，默认`text` |
+| `fileName` | string | 文件消息建议 | 上传接口返回的原文件名 |
+| `filePath` | string | 文件消息建议 | 上传接口返回的路径 |
+| `fileSize` | integer | 文件消息建议 | 字节数 |
+| `clientMessageId` | string | 强烈建议 | 8–64位允许字符；同一发送者内唯一 |
+
+文本消息示例：
+
+```json
+{
+  "conversationId": "app_123",
+  "receiverId": 2,
+  "content": "你好，我想了解面试安排。",
+  "messageType": "text",
+  "clientMessageId": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+文件消息示例：
+
+```json
+{
+  "conversationId": "app_123",
+  "receiverId": 2,
+  "content": "",
+  "messageType": "file",
+  "fileName": "resume.pdf",
+  "filePath": "/chat/20260710143000_a1b2c3d4.pdf",
+  "fileSize": 102400,
+  "clientMessageId": "file-20260710-0001"
+}
+```
+
+成功`data`是保存后的消息，包含`id`、收发双方、内容/文件信息、`isRead`、`createdAt`。相同发送者重复使用同一合法`clientMessageId`时返回已有消息，不创建第二条。测试无效会话、给自己发、接收者不属于会话、空文本、非法类型、非法客户端ID、限流和同键重试。
+
+### `GET /api/chat/messages/{conversationId}`
+
+**用途：** 同步会话消息；用于补拉WebSocket连接窗口内可能遗漏的消息。  
+**认证：** 普通用户Session且为会话参与者。  
+**Path：** `conversationId`必填。  
+**Query：** `sinceId`可选，默认0；0或负数返回全部，大于0只返回ID更大的消息。
+
+```http
+GET /api/chat/messages/{{conversationId}}?sinceId=120 HTTP/1.1
+Host: superorange.top
+Cookie: JSESSIONID={{JSESSIONID}}
+```
+
+### `GET /api/chat/online-status/{userId}`
+
+**用途：** 查询指定用户当前是否保持WebSocket在线。  
+**认证：** 普通用户Session。  
+**Path：** `userId`为数字用户ID。
+
+```json
+{"code":200,"msg":"success","data":{"userId":2,"online":true}}
+```
+
+当前接口只检查调用者已登录，没有检查被查询用户是否属于同一会话；这是练习权限测试时应记录的当前行为。
+
+### `POST /api/chat/mark-read`
+
+**用途：** 把当前会话中发给自己的未读消息标记为已读，并向发送者推送回执。  
+**认证：** 普通用户Session且为会话参与者。  
+**CSRF：** `/api/chat/**`已排除。  
+**幂等：** 当前源码未标注；重复调用结果自然保持已读。  
+**Content-Type：** `application/json`。
+
+```json
+{"conversationId":"app_123"}
+```
+
+测试缺少/空`conversationId`、他人会话、重复标记和未登录。
+
+### 8.3 通知
+
+### `POST /api/notifications/read-all`
+
+**用途：** 把当前用户全部通知标记为已读。  
+**认证：** 普通用户Session。  
+**CSRF：** 必须传（`/api/**`受保护且此路径未被排除）。  
+**幂等：** 必须传。  
+**请求体：** 无。
+
+```http
+POST /api/notifications/read-all HTTP/1.1
+Host: superorange.top
+Cookie: JSESSIONID={{JSESSIONID}}
+X-CSRF-Token: {{csrfToken}}
+Idempotency-Key: {{idempotencyKey}}
+```
+
+### `POST /api/notifications/{id}/read`
+
+**用途：** 标记一条属于当前用户的通知为已读。  
+**认证：** 普通用户Session。  
+**CSRF：** 必须传。  
+**幂等：** 必须传。  
+**Path：** `id`为`GET /api/seeker/notifications`返回的数字通知ID。  
+**请求体：** 无。
+
+他人的通知ID返回业务403；不存在的ID由服务错误响应。练习前后比较`unreadCount`与目标通知`isRead`。
 
 ## 9. 管理后台接口
 
