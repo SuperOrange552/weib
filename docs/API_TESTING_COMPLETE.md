@@ -1102,7 +1102,312 @@ Idempotency-Key: {{idempotencyKey}}
 
 ## 9. 管理后台接口
 
-> 本节将在后续接口清单中展开。
+### 9.1 管理员权限矩阵
+
+除`POST /api/admin/auth/login`外，全部管理员接口都必须传：
+
+```http
+Authorization: Bearer {{adminToken}}
+```
+
+管理员接口是无状态JWT认证，不使用普通用户`JSESSIONID`和`_csrf`。
+
+| 路径族 | `super_admin` | `auditor` | `viewer` |
+|---|:---:|:---:|:---:|
+| `/api/admin/dashboard/**` | 允许 | 允许 | 允许 |
+| `/api/admin/companies/**` | 允许 | 允许 | 禁止 |
+| `/api/admin/jobs/**` | 允许 | 允许 | 禁止 |
+| `/api/admin/users/**` | 允许 | 禁止 | 禁止 |
+| `/api/admin/admins/**` | 允许 | 禁止 | 禁止 |
+| `/api/admin/audit-logs/**` | 允许 | 允许 | 禁止 |
+| `/api/admin/export/**` | 允许 | 允许 | 禁止 |
+
+无Token/无效Token返回HTTP 401；Token有效但角色不足返回HTTP 403。
+
+分页响应统一包含：`content`、`totalElements`、`totalPages`、`currentPage`、`pageSize`，页码从0开始。
+
+### 9.2 仪表盘
+
+### `GET /api/admin/dashboard/stats`
+
+**用途：** 获取总用户、总职位、今日新增、待审核数及图表基础数据。  
+**权限：** 任意管理员。  
+**参数/请求体：** 无。
+
+`data`字段：`totalUsers`、`totalJobs`、`todayNewUsers`、`pendingCount`、`userGrowth[]`、`jobDistribution[]`。
+
+### `GET /api/admin/dashboard/charts`
+
+**用途：** 单独获取用户增长和职位行业分布。  
+**权限：** 任意管理员。  
+**参数/请求体：** 无。  
+**响应：** `data.userGrowth[]`和`data.jobDistribution[]`。
+
+### `GET /api/admin/dashboard/recent-logs`
+
+**用途：** 获取最近审核/管理日志。  
+**权限：** `super_admin`或`auditor`。  
+**Query：** `limit`可选，integer，默认10。  
+**请求体：** 无。
+
+```http
+GET /api/admin/dashboard/recent-logs?limit=10 HTTP/1.1
+Host: superorange.top
+Authorization: Bearer {{adminToken}}
+```
+
+### 9.3 用户管理（仅超级管理员）
+
+### `GET /api/admin/users`
+
+**用途：** 分页筛选用户。  
+**权限：** `super_admin`。
+
+| Query参数 | 类型 | 必填 | 默认/示例 |
+|---|---|---:|---|
+| `page` | integer | 否 | 默认0 |
+| `size` | integer | 否 | 默认20 |
+| `role` | string | 否 | `seeker`、`boss`、`admin` |
+| `status` | string | 否 | `active`、`banned` |
+| `keyword` | string | 否 | 用户名关键词 |
+
+响应用户项：`id`、`username`、`nickname`、`phone`、`role`、`status`、`resumeCount`、`applicationCount`、`createdAt`。
+
+### `GET /api/admin/users/{id}`
+
+**用途：** 查询数字用户ID对应的详情和简历摘要。  
+**权限：** `super_admin`。  
+**Path：** `id`，integer，必填。  
+**响应：** 用户列表字段，加`email`、`resumeList[]`；简历摘要包含`id`、`realName`、`education`、`school`、`skills`。
+
+### `PUT /api/admin/users/{id}/ban`
+
+**用途：** 封禁用户。  
+**权限：** `super_admin`。  
+**幂等：** 必须传`Idempotency-Key`。  
+**Path：** 数字用户ID。  
+**请求体：** 无。
+
+### `PUT /api/admin/users/{id}/unban`
+
+**用途：** 解封用户。  
+**权限：** `super_admin`。  
+**幂等：** 必须传。  
+**Path：** 数字用户ID。  
+**请求体：** 无。
+
+### `PUT /api/admin/users/{id}/reset-password`
+
+**用途：** 管理员重置用户密码。  
+**权限：** `super_admin`。  
+**幂等：** 必须传。  
+**Content-Type：** `application/json`。
+
+```json
+{"newPassword":"ResetPass123"}
+```
+
+`newPassword`必填，遵守8–64位、大小写字母和数字规则，并且不能与目标用户名/手机号相同。测试空值、弱密码、目标用户不存在和同键重试。文档示例不是服务器真实密码。
+
+管理员写请求通用示例：
+
+```http
+PUT /api/admin/users/12/ban HTTP/1.1
+Host: superorange.top
+Authorization: Bearer {{adminToken}}
+Idempotency-Key: {{idempotencyKey}}
+```
+
+### 9.4 公司审核
+
+### `GET /api/admin/companies`
+
+**用途：** 分页查询待审核/已审核公司。  
+**权限：** `super_admin`或`auditor`。
+
+| Query参数 | 类型 | 必填 | 默认/示例 |
+|---|---|---:|---|
+| `page` | integer | 否 | 默认0 |
+| `size` | integer | 否 | 默认20 |
+| `status` | string | 否 | `pending`、`approved`、`rejected` |
+| `keyword` | string | 否 | 公司名称关键词 |
+
+响应项：`id`、`name`、`industry`、`scale`、`address`、`description`、`bossName`、`auditStatus`、`auditReason`、`createdAt`。
+
+### `GET /api/admin/companies/{id}`
+
+**用途：** 查询数字公司ID详情。  
+**权限：** `super_admin`或`auditor`。  
+**Path：** `id`，integer，必填。  
+**请求体：** 无。
+
+### `PUT /api/admin/companies/{id}/approve`
+
+**用途：** 审核通过公司。  
+**权限：** `super_admin`或`auditor`。  
+**幂等：** 必须传。  
+**Path：** 数字公司ID。  
+**请求体：** 无。
+
+### `PUT /api/admin/companies/{id}/reject`
+
+**用途：** 驳回公司审核。  
+**权限：** `super_admin`或`auditor`。  
+**幂等：** 必须传。  
+**Content-Type：** `application/json`。
+
+```json
+{"reason":"公司资料不完整，请补充营业信息"}
+```
+
+测试：空原因、重复审核、不存在公司、auditor允许、viewer返回403。
+
+### 9.5 职位审核
+
+### `GET /api/admin/jobs`
+
+**用途：** 分页筛选职位审核记录。  
+**权限：** `super_admin`或`auditor`。
+
+| Query参数 | 类型 | 必填 | 默认/示例 |
+|---|---|---:|---|
+| `page` | integer | 否 | 默认0 |
+| `size` | integer | 否 | 默认20 |
+| `status` | string | 否 | `pending`、`approved`、`rejected` |
+| `keyword` | string | 否 | 职位标题关键词 |
+
+响应项：`id`、`title`、`companyName`、`companyId`、`salaryMin`、`salaryMax`、`city`、`education`、`experience`、`description`、`auditStatus`、`auditReason`、`createdAt`。
+
+### `GET /api/admin/jobs/{id}`
+
+**用途：** 查询数字职位ID详情。  
+**权限：** `super_admin`或`auditor`。  
+**Path：** `id`，integer，必填。  
+**请求体：** 无。
+
+### `PUT /api/admin/jobs/{id}/approve`
+
+**用途：** 审核通过职位。  
+**权限：** `super_admin`或`auditor`。  
+**幂等：** 必须传。  
+**Path：** 数字职位ID。  
+**请求体：** 无。
+
+### `PUT /api/admin/jobs/{id}/reject`
+
+**用途：** 驳回职位审核。  
+**权限：** `super_admin`或`auditor`。  
+**幂等：** 必须传。  
+**Content-Type：** `application/json`。
+
+```json
+{"reason":"职位描述不完整"}
+```
+
+### `POST /api/admin/jobs/batch-offline`
+
+**用途：** 按数字职位ID批量下架。  
+**权限：** `super_admin`或`auditor`。  
+**幂等：** 必须传。  
+**Content-Type：** `application/json`。
+
+```json
+{"ids":[101,102,103]}
+```
+
+`ids`必填且至少一项；成功`data.successCount`表示实际成功数量。测试空数组、重复ID、不存在ID、部分已下架和同键重试。
+
+### 9.6 子管理员管理（仅超级管理员）
+
+### `GET /api/admin/admins`
+
+**用途：** 查询全部子管理员及角色。  
+**权限：** `super_admin`。  
+**参数/请求体：** 无。
+
+### `POST /api/admin/admins`
+
+**用途：** 创建子管理员。  
+**权限：** `super_admin`。  
+**幂等：** 必须传。  
+**Content-Type：** `application/json`。
+
+| JSON字段 | 类型 | 必填 | 规则 | 示例 |
+|---|---|---:|---|---|
+| `username` | string | 是 | 3–32位用户名规则 | `audit_practice` |
+| `password` | string | 是 | 8–64位强密码 | `AuditPass123` |
+| `roleType` | string | 是 | `super_admin`、`auditor`、`viewer` | `auditor` |
+
+```json
+{
+  "username": "audit_practice",
+  "password": "AuditPass123",
+  "roleType": "auditor"
+}
+```
+
+### `PUT /api/admin/admins/{userId}`
+
+**用途：** 修改子管理员角色。  
+**权限：** `super_admin`。  
+**幂等：** 必须传。  
+**Path：** `userId`为数字用户ID。  
+**Content-Type：** `application/json`。
+
+```json
+{"roleType":"viewer"}
+```
+
+不能修改自己的角色。测试非法角色、自己、普通用户ID和不存在ID。
+
+### `PUT /api/admin/admins/{userId}/disable`
+
+**用途：** 禁用子管理员。  
+**权限：** `super_admin`。  
+**幂等：** 必须传。  
+**Path：** 数字用户ID。  
+**请求体：** 无。  
+**限制：** 不能禁用自己。
+
+### 9.7 审计日志和导出
+
+### `GET /api/admin/audit-logs`
+
+**用途：** 分页查询管理员操作日志。  
+**权限：** `super_admin`或`auditor`。
+
+| Query参数 | 类型 | 必填 | 格式/默认 |
+|---|---|---:|---|
+| `page` | integer | 否 | 默认0 |
+| `size` | integer | 否 | 默认20 |
+| `action` | string | 否 | 如`approve_company`、`ban_user` |
+| `adminId` | integer | 否 | 操作管理员数字ID |
+| `startDate` | string | 否 | ISO-8601，如`2026-07-01T00:00:00` |
+| `endDate` | string | 否 | ISO-8601，如`2026-07-31T23:59:59` |
+
+响应日志项：`id`、`adminId`、`adminName`、`action`、`targetType`、`targetId`、`reason`、`createdAt`。
+
+### `GET /api/admin/export/users`
+
+**用途：** 按条件导出用户CSV。  
+**权限：** `super_admin`或`auditor`。  
+**Query：** `role`、`status`、`keyword`均可选，与用户列表筛选含义一致。  
+**响应：** `text/csv; charset=UTF-8`，附件名`users.csv`。
+
+在Apifox/Postman选择“保存响应到文件”，不要按JSON解析。
+
+### `GET /api/admin/export/audit-logs`
+
+**用途：** 按条件导出审计日志CSV。  
+**权限：** `super_admin`或`auditor`。  
+**Query：** `action`、`adminId`、`startDate`、`endDate`，格式同日志列表。  
+**响应：** CSV附件`audit_logs.csv`。
+
+```http
+GET /api/admin/export/audit-logs?startDate=2026-07-01T00:00:00&endDate=2026-07-31T23:59:59 HTTP/1.1
+Host: superorange.top
+Authorization: Bearer {{adminToken}}
+```
 
 ## 10. 地图与公共数据接口
 
