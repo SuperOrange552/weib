@@ -15,6 +15,6 @@ fun destinationsForRole(role: String): List<AppDestination> = when (role) {
     "seeker" -> listOf(AppDestination.Jobs, AppDestination.Applications, AppDestination.Messages,
         AppDestination.Forum, AppDestination.Profile)
     "boss" -> listOf(AppDestination.Dashboard, AppDestination.BossJobs, AppDestination.Talent,
-        AppDestination.Messages, AppDestination.Profile)
+        AppDestination.Messages, AppDestination.Forum, AppDestination.Profile)
     else -> emptyList()
 }

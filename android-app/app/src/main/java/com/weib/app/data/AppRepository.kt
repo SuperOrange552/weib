@@ -58,7 +58,7 @@ class AppRepository(context: Context) {
         "dashboard" -> api.bossDashboard()
         "boss_jobs" -> api.bossJobs()
         "talent" -> api.bossApplications()
-        "messages" -> if (role == "seeker") api.seekerConversations() else api.notifications()
+        "messages" -> if (role == "seeker") api.seekerConversations() else api.commonNotifications()
         "forum" -> api.forumPosts()
         "profile" -> if (role == "seeker") api.resume() else api.bossCompany()
         else -> ApiEnvelope(400, "页面不存在", null)

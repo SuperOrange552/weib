@@ -19,6 +19,7 @@ interface WeibApi {
     @GET("api/seeker/resume") suspend fun resume(): ApiEnvelope<JsonElement>
     @GET("api/seeker/favorites") suspend fun favorites(): ApiEnvelope<JsonElement>
     @GET("api/seeker/notifications") suspend fun notifications(): ApiEnvelope<JsonElement>
+    @GET("api/mobile/common/notifications") suspend fun commonNotifications(): ApiEnvelope<JsonElement>
 
     @GET("api/mobile/boss/dashboard") suspend fun bossDashboard(): ApiEnvelope<JsonElement>
     @GET("api/mobile/boss/jobs") suspend fun bossJobs(): ApiEnvelope<JsonElement>
