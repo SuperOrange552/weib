@@ -42,7 +42,8 @@ public class WebConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/api/admin/**",
                         "/api/seeker/**",
-                        "/api/chat/**"
+                        "/api/chat/**",
+                        "/api/mobile/**"
                 );
 
         registry.addInterceptor(loginInterceptor)
@@ -64,6 +65,7 @@ public class WebConfig implements WebMvcConfigurer {
                         "/images/**",
                         "/static/**",
                         "/api/admin/**",
+                        "/api/mobile/auth/login",
                         "/admin/**",
                         "/swagger-ui/**",
                         "/v3/api-docs/**"
