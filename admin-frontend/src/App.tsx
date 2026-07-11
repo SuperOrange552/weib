@@ -10,6 +10,7 @@ import UserManagementPage from './pages/UserManagementPage'
 import AdminManagementPage from './pages/AdminManagementPage'
 import AuditLogPage from './pages/AuditLogPage'
 import ComplaintReviewPage from './pages/ComplaintReviewPage'
+import GlobalSearchPage from './pages/GlobalSearchPage'
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
             <Route path="admins" element={<AdminManagementPage />} />
             <Route path="audit-logs" element={<AuditLogPage />} />
             <Route path="complaints" element={<ComplaintReviewPage />} />
+            <Route path="search" element={<GlobalSearchPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>

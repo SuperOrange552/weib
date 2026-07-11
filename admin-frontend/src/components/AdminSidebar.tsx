@@ -8,7 +8,8 @@ import {
   People as UserIcon,
   AdminPanelSettings as AdminIcon,
   History as LogIcon,
-  ReportProblem as ComplaintIcon
+  ReportProblem as ComplaintIcon,
+  Search as SearchIcon
 } from '@mui/icons-material'
 
 interface MenuItem {
@@ -25,7 +26,8 @@ const menuItems: MenuItem[] = [
   { label: '用户管理', path: '/admin/users', icon: <UserIcon />, roles: ['super_admin'] },
   { label: '管理员管理', path: '/admin/admins', icon: <AdminIcon />, roles: ['super_admin'] },
   { label: '操作日志', path: '/admin/audit-logs', icon: <LogIcon />, roles: ['super_admin', 'auditor'] },
-  { label: '投诉审核', path: '/admin/complaints', icon: <ComplaintIcon />, roles: ['super_admin', 'auditor'] }
+  { label: '投诉审核', path: '/admin/complaints', icon: <ComplaintIcon />, roles: ['super_admin', 'auditor'] },
+  { label: '全局检索', path: '/admin/search', icon: <SearchIcon />, roles: ['super_admin', 'auditor'] }
 ]
 
 const AdminSidebar: React.FC = () => {
