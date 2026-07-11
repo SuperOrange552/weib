@@ -148,3 +148,5 @@ export interface BatchOfflineRequest {
 export interface RejectRequest {
   reason: string
 }
+
+export * from './complaints'
