@@ -18,11 +18,12 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class MobileCommonController {
     private final NotificationService notificationService;
+    private final MobileAccessPolicy accessPolicy;
 
     @GetMapping("/notifications")
     public Result<?> notifications(HttpSession session) {
         User user = (User) session.getAttribute("user");
-        if (user == null || (!"seeker".equals(user.getRole()) && !"boss".equals(user.getRole()))) {
+        if (user == null || (!accessPolicy.hasRole(session, "SEEKER") && !accessPolicy.hasRole(session, "BOSS"))) {
             return Result.error(401, "未登录或登录已过期");
         }
         Map<String, Object> data = new LinkedHashMap<>();

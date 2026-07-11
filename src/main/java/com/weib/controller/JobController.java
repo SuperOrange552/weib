@@ -11,6 +11,7 @@ import com.weib.service.FavoriteJobService;
 import com.weib.service.JobService;
 import com.weib.dto.Result;
 import com.weib.util.IdObfuscator;
+import com.weib.identity.ActiveIdentityResolver;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -71,6 +72,7 @@ public class JobController {
     private final FavoriteJobService favoriteJobService;
     private final CompanyService companyService;
     private final IdObfuscator idObfuscator;
+    private final ActiveIdentityResolver activeIdentityResolver;
 
     /**
      * ========================================
@@ -161,7 +163,7 @@ public class JobController {
          * - Boss 是招聘方，不是求职方
          * - Boss 的角色是发布职位、查看投递
          */
-        if (!"seeker".equals(user.getRole())) {
+        if (!activeIdentityResolver.hasRole(session, "SEEKER")) {
             return Result.error("只有求职者才能投递简历");
         }
         
@@ -245,7 +247,7 @@ public class JobController {
         }
         
         // 非求职者不能访问
-        if (!"seeker".equals(user.getRole())) {
+        if (!activeIdentityResolver.hasRole(session, "SEEKER")) {
             return "redirect:/";
         }
         
@@ -292,7 +294,7 @@ public class JobController {
 
         User user = (User) session.getAttribute("user");
         if (user == null) return Result.error("请先登录");
-        if (!"seeker".equals(user.getRole())) return Result.error("只限求职者");
+        if (!activeIdentityResolver.hasRole(session, "SEEKER")) return Result.error("只限求职者");
 
         favoriteJobService.toggleFavorite(id, user.getId());
         boolean isFav = favoriteJobService.isFavorited(id, user.getId());
@@ -303,7 +305,7 @@ public class JobController {
     public String myFavorites(HttpSession session, Model model) {
         User user = (User) session.getAttribute("user");
         if (user == null) return "redirect:/login";
-        if (!"seeker".equals(user.getRole())) return "redirect:/";
+        if (!activeIdentityResolver.hasRole(session, "SEEKER")) return "redirect:/";
 
         List<FavoriteJob> favorites = favoriteJobService.getUserFavorites(user.getId());
         List<Long> favJobIds = favorites.stream().map(FavoriteJob::getJobId).distinct().collect(java.util.stream.Collectors.toList());
@@ -350,7 +352,7 @@ public class JobController {
 
         User user = (User) session.getAttribute("user");
         if (user == null) return Result.error("请先登录");
-        if (!"seeker".equals(user.getRole())) return Result.error("只限求职者");
+        if (!activeIdentityResolver.hasRole(session, "SEEKER")) return Result.error("只限求职者");
 
         try {
             Application app = applicationService.getApplicationById(id);

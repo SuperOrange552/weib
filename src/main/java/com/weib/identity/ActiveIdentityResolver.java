@@ -14,13 +14,19 @@ public class ActiveIdentityResolver {
     private final IdentityService identityService;
 
     public ActiveIdentity require(HttpSession session, String expectedRole) {
+        ActiveIdentity identity = current(session);
+        if (!expectedRole.equalsIgnoreCase(identity.role())) {
+            throw new AccessDeniedException("ROLE_MISMATCH");
+        }
+        return identity;
+    }
+
+    public ActiveIdentity current(HttpSession session) {
         if (session == null || !(session.getAttribute("user") instanceof User user)) {
             throw new AccessDeniedException("UNAUTHENTICATED");
         }
         String selectedRole = (String) session.getAttribute("activeRole");
-        if (selectedRole == null || !expectedRole.equalsIgnoreCase(selectedRole)) {
-            throw new AccessDeniedException("ROLE_MISMATCH");
-        }
+        if (selectedRole == null) throw new AccessDeniedException("ROLE_MISMATCH");
         String activeRole = identityService.requireEnabledRole(user.getId(), selectedRole);
         RoleProfile profile = identityService.profile(user.getId(), activeRole).orElse(null);
         return new ActiveIdentity(user.getId(), activeRole,

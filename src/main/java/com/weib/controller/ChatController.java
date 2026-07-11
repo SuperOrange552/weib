@@ -18,6 +18,7 @@ import com.weib.dto.PublicUserProfile;
 import com.weib.repository.MessageRepository;
 import com.weib.repository.UserRepository;
 import com.weib.util.IdObfuscator;
+import com.weib.identity.ActiveIdentityResolver;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -61,6 +62,7 @@ public class ChatController {
     private final SanctionService sanctionService;
     private final WebSocketSessionManager sessionManager;
     private final IdObfuscator idObfuscator;
+    private final ActiveIdentityResolver activeIdentityResolver;
 
     @Value("${storage.chat-dir:./weib/uploads/chat}")
     private String chatDir;
@@ -104,7 +106,7 @@ public class ChatController {
         model.addAttribute("user", user);
 
         List<Map<String, Object>> conversations = new ArrayList<>();
-        if ("seeker".equals(user.getRole())) {
+        if (activeIdentityResolver.hasRole(session, "SEEKER")) {
             List<Application> apps = applicationService.getApplicationsByUser(user.getId());
 
             // 批量加载职位和公司信息
@@ -115,7 +117,7 @@ public class ChatController {
             for (Application app : apps) {
                 conversations.add(buildConversationMap(app, user.getId(), jobMap, companyMap));
             }
-        } else if ("boss".equals(user.getRole())) {
+        } else if (activeIdentityResolver.hasRole(session, "BOSS")) {
             try {
                 Company company = companyService.getCompanyByBossId(user.getId());
                 List<Job> jobs = jobService.getJobsByCompanyId(company.getId());

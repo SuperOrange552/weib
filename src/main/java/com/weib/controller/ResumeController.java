@@ -4,6 +4,7 @@ import com.weib.entity.Resume;
 import com.weib.entity.User;
 import com.weib.service.SanctionService;
 import com.weib.service.ResumeService;
+import com.weib.identity.ActiveIdentityResolver;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -72,6 +73,7 @@ public class ResumeController {
      */
     private final ResumeService resumeService;
     private final SanctionService sanctionService;
+    private final ActiveIdentityResolver activeIdentityResolver;
 
     /**
      * ========================================
@@ -94,7 +96,7 @@ public class ResumeController {
         }
         
         // 非求职者不能访问
-        if (!"seeker".equals(user.getRole())) {
+        if (!activeIdentityResolver.hasRole(session, "SEEKER")) {
             return "redirect:/";
         }
         
@@ -157,7 +159,7 @@ public class ResumeController {
         }
 
         // 非求职者不能创建/编辑简历
-        if (!"seeker".equals(user.getRole())) {
+        if (!activeIdentityResolver.hasRole(session, "SEEKER")) {
             return "redirect:/";
         }
 

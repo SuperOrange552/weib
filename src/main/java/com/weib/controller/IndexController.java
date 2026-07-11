@@ -8,6 +8,7 @@ import com.weib.service.CompanyService;
 import com.weib.service.JobService;
 import com.weib.service.ResumeService;
 import com.weib.util.IdObfuscator;
+import com.weib.identity.ActiveIdentityResolver;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -88,6 +89,7 @@ public class IndexController {
     private final CompanyService companyService;
     private final ResumeService resumeService;
     private final IdObfuscator idObfuscator;
+    private final ActiveIdentityResolver activeIdentityResolver;
 
     /**
      * ========================================
@@ -225,7 +227,7 @@ public class IndexController {
         Map<Long, Company> companyMap = companyService.getCompanyMapByIds(companyIds);
 
         // 求职者个性化推荐（基于简历匹配，仅取最近50个活跃职位做匹配）
-        if (user != null && "seeker".equals(user.getRole()) && !hasFilters && page == 0) {
+        if (user != null && activeIdentityResolver.hasRole(session, "SEEKER") && !hasFilters && page == 0) {
             try {
                 Resume resume = resumeService.getResumeByUserId(user.getId());
                 if (resume != null) {
@@ -435,7 +437,7 @@ public class IndexController {
              * - 如果逻辑复杂，应该放到 Service
              */
             boolean hasApplied = false;
-            if (user != null && "seeker".equals(user.getRole())) {
+            if (user != null && activeIdentityResolver.hasRole(session, "SEEKER")) {
                 hasApplied = jobService.hasApplied(id, user.getId());
             }
             model.addAttribute("hasApplied", hasApplied);

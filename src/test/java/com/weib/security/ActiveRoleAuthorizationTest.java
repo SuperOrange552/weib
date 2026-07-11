@@ -35,6 +35,7 @@ class ActiveRoleAuthorizationTest {
 
         assertEquals("BOSS", boss.role());
         assertEquals("招聘者阿华", boss.nickname());
+        assertEquals("BOSS", resolver.current(session).role());
         assertThrows(AccessDeniedException.class, () -> resolver.require(session, "SEEKER"));
     }
 }
