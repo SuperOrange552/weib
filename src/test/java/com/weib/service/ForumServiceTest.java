@@ -25,7 +25,7 @@ class ForumServiceTest {
         ForumService service = new ForumService(posts, mock(ForumSectionRepository.class),
                 mock(ForumPostFavoriteRepository.class), likes, mock(com.weib.repository.ForumCommentRepository.class),
                 mock(UserRepository.class), mock(com.weib.service.SanctionService.class), mock(com.weib.cache.CacheAsideService.class),
-                mock(com.weib.cache.CacheInvalidationService.class));
+                mock(com.weib.cache.CacheInvalidationService.class), mock(com.weib.service.IdentityService.class));
         service.like(5L, 20L);
 
         verify(likes).save(any());

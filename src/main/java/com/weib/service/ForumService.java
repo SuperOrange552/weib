@@ -25,6 +25,7 @@ public class ForumService {
     private final SanctionService sanctionService;
     private final com.weib.cache.CacheAsideService cache;
     private final CacheInvalidationService invalidation;
+    private final IdentityService identityService;
 
     @Transactional(readOnly = true)
     public List<ForumSectionResponse> sections() {
@@ -43,7 +44,10 @@ public class ForumService {
     }
 
     @Transactional
-    public ForumPostResponse create(Long userId, ForumPostCreateRequest request) {
+    public ForumPostResponse create(Long userId, ForumPostCreateRequest request) { return create(userId, "SEEKER", request); }
+
+    @Transactional
+    public ForumPostResponse create(Long userId, String authorRole, ForumPostCreateRequest request) {
         if (userId == null || !userRepository.existsById(userId)) throw new IllegalArgumentException("login required");
         sanctionService.assertAllowed(userId, "MUTE");
         sanctionService.assertAllowed(userId, "PUBLISH_BAN");
@@ -55,7 +59,7 @@ public class ForumService {
         List<String> images = validateList(request.imageUrls(), 9, 500, "image");
         List<String> tags = validateList(request.tags(), 5, 30, "tag");
         ForumPost p = new ForumPost();
-        p.setSectionId(request.sectionId()); p.setAuthorId(userId); p.setTitle(title); p.setContent(content);
+        p.setSectionId(request.sectionId()); p.setAuthorId(userId); p.setAuthorRole(identityService.requireEnabledRole(userId, authorRole)); p.setTitle(title); p.setContent(content);
         p.setImageUrls(String.join("|", images)); p.setTags(String.join(",", tags)); p.setStatus("ACTIVE");
         ForumPost saved = postRepository.save(p); invalidate(saved.getId()); return post(saved);
     }
@@ -95,10 +99,13 @@ public class ForumService {
     }
 
     @Transactional
-    public ForumCommentResponse comment(Long userId, Long postId, ForumCommentCreateRequest request) {
+    public ForumCommentResponse comment(Long userId, Long postId, ForumCommentCreateRequest request) { return comment(userId, "SEEKER", postId, request); }
+
+    @Transactional
+    public ForumCommentResponse comment(Long userId, String authorRole, Long postId, ForumCommentCreateRequest request) {
         sanctionService.assertAllowed(userId, "MUTE"); active(postId);
         String content = required(request == null ? null : request.content(), 1, 2000, "comment");
-        ForumComment c = new ForumComment(); c.setPostId(postId); c.setAuthorId(userId); c.setContent(content); c.setStatus("ACTIVE");
+        ForumComment c = new ForumComment(); c.setPostId(postId); c.setAuthorId(userId); c.setAuthorRole(identityService.requireEnabledRole(userId, authorRole)); c.setContent(content); c.setStatus("ACTIVE");
         ForumComment saved = commentRepository.save(c); postRepository.incrementCommentCount(postId); invalidate(postId); return commentResponse(saved);
     }
 
@@ -110,8 +117,8 @@ public class ForumService {
     private ForumPost active(Long id) { return postRepository.findByIdAndStatus(id, "ACTIVE").orElseThrow(() -> new IllegalArgumentException("post not found or hidden")); }
     private void invalidate(Long id) { invalidation.invalidate(CacheKeys.forumPost(id)); invalidation.invalidatePattern("cache:forum:posts:list:*"); }
     private ForumSectionResponse section(ForumSection s) { return new ForumSectionResponse(s.getId(), s.getName(), s.getSlug(), s.getDescription()); }
-    private ForumPostResponse post(ForumPost p) { User u = userRepository.findById(p.getAuthorId()).orElse(null); String name = displayName(u); return new ForumPostResponse(p.getId(), p.getSectionId(), p.getAuthorId(), name, u == null ? null : u.getAvatar(), p.getTitle(), p.getContent(), split(p.getImageUrls(), "\\|"), split(p.getTags(), ","), p.getStatus(), nz(p.getLikeCount()), nz(p.getCommentCount()), nz(p.getFavoriteCount()), p.getCreatedAt(), p.getUpdatedAt()); }
-    private ForumCommentResponse commentResponse(ForumComment c) { User u = userRepository.findById(c.getAuthorId()).orElse(null); return new ForumCommentResponse(c.getId(), c.getPostId(), c.getAuthorId(), displayName(u), u == null ? null : u.getAvatar(), c.getContent(), c.getCreatedAt()); }
+    private ForumPostResponse post(ForumPost p) { User u = userRepository.findById(p.getAuthorId()).orElse(null); RoleProfile profile = identityService.profile(p.getAuthorId(), p.getAuthorRole()).orElse(null); String name = profile != null && profile.getNickname() != null ? profile.getNickname() : displayName(u); String avatar = profile != null && profile.getAvatar() != null ? profile.getAvatar() : (u == null ? null : u.getAvatar()); return new ForumPostResponse(p.getId(), p.getSectionId(), p.getAuthorId(), p.getAuthorRole(), name, avatar, p.getTitle(), p.getContent(), split(p.getImageUrls(), "\\|"), split(p.getTags(), ","), p.getStatus(), nz(p.getLikeCount()), nz(p.getCommentCount()), nz(p.getFavoriteCount()), p.getCreatedAt(), p.getUpdatedAt()); }
+    private ForumCommentResponse commentResponse(ForumComment c) { User u = userRepository.findById(c.getAuthorId()).orElse(null); RoleProfile profile = identityService.profile(c.getAuthorId(), c.getAuthorRole()).orElse(null); String name = profile != null && profile.getNickname() != null ? profile.getNickname() : displayName(u); String avatar = profile != null && profile.getAvatar() != null ? profile.getAvatar() : (u == null ? null : u.getAvatar()); return new ForumCommentResponse(c.getId(), c.getPostId(), c.getAuthorId(), c.getAuthorRole(), name, avatar, c.getContent(), c.getCreatedAt()); }
     private String displayName(User u) { return u == null ? "unknown" : (u.getNickname() == null || u.getNickname().isBlank() ? u.getUsername() : u.getNickname()); }
     private int nz(Integer n) { return n == null ? 0 : n; }
     private List<String> split(String s, String delimiter) { return s == null || s.isBlank() ? List.of() : Arrays.stream(s.split(delimiter, -1)).filter(v -> !v.isBlank()).toList(); }
