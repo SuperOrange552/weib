@@ -59,4 +59,22 @@ class SessionRegistryServiceTest {
         registry.invalidate(9L, ClientType.WEB);
         verify(redis).delete("login:slot:9:WEB");
     }
+
+    @Test
+    void replacementAndGlobalInvalidationPublishSecurityEvents() throws Exception {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        ObjectMapper mapper = new ObjectMapper();
+        SecuritySessionNotifier notifier = mock(SecuritySessionNotifier.class);
+        LoginSlot previous = new LoginSlot("old", "SEEKER", "MOBILE", 1L, "d1");
+        when(redis.execute(any(DefaultRedisScript.class), anyList(), anyString(), anyString()))
+                .thenReturn(mapper.writeValueAsString(previous));
+        SessionRegistryService registry = new SessionRegistryService(redis, mapper, Clock.systemUTC(), notifier);
+
+        registry.register(10L, ClientType.MOBILE, "new", "BOSS", "d2");
+        registry.invalidateAll(10L, SessionInvalidationReason.PASSWORD_CHANGED);
+
+        verify(notifier).forceLogout(eq(10L), eq(previous), eq(SessionInvalidationReason.KICKED));
+        verify(notifier).forceLogout(eq(10L), isNull(), eq(SessionInvalidationReason.PASSWORD_CHANGED));
+        verify(redis).delete(List.of("login:slot:10:WEB", "login:slot:10:MOBILE"));
+    }
 }

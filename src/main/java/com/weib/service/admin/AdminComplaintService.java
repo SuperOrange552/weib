@@ -12,6 +12,8 @@ import com.weib.entity.*;
 import com.weib.repository.*;
 import com.weib.service.NotificationService;
 import com.weib.service.SanctionService;
+import com.weib.session.SessionInvalidationReason;
+import com.weib.session.SessionRegistryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -39,6 +41,7 @@ public class AdminComplaintService {
     private final NotificationService notificationService;
     private final SanctionService sanctionService;
     private final CacheInvalidationService cacheInvalidationService;
+    private final SessionRegistryService sessionRegistry;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Transactional(readOnly = true)
@@ -146,6 +149,9 @@ public class AdminComplaintService {
         UserSanction saved = sanctionRepository.save(sanction);
         sanctionService.invalidate(saved.getUserId(), saved.getSanctionType());
         cacheInvalidationService.invalidate(CacheKeys.userPublic(saved.getUserId()));
+        if ("ACCOUNT_BAN".equals(type)) {
+            sessionRegistry.invalidateAll(saved.getUserId(), SessionInvalidationReason.ACCOUNT_BANNED);
+        }
         auditLogService.log(adminId, "create_sanction", "user", saved.getUserId(), reason);
         notificationService.createSystemNotification(saved.getUserId(), "sanction_created",
                 "你的账号收到平台处罚：" + type, saved.getId());

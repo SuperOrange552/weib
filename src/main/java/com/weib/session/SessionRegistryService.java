@@ -24,15 +24,23 @@ public class SessionRegistryService {
     private final StringRedisTemplate redis;
     private final ObjectMapper objectMapper;
     private final Clock clock;
+    private final SecuritySessionNotifier notifier;
 
-    public SessionRegistryService(StringRedisTemplate redis, ObjectMapper objectMapper) {
-        this(redis, objectMapper, Clock.systemUTC());
+    public SessionRegistryService(StringRedisTemplate redis, ObjectMapper objectMapper,
+                                  SecuritySessionNotifier notifier) {
+        this(redis, objectMapper, Clock.systemUTC(), notifier);
     }
 
     SessionRegistryService(StringRedisTemplate redis, ObjectMapper objectMapper, Clock clock) {
+        this(redis, objectMapper, clock, null);
+    }
+
+    SessionRegistryService(StringRedisTemplate redis, ObjectMapper objectMapper, Clock clock,
+                           SecuritySessionNotifier notifier) {
         this.redis = redis;
         this.objectMapper = objectMapper;
         this.clock = clock;
+        this.notifier = notifier;
     }
 
     public SessionReplacement register(Long userId, ClientType clientType, String sid,
@@ -48,7 +56,11 @@ public class SessionRegistryService {
                 List.of(key(userId, clientType)),
                 write(current),
                 String.valueOf(SLOT_TTL_SECONDS));
-        return new SessionReplacement(read(oldJson).orElse(null), current);
+        LoginSlot replaced = read(oldJson).orElse(null);
+        if (replaced != null && notifier != null) {
+            notifier.forceLogout(userId, replaced, SessionInvalidationReason.KICKED);
+        }
+        return new SessionReplacement(replaced, current);
     }
 
     public Optional<LoginSlot> current(Long userId, ClientType clientType) {
@@ -65,6 +77,11 @@ public class SessionRegistryService {
 
     public void invalidateAll(Long userId) {
         redis.delete(List.of(key(userId, ClientType.WEB), key(userId, ClientType.MOBILE)));
+    }
+
+    public void invalidateAll(Long userId, SessionInvalidationReason reason) {
+        invalidateAll(userId);
+        if (notifier != null) notifier.forceLogout(userId, null, reason);
     }
 
     private String key(Long userId, ClientType clientType) {

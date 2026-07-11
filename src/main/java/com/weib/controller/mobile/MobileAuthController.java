@@ -110,6 +110,8 @@ public class MobileAuthController {
 
     @PostMapping("/logout")
     public Result<Void> logout(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user != null) sessionRegistry.invalidate(user.getId(), ClientType.MOBILE);
         session.invalidate();
         return Result.success();
     }

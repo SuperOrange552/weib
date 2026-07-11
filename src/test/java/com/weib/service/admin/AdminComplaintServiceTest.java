@@ -8,6 +8,7 @@ import com.weib.entity.UserSanction;
 import com.weib.repository.*;
 import com.weib.service.NotificationService;
 import com.weib.service.SanctionService;
+import com.weib.session.SessionRegistryService;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -43,7 +44,7 @@ class AdminComplaintServiceTest {
         when(sanctions.save(any(UserSanction.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         AdminComplaintService service = new AdminComplaintService(complaints, sanctions, jobs, companies, resumes,
-                users, audit, notifications, sanctionService, invalidation);
+                users, audit, notifications, sanctionService, invalidation, mock(SessionRegistryService.class));
 
         service.resolve(99L, 1L, new ComplaintReviewRequest("确认违规", null,
                 new SanctionCreateRequest(20L, "MUTE", "USER", 20L, 1L,
@@ -69,7 +70,7 @@ class AdminComplaintServiceTest {
         AdminComplaintService service = new AdminComplaintService(complaints, mock(UserSanctionRepository.class),
                 mock(JobRepository.class), mock(CompanyRepository.class), mock(ResumeRepository.class),
                 mock(UserRepository.class), mock(AuditLogService.class), mock(NotificationService.class),
-                mock(SanctionService.class), mock(CacheInvalidationService.class));
+                mock(SanctionService.class), mock(CacheInvalidationService.class), mock(SessionRegistryService.class));
 
         service.reject(99L, 2L, "证据不足");
 

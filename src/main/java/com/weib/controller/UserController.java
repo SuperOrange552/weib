@@ -521,6 +521,7 @@ public class UserController {
         User user = (User) session.getAttribute("user");
         if (user != null) {
             userService.clearRememberToken(user);
+            sessionRegistry.invalidate(user.getId(), ClientType.WEB);
         }
         session.invalidate();  // 销毁 Session
         CookieUtil.deleteRememberTokenCookie(response, request);
@@ -623,6 +624,7 @@ public class UserController {
 
         try {
             userService.changePassword(user.getId(), oldPassword, newPassword);
+            sessionRegistry.invalidateAll(user.getId(), com.weib.session.SessionInvalidationReason.PASSWORD_CHANGED);
         } catch (RuntimeException e) {
             model.addAttribute("error", e.getMessage());
             return "change-password";

@@ -8,6 +8,8 @@ import com.weib.repository.ApplicationRepository;
 import com.weib.repository.ResumeRepository;
 import com.weib.repository.UserRepository;
 import com.weib.service.UserService;
+import com.weib.session.SessionInvalidationReason;
+import com.weib.session.SessionRegistryService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -28,15 +30,17 @@ public class AdminUserService {
     private final ApplicationRepository applicationRepository;
     private final AuditLogService auditLogService;
     private final UserService userService;
+    private final SessionRegistryService sessionRegistry;
 
     public AdminUserService(UserRepository userRepository, ResumeRepository resumeRepository,
                             ApplicationRepository applicationRepository, AuditLogService auditLogService,
-                            UserService userService) {
+                            UserService userService, SessionRegistryService sessionRegistry) {
         this.userRepository = userRepository;
         this.resumeRepository = resumeRepository;
         this.applicationRepository = applicationRepository;
         this.auditLogService = auditLogService;
         this.userService = userService;
+        this.sessionRegistry = sessionRegistry;
     }
 
     /**
@@ -130,6 +134,7 @@ public class AdminUserService {
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("用户不存在: " + userId));
         user.setStatus("banned");
         userRepository.save(user);
+        sessionRegistry.invalidateAll(userId, SessionInvalidationReason.ACCOUNT_BANNED);
         auditLogService.log(adminId, "ban_user", "user", userId, null);
     }
 
@@ -152,6 +157,7 @@ public class AdminUserService {
 
     public void resetPassword(Long adminId, Long userId, String newPassword) {
         userService.resetPassword(userId, newPassword);
+        sessionRegistry.invalidateAll(userId, SessionInvalidationReason.PASSWORD_CHANGED);
         auditLogService.log(adminId, "reset_password", "user", userId, "管理员重置密码");
     }
 
