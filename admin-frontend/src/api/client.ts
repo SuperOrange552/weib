@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { createIdempotencyKey } from '../utils/idempotency'
 
 const client = axios.create({
   baseURL: '/api/admin',
@@ -17,7 +18,7 @@ client.interceptors.request.use(
     }
     const method = (config.method || 'get').toLowerCase()
     if (!['get', 'head', 'options'].includes(method) && !config.headers['Idempotency-Key']) {
-      config.headers['Idempotency-Key'] = crypto.randomUUID()
+      config.headers['Idempotency-Key'] = createIdempotencyKey()
     }
     return config
   },
