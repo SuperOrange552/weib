@@ -64,10 +64,6 @@ public class WebConfig implements WebMvcConfigurer {
                         "/images/**",
                         "/static/**",
                         "/api/admin/**",
-                        "/api/forum/sections",
-                        "/api/forum/posts/**",
-                        "/forum",
-                        "/forum/**",
                         "/admin/**",
                         "/swagger-ui/**",
                         "/v3/api-docs/**"

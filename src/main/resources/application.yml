@@ -23,7 +23,8 @@ server:
     session:
       timeout: 30m
       cookie:
-        secure: true
+        # 由反向代理/请求协议决定业务 Cookie 的 Secure 属性；当前站点通过 HTTP 提供服务。
+        secure: false
         http-only: true
         same-site: lax
 

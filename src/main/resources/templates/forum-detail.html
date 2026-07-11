@@ -1,1 +1,27 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="csrf-token" th:content="${session.csrf_token}"><title>帖子详情 - 微招</title><link rel="stylesheet" href="/css/forum.css"><link rel="stylesheet" href="/css/app-shell.css"></head><body><main class="forum-page"><a href="/forum">← 返回论坛</a><div id="post" class="forum-card" style="margin-top:16px"></div><div class="forum-card"><h2>评论</h2><div id="comments"></div><form id="commentForm"><textarea id="comment" required maxlength="2000" placeholder="写下你的评论"></textarea><button class="forum-btn" type="submit">发表评论</button><div id="message" class="forum-error"></div></form></div></main><script src="/js/forum-detail.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="csrf-token" th:content="${session.csrf_token}">
+    <title>帖子详情 - 微招</title>
+    <link rel="stylesheet" href="/css/forum.css">
+    <link rel="stylesheet" href="/css/app-shell.css">
+</head>
+<body>
+<main class="forum-page light-surface">
+    <a href="/forum">← 返回论坛</a>
+    <div id="post" class="forum-card" style="margin-top:16px"></div>
+    <div class="forum-card">
+        <h2>评论</h2>
+        <div id="comments"></div>
+        <form id="commentForm">
+            <textarea id="comment" required maxlength="2000" placeholder="写下你的评论"></textarea>
+            <button class="forum-btn" type="submit">发表评论</button>
+            <div id="message" class="forum-error" role="alert"></div>
+        </form>
+    </div>
+</main>
+<script src="/js/forum-detail.js"></script>
+</body>
+</html>

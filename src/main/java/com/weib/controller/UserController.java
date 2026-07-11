@@ -354,11 +354,11 @@ public class UserController {
 
         // 生成记住我令牌，2 小时内自动登录
         String token = userService.generateRememberToken(user);
-        CookieUtil.addRememberTokenCookie(response, token);
+        CookieUtil.addRememberTokenCookie(response, token, request);
 
         // 生成 JWT 令牌，用于安全的身份认证传输
         String jwt = jwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole());
-        CookieUtil.addJwtCookie(response, jwt);
+        CookieUtil.addJwtCookie(response, jwt, request);
 
         // 重定向到首页
         return "redirect:/";
@@ -492,15 +492,15 @@ public class UserController {
      * @return 重定向到登录页
      */
     @PostMapping("/logout")
-    public String logout(HttpSession session, HttpServletResponse response) {
+    public String logout(HttpSession session, HttpServletResponse response, HttpServletRequest request) {
         // 清除记住我令牌
         User user = (User) session.getAttribute("user");
         if (user != null) {
             userService.clearRememberToken(user);
         }
         session.invalidate();  // 销毁 Session
-        CookieUtil.deleteRememberTokenCookie(response);
-        CookieUtil.deleteJwtCookie(response);
+        CookieUtil.deleteRememberTokenCookie(response, request);
+        CookieUtil.deleteJwtCookie(response, request);
         return "redirect:/login";
     }
 

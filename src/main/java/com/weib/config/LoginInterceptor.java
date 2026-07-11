@@ -4,6 +4,7 @@ import com.weib.entity.User;
 import com.weib.repository.UserRepository;
 import com.weib.service.SanctionService;
 import com.weib.util.JwtUtil;
+import com.weib.security.ForumAccessPolicy;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,6 +34,10 @@ public class LoginInterceptor implements HandlerInterceptor {
                              Object handler) throws Exception {
 
         HttpSession session = request.getSession(false);
+
+        if (ForumAccessPolicy.isPublicRead(request.getMethod(), request.getRequestURI())) {
+            return true;
+        }
 
         // 对 GET 请求确保 CSRF token 存在，供所有页面表单使用
         if ("GET".equalsIgnoreCase(request.getMethod())) {

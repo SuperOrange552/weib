@@ -594,14 +594,15 @@ public class SeekerApiController {
     // ============================================
     @PostMapping("/api/seeker/logout")
     @ResponseBody
-    public Result<?> logout(HttpSession session, jakarta.servlet.http.HttpServletResponse response) {
+    public Result<?> logout(HttpSession session, jakarta.servlet.http.HttpServletResponse response,
+                            jakarta.servlet.http.HttpServletRequest request) {
         User user = (User) session.getAttribute("user");
         if (user != null) {
             session.invalidate();
         }
         // 清除 JWT Cookie
-        com.weib.util.CookieUtil.deleteJwtCookie(response);
-        com.weib.util.CookieUtil.deleteRememberTokenCookie(response);
+        com.weib.util.CookieUtil.deleteJwtCookie(response, request);
+        com.weib.util.CookieUtil.deleteRememberTokenCookie(response, request);
         return Result.success("已退出登录");
     }
 }

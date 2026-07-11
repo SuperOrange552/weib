@@ -1,3 +1,9 @@
 
 :root{--app-content-max:1200px;--app-page-padding:clamp(16px,3vw,32px);--app-header-height:64px;--app-radius:14px;--app-accent:#00a896;--app-bg:#f4f7fb}
 html,body{min-height:100%;box-sizing:border-box}*,*:before,*:after{box-sizing:inherit}body{margin:0;background:var(--app-bg);font-family:Arial,"Microsoft YaHei",sans-serif}body>.container,body>.page,body>main,.app-content{width:min(var(--app-content-max),calc(100% - 2 * var(--app-page-padding)));max-width:var(--app-content-max);margin-left:auto;margin-right:auto}.container{max-width:var(--app-content-max)!important;width:calc(100% - 40px);margin-left:auto;margin-right:auto}.header,.app-header,header{min-height:var(--app-header-height);box-sizing:border-box}.page-title{font-size:clamp(24px,3vw,32px);line-height:1.25;margin:0 0 20px}.card,.panel,.forum-card{border-radius:var(--app-radius)}button,.btn{min-height:40px}@media(max-width:700px){.container,body>.container,body>.page,body>main{width:calc(100% - 24px)}.nav-links{gap:4px!important}.nav-links a,.nav-btn{padding:7px 10px!important}.header-content,.header-inner{flex-wrap:wrap;min-height:var(--app-header-height);height:auto!important;padding-top:10px;padding-bottom:10px}.page{padding:20px 12px!important}}
+/* Accessible light surface tokens: headings/body text stay dark; teal is reserved for controls. */
+:root{--app-text:#0f172a;--app-muted:#475569;--app-surface:#ffffff;--app-control-bg:#0f766e;--app-control-text:#ffffff}
+body{color:var(--app-text)}
+.light-surface,.light-surface h1,.light-surface h2,.light-surface h3,.light-surface p,.light-surface label{color:var(--app-text)}
+.light-surface .muted,.light-surface .forum-meta{color:var(--app-muted)}
+.light-surface button,.light-surface .btn,.light-surface .forum-btn{background:var(--app-control-bg);color:var(--app-control-text)}
