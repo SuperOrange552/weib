@@ -29,6 +29,7 @@ data class AppUiState(
     val selected: AppDestination? = null,
     val content: ContentState = ContentState()
     ,val securityDialog: String? = null
+    ,val actionMessage: String? = null
 ) {
     val role: String? get() = user?.role ?: restoredRole
     val loggedIn: Boolean get() = role == "seeker" || role == "boss"
@@ -115,6 +116,21 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun retry() { _state.value.selected?.let(::load) }
+
+    fun apply(jobId: String) = runAction("投递成功") { repository.apply(jobId) }
+    fun toggleFavorite(jobId: String) = runAction("收藏状态已更新") { repository.toggleFavorite(jobId) }
+    fun withdraw(applicationId: String) = runAction("投递已撤回") { repository.withdraw(applicationId) }
+
+    private fun runAction(success: String, call: suspend () -> com.weib.app.data.ApiEnvelope<com.google.gson.JsonElement>) {
+        viewModelScope.launch {
+            runCatching { call() }.onSuccess { result ->
+                _state.value = _state.value.copy(actionMessage = if (result.code == 200) success else result.msg)
+                if (result.code == 200) retry()
+            }.onFailure { _state.value = _state.value.copy(actionMessage = it.message) }
+        }
+    }
+
+    fun dismissActionMessage() { _state.value = _state.value.copy(actionMessage = null) }
 
     fun logout() {
         viewModelScope.launch {

@@ -85,6 +85,10 @@ class AppRepository(context: Context) {
 
     fun connectRealtime() = realtime.connect()
     suspend fun notificationEvents(afterEventId: Long) = api.notificationEvents(afterEventId)
+    suspend fun apply(jobId: String) = api.apply(jobId)
+    suspend fun toggleFavorite(jobId: String) = api.toggleFavorite(jobId)
+    suspend fun withdraw(applicationId: String) = api.withdraw(applicationId)
+    suspend fun saveResume(fields: Map<String, Any?>) = api.saveResume(fields)
 
     private fun trustLocalCertificate(builder: OkHttpClient.Builder) {
         val trustManager = object : X509TrustManager {

@@ -36,6 +36,10 @@ fun WeibApp(viewModel: AppViewModel) {
         AlertDialog(onDismissRequest = {}, title = { Text("账号安全提醒") }, text = { Text(message) },
             confirmButton = { TextButton(onClick = viewModel::dismissSecurityDialog) { Text("我知道了") } })
     }
+    state.actionMessage?.let { message ->
+        AlertDialog(onDismissRequest = viewModel::dismissActionMessage, text = { Text(message) },
+            confirmButton = { TextButton(onClick = viewModel::dismissActionMessage) { Text("确定") } })
+    }
     when {
         state.restoring -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         !state.loggedIn -> LoginScreen(state, viewModel)
@@ -126,16 +130,20 @@ private fun MainShell(state: AppUiState, viewModel: AppViewModel) {
             }
         }
     ) { padding ->
-        ContentScreen(state, viewModel::retry, viewModel::logout, Modifier.padding(padding))
+        ContentScreen(state, viewModel::retry, viewModel::logout, viewModel::apply,
+            viewModel::toggleFavorite, viewModel::withdraw, Modifier.padding(padding))
     }
 }
 
 @Composable
-private fun ContentScreen(state: AppUiState, retry: () -> Unit, logout: () -> Unit, modifier: Modifier) {
+private fun ContentScreen(state: AppUiState, retry: () -> Unit, logout: () -> Unit,
+                          apply: (String) -> Unit, favorite: (String) -> Unit,
+                          withdraw: (String) -> Unit, modifier: Modifier) {
     when {
         state.content.loading -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         state.content.error != null -> ErrorState(state.content.error, retry, modifier)
-        state.selected == AppDestination.Jobs -> JobList(state.content.data, modifier)
+        state.selected == AppDestination.Jobs -> JobList(state.content.data, apply, favorite, modifier)
+        state.selected == AppDestination.Applications -> ApplicationList(state.content.data, withdraw, modifier)
         state.selected == AppDestination.Dashboard -> Dashboard(state.content.data, modifier)
         state.selected == AppDestination.Profile -> Profile(state.content.data, logout, modifier)
         else -> GenericList(state.content.title, state.content.data, modifier)
@@ -143,7 +151,7 @@ private fun ContentScreen(state: AppUiState, retry: () -> Unit, logout: () -> Un
 }
 
 @Composable
-private fun JobList(data: JsonElement?, modifier: Modifier) {
+private fun JobList(data: JsonElement?, apply: (String) -> Unit, favorite: (String) -> Unit, modifier: Modifier) {
     val array = data?.asJsonObject?.getAsJsonArray("content")?.mapNotNull { it.takeIf(JsonElement::isJsonObject)?.asJsonObject } ?: emptyList()
     LazyColumn(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { Text("发现好职位", style = MaterialTheme.typography.headlineMedium); Text("职位信息与 Web 端数据实时同步", color = WeibMuted) }
@@ -154,8 +162,32 @@ private fun JobList(data: JsonElement?, modifier: Modifier) {
             val company = job.getAsJsonObject("company")
             Text(company?.string("name", "企业信息") ?: "企业信息", color = WeibBody)
             Text("浏览量 ${job.int("viewCount")}", color = WeibMuted)
+            val id = job.string("id")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = { apply(id) }, enabled = id.isNotBlank() && job["applied"]?.asBoolean != true) { Text(if (job["applied"]?.asBoolean == true) "已投递" else "立即投递") }
+                OutlinedButton(onClick = { favorite(id) }, enabled = id.isNotBlank()) { Text(if (job["favorited"]?.asBoolean == true) "取消收藏" else "收藏") }
+            }
         } }
         if (array.isEmpty()) item { EmptyCard("暂无职位") }
+    }
+}
+
+@Composable
+private fun ApplicationList(data: JsonElement?, withdraw: (String) -> Unit, modifier: Modifier) {
+    val list = data?.takeIf { it.isJsonArray }?.asJsonArray?.map { it.asJsonObject } ?: emptyList()
+    LazyColumn(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item { Text("我的投递", style = MaterialTheme.typography.headlineMedium) }
+        items(list) { app -> WeibCard {
+            Text(app.string("jobTitle", "职位"), style = MaterialTheme.typography.titleLarge)
+            Text(app.string("companyName"), color = WeibBody)
+            Text("状态：${app.string("status", "-")}", color = WeibPrimary)
+            app["interviewTime"]?.takeIf { !it.isJsonNull }?.let { Text("面试时间：${it.asString}") }
+            val id = app.string("id")
+            if (app.string("status").lowercase() in listOf("pending", "viewed")) {
+                OutlinedButton(onClick = { withdraw(id) }, enabled = id.isNotBlank()) { Text("撤回投递") }
+            }
+        } }
+        if (list.isEmpty()) item { EmptyCard("暂无投递记录") }
     }
 }
 
