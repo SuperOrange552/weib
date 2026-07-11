@@ -56,6 +56,13 @@ public class GlobalExceptionHandler {
         return dispatch(ex, request, response, 400, ex.getMessage());
     }
 
+    @ExceptionHandler(DuplicateComplaintException.class)
+    public Object handleDuplicateComplaint(DuplicateComplaintException ex,
+                                            HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        return dispatch(ex, request, response, 409, ex.getMessage());
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public Object handleAccessDenied(AccessDeniedException ex,
                                       HttpServletRequest request, HttpServletResponse response)

@@ -250,6 +250,8 @@
                         立即投递
                     </button>
                 </div>
+                <button type="button" class="apply-btn" style="background:#666" th:if="${user != null}"
+                        th:onclick="|openComplaintModal('JOB', ${job.id})|">投诉职位</button>
                 <button class="apply-btn" onclick="location.href='/login'" th:if="${user == null}">
                     登录后投递
                 </button>
@@ -769,5 +771,6 @@
     });
     </script>
 <script src="/js/submit-guard.js"></script>
+<script src="/js/complaint.js"></script>
 </body>
 </html>

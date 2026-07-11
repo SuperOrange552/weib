@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
 <head>
+    <meta name="csrf-token" th:content="${csrf_token}">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${company.name} + ' - 微招'">公司详情 - 微招</title>
@@ -218,6 +219,8 @@
                 <span class="company-tag" th:if="${company.scale}" th:text="${company.scale}">100-499人</span>
             </div>
             <div class="company-desc" th:if="${company.description}" th:text="${company.description}">公司介绍...</div>
+            <button type="button" class="apply-btn" style="background:#666" th:if="${user != null}"
+                    th:onclick="|openComplaintModal('COMPANY', ${company.id})|">投诉公司资料</button>
         </div>
 
         <div class="info-grid">
@@ -561,5 +564,6 @@
         }
     </script>
 <script src="/js/submit-guard.js"></script>
+<script src="/js/complaint.js"></script>
 </body>
 </html>

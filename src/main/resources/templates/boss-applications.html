@@ -378,6 +378,10 @@
                             onclick="viewFullResume(this)" th:if="${seekerResumeIds != null && seekerResumeIds.containsKey(app.userId)}">
                         查看完整简历
                     </button>
+                    <button class="action-btn" style="background:#666;color:#fff" type="button"
+                            th:onclick="|openComplaintModal('USER', ${app.userId})|">
+                        投诉求职者
+                    </button>
                     <a th:href="@{/chat/{id}(id=${encodedApplicationIds[app.id]})}" class="action-btn chat-btn" style="text-decoration:none;">沟通</a>
                     <button class="action-btn view-btn" th:data-id="${encodedApplicationIds[app.id]}" th:data-status="'viewed'" onclick="updateStatus(this)">标记已查看</button>
                     <button class="action-btn accept-btn" th:data-id="${encodedApplicationIds[app.id]}" th:data-status="'accepted'" onclick="updateStatus(this)">通过</button>
@@ -578,5 +582,6 @@
     });
     </script>
 <script src="/js/submit-guard.js"></script>
+<script src="/js/complaint.js"></script>
 </body>
 </html>
