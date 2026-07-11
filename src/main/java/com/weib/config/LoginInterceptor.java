@@ -52,7 +52,7 @@ public class LoginInterceptor implements HandlerInterceptor {
         // 1. Session 有效，直接放行
         if (session != null && session.getAttribute("user") != null) {
             User sessionUser = (User) session.getAttribute("user");
-            if (isBlocked(sessionUser)) {
+            if (isBlocked(sessionUser) && !isAppealPath(request)) {
                 session.invalidate();
                 response.sendRedirect("/login?blocked");
                 return false;
@@ -63,7 +63,7 @@ public class LoginInterceptor implements HandlerInterceptor {
         // 2. Session 无效，尝试 remember_token Cookie 自动登录
         User user = getUserFromRememberToken(request);
         if (user != null) {
-            if (isBlocked(user)) {
+            if (isBlocked(user) && !isAppealPath(request)) {
                 response.sendRedirect("/login?blocked");
                 return false;
             }
@@ -74,7 +74,7 @@ public class LoginInterceptor implements HandlerInterceptor {
         // 3. 尝试 JWT 认证（Cookie 或 Authorization Header）
         user = getUserFromJwt(request);
         if (user != null) {
-            if (isBlocked(user)) {
+            if (isBlocked(user) && !isAppealPath(request)) {
                 response.sendRedirect("/login?blocked");
                 return false;
             }
@@ -96,6 +96,11 @@ public class LoginInterceptor implements HandlerInterceptor {
         newSession.setAttribute("username", user.getUsername());
         // 修复：自动登录后在新 Session 中立即生成 CSRF Token
         CsrfInterceptor.generateCsrfToken(newSession);
+    }
+
+    private boolean isAppealPath(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        return "/appeal".equals(uri) || uri.startsWith("/api/appeals");
     }
 
     /** 检查用户是否已被封禁 */
