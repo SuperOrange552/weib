@@ -7,3 +7,25 @@ body{color:var(--app-text)}
 .light-surface,.light-surface h1,.light-surface h2,.light-surface h3,.light-surface p,.light-surface label{color:var(--app-text)}
 .light-surface .muted,.light-surface .forum-meta{color:var(--app-muted)}
 .light-surface button,.light-surface .btn,.light-surface .forum-btn{background:var(--app-control-bg);color:var(--app-control-text)}
+
+/* Global contrast contract for legacy Thymeleaf pages. Keep controls white-on-teal, everything else readable. */
+body{background:#f5f7fb !important;color:#0f172a !important}
+body *{color:#0f172a !important}
+body a{color:#0f766e !important}
+body button,body .btn,body input[type=submit],body input[type=button],body .login-btn,body .register-btn,body .submit-btn,body .apply-btn,body .send-btn,body .forum-btn,body .nav-links a.active,body .nav-btn.active,body .badge{color:#ffffff !important}
+body .header,body .app-header,body header{background:#ffffff !important;border:1px solid #e2e8f0 !important;box-shadow:0 8px 24px rgba(15,23,42,.06) !important;backdrop-filter:none !important;color:#0f172a !important}
+body .logo{color:#0f766e !important;background:none !important;-webkit-text-fill-color:#0f766e !important}
+body .nav-links{display:flex !important;align-items:center !important;gap:8px !important;flex-wrap:wrap !important}
+body .nav-links a,body .nav-btn{display:inline-flex !important;align-items:center !important;justify-content:center !important;min-width:72px !important;height:40px !important;padding:8px 14px !important;border-radius:10px !important;color:#334155 !important;background:transparent !important;white-space:nowrap !important}
+body .nav-links a:hover,body .nav-btn:hover{background:#f0fdfa !important;color:#0f766e !important}
+body .nav-links a.active,body .nav-btn.active{background:#0f766e !important;color:#ffffff !important}
+body .job-card,body .job-detail,body .company-card,body .application-card,body .stat-card,body .content-card,body .resume-card,body .notification-card,body .card,body .panel{background:#ffffff !important;border-color:#e2e8f0 !important;color:#0f172a !important;box-shadow:0 8px 24px rgba(15,23,42,.06) !important}
+body h1,body .page-title,body .job-title,body .job-title-section h1{font-size:clamp(26px,3vw,34px) !important;line-height:1.25 !important;color:#0f172a !important}
+body h2,body .section-title,body .company-name,body .app-job{font-size:22px !important;line-height:1.4 !important;color:#0f172a !important}
+body h3,body .action-title{font-size:18px !important;line-height:1.5 !important;color:#0f172a !important}
+body p,body li,body label,body span,body .job-meta,body .company-info,body .stat-label,body .empty-state p{color:#334155 !important}
+body input,body select,body textarea{background:#ffffff !important;color:#0f172a !important;border-color:#cbd5e1 !important}
+body input::placeholder,body textarea::placeholder{color:#64748b !important}
+body .logout-btn{background:#ffffff !important;color:#334155 !important;border:1px solid #cbd5e1 !important}
+body .logout-btn:hover{background:#f8fafc !important;color:#0f766e !important}
+body .forum-nav-link{background:#ecfeff !important;color:#0f766e !important;border:1px solid #99f6e4 !important;font-weight:600 !important}
