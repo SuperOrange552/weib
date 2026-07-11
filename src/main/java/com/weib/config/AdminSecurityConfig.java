@@ -58,6 +58,8 @@ public class AdminSecurityConfig {
                 .requestMatchers("/api/admin/companies/**").hasAnyRole("SUPER_ADMIN", "AUDITOR")
                 .requestMatchers("/api/admin/jobs/**").hasAnyRole("SUPER_ADMIN", "AUDITOR")
                 .requestMatchers("/api/admin/users/**").hasRole("SUPER_ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/admin/identities/**", "/api/admin/sessions/**").hasAnyRole("SUPER_ADMIN", "AUDITOR", "VIEWER")
+                .requestMatchers("/api/admin/identities/**", "/api/admin/sessions/**").hasRole("SUPER_ADMIN")
                 .requestMatchers("/api/admin/complaints/**", "/api/admin/sanctions/**", "/api/admin/appeals/**", "/api/admin/search/**").hasAnyRole("SUPER_ADMIN", "AUDITOR")
                 .requestMatchers("/api/admin/admins/**").hasRole("SUPER_ADMIN")
                 .requestMatchers("/api/admin/audit-logs/**").hasAnyRole("SUPER_ADMIN", "AUDITOR")

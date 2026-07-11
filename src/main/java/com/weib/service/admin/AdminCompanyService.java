@@ -23,14 +23,17 @@ public class AdminCompanyService {
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
     private final com.weib.service.NotificationService notificationService;
+    private final AdminIdentityService identityService;
 
     public AdminCompanyService(CompanyRepository companyRepository, UserRepository userRepository,
                                AuditLogService auditLogService,
-                               com.weib.service.NotificationService notificationService) {
+                               com.weib.service.NotificationService notificationService,
+                               AdminIdentityService identityService) {
         this.companyRepository = companyRepository;
         this.userRepository = userRepository;
         this.auditLogService = auditLogService;
         this.notificationService = notificationService;
+        this.identityService = identityService;
     }
 
     /**
@@ -85,6 +88,7 @@ public class AdminCompanyService {
                 .orElseThrow(() -> new RuntimeException("公司不存在: " + companyId));
         company.setAuditStatus("approved");
         companyRepository.save(company);
+        identityService.enable(adminId, company.getBossId(), "BOSS", "企业审核通过 companyId=" + companyId);
         auditLogService.log(adminId, "approve_company", "company", companyId, null);
         notificationService.createSystemNotification(company.getBossId(), "company_approved",
                 "您的公司「" + company.getName() + "」已通过审核", companyId);
