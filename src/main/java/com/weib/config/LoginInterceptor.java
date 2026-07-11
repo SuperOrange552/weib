@@ -5,6 +5,8 @@ import com.weib.repository.UserRepository;
 import com.weib.service.SanctionService;
 import com.weib.util.JwtUtil;
 import com.weib.security.ForumAccessPolicy;
+import com.weib.session.ClientType;
+import com.weib.session.SessionRegistryService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,6 +18,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -24,6 +27,7 @@ public class LoginInterceptor implements HandlerInterceptor {
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
     private final SanctionService sanctionService;
+    private final SessionRegistryService sessionRegistry;
 
     private static final String CSRF_TOKEN_ATTR = "csrf_token";
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -110,6 +114,19 @@ public class LoginInterceptor implements HandlerInterceptor {
         HttpSession newSession = request.getSession(true);
         newSession.setAttribute("user", user);
         newSession.setAttribute("username", user.getUsername());
+        String sid = (String) request.getAttribute("authenticatedSid");
+        String role = (String) request.getAttribute("authenticatedRole");
+        String clientValue = (String) request.getAttribute("authenticatedClientType");
+        ClientType clientType = "MOBILE".equalsIgnoreCase(clientValue) ? ClientType.MOBILE : ClientType.WEB;
+        if (sid == null || sid.isBlank()) {
+            sid = UUID.randomUUID().toString();
+            role = user.getRole().toUpperCase(java.util.Locale.ROOT);
+            sessionRegistry.register(user.getId(), clientType, sid, role,
+                    Integer.toHexString(String.valueOf(request.getHeader("User-Agent")).hashCode()));
+        }
+        newSession.setAttribute("sid", sid);
+        newSession.setAttribute("activeRole", role);
+        newSession.setAttribute("clientType", clientType.name());
         // 修复：自动登录后在新 Session 中立即生成 CSRF Token
         CsrfInterceptor.generateCsrfToken(newSession);
     }
@@ -190,6 +207,9 @@ public class LoginInterceptor implements HandlerInterceptor {
         }
 
         Long userId = jwtUtil.getUserId(claims);
+        request.setAttribute("authenticatedSid", jwtUtil.getSid(claims));
+        request.setAttribute("authenticatedRole", jwtUtil.getRole(claims));
+        request.setAttribute("authenticatedClientType", jwtUtil.getClientType(claims));
         return userRepository.findById(userId).orElse(null);
     }
 }

@@ -10,6 +10,8 @@ import com.weib.security.CredentialPolicy;
 import com.weib.service.CaptchaService;
 import com.weib.service.IdentityService;
 import com.weib.service.UserService;
+import com.weib.session.ClientType;
+import com.weib.session.SessionRegistryService;
 import com.weib.util.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -17,6 +19,7 @@ import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Locale;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/mobile/auth")
@@ -27,13 +30,15 @@ public class MobileAuthController {
     private final CaptchaService captchaService;
     private final JwtUtil jwtUtil;
     private final IdentityService identityService;
+    private final SessionRegistryService sessionRegistry;
 
     public MobileAuthController(UserService userService, CaptchaService captchaService, JwtUtil jwtUtil,
-                                IdentityService identityService) {
+                                IdentityService identityService, SessionRegistryService sessionRegistry) {
         this.userService = userService;
         this.captchaService = captchaService;
         this.jwtUtil = jwtUtil;
         this.identityService = identityService;
+        this.sessionRegistry = sessionRegistry;
     }
 
     @RateLimit(maxRequests = 10, windowSeconds = 60, key = "ip")
@@ -79,10 +84,14 @@ public class MobileAuthController {
         newSession.setAttribute("username", user.getUsername());
         newSession.setAttribute("activeRole", activeRole);
         newSession.setAttribute("clientType", "MOBILE");
+        String sid = UUID.randomUUID().toString();
+        newSession.setAttribute("sid", sid);
+        sessionRegistry.register(user.getId(), ClientType.MOBILE, sid, activeRole,
+                Integer.toHexString(String.valueOf(request.getHeader("User-Agent")).hashCode()));
         String csrfToken = com.weib.config.CsrfInterceptor.generateCsrfToken(newSession);
         newSession.setAttribute("csrf_token", csrfToken);
 
-        String jwt = jwtUtil.generateToken(user.getId(), user.getUsername(), activeRole);
+        String jwt = jwtUtil.generateToken(user.getId(), user.getUsername(), activeRole, sid, "MOBILE");
         return Result.success(new MobileLoginResponse(jwt, "Bearer", TOKEN_EXPIRES_IN_SECONDS,
                 toMobileUser(user, activeRole)));
     }

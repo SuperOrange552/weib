@@ -15,6 +15,7 @@ public class WebConfig implements WebMvcConfigurer {
     private final CsrfInterceptor csrfInterceptor;
     private final RateLimitInterceptor rateLimitInterceptor;
     private final com.weib.security.IdempotencyInterceptor idempotencyInterceptor;
+    private final com.weib.session.SessionSlotInterceptor sessionSlotInterceptor;
 
     @Value("${storage.upload-dir}")
     private String uploadDir;
@@ -69,6 +70,14 @@ public class WebConfig implements WebMvcConfigurer {
                         "/admin/**",
                         "/swagger-ui/**",
                         "/v3/api-docs/**"
+                );
+
+        registry.addInterceptor(sessionSlotInterceptor)
+                .addPathPatterns("/**")
+                .excludePathPatterns(
+                        "/login", "/register", "/captcha", "/check-username",
+                        "/css/**", "/js/**", "/images/**", "/static/**", "/uploads/**",
+                        "/swagger-ui/**", "/v3/api-docs/**"
                 );
     }
 

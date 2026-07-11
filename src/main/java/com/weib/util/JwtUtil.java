@@ -32,17 +32,22 @@ public class JwtUtil {
     }
 
     public String generateToken(Long userId, String username, String role) {
+        return generateToken(userId, username, role, null, null);
+    }
+
+    public String generateToken(Long userId, String username, String role, String sid, String clientType) {
         Date now = new Date();
         Date expiration = new Date(now.getTime() + EXPIRATION_MS);
 
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(userId.toString())
                 .claim("username", username)
                 .claim("role", role)
                 .issuedAt(now)
-                .expiration(expiration)
-                .signWith(key)
-                .compact();
+                .expiration(expiration);
+        if (sid != null) builder.claim("sid", sid);
+        if (clientType != null) builder.claim("clientType", clientType);
+        return builder.signWith(key).compact();
     }
 
     public Claims validateToken(String token) {
@@ -67,6 +72,14 @@ public class JwtUtil {
 
     public String getRole(Claims claims) {
         return claims.get("role", String.class);
+    }
+
+    public String getSid(Claims claims) {
+        return claims.get("sid", String.class);
+    }
+
+    public String getClientType(Claims claims) {
+        return claims.get("clientType", String.class);
     }
 
     // ========================================

@@ -5,6 +5,8 @@ import com.weib.entity.User;
 import com.weib.service.UserService;
 import com.weib.service.CaptchaService;
 import com.weib.service.IdentityService;
+import com.weib.session.ClientType;
+import com.weib.session.SessionRegistryService;
 import com.weib.util.CookieUtil;
 import com.weib.util.JwtUtil;
 import jakarta.servlet.http.HttpServletResponse;
@@ -14,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import java.util.UUID;
 
 /**
  * ============================================
@@ -88,6 +91,7 @@ public class UserController {
     private final JwtUtil jwtUtil;
     private final CaptchaService captchaService;
     private final IdentityService identityService;
+    private final SessionRegistryService sessionRegistry;
 
     /**
      * 显示登录页面
@@ -363,6 +367,10 @@ public class UserController {
         newSession.setAttribute("username", user.getUsername());
         newSession.setAttribute("activeRole", activeRole);
         newSession.setAttribute("clientType", "WEB");
+        String sid = UUID.randomUUID().toString();
+        newSession.setAttribute("sid", sid);
+        sessionRegistry.register(user.getId(), ClientType.WEB, sid, activeRole,
+                Integer.toHexString(String.valueOf(request.getHeader("User-Agent")).hashCode()));
 
         // 修复 BUG-012: 在新 Session 中立即生成 CSRF Token
         String csrfToken = com.weib.config.CsrfInterceptor.generateCsrfToken(newSession);
@@ -373,7 +381,7 @@ public class UserController {
         CookieUtil.addRememberTokenCookie(response, token, request);
 
         // 生成 JWT 令牌，用于安全的身份认证传输
-        String jwt = jwtUtil.generateToken(user.getId(), user.getUsername(), activeRole);
+        String jwt = jwtUtil.generateToken(user.getId(), user.getUsername(), activeRole, sid, "WEB");
         CookieUtil.addJwtCookie(response, jwt, request);
 
         // 重定向到首页
