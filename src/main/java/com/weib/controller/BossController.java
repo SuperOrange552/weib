@@ -13,6 +13,7 @@ import com.weib.service.MapService;
 import com.weib.service.NotificationService;
 import com.weib.service.ResumeService;
 import com.weib.service.UserService;
+import com.weib.service.SanctionService;
 import com.weib.dto.PublicUserProfile;
 import com.weib.repository.UserRepository;
 import com.weib.util.IdObfuscator;
@@ -94,6 +95,7 @@ public class BossController {
     private final NotificationService notificationService;
     private final ResumeService resumeService;
     private final UserService userService;
+    private final SanctionService sanctionService;
     private final UserRepository userRepository;
     private final IdObfuscator idObfuscator;
 
@@ -467,6 +469,13 @@ public class BossController {
         
         if (user == null || !"boss".equals(user.getRole())) {
             return "redirect:/login";
+        }
+        try {
+            sanctionService.assertAllowed(user.getId(), "PUBLISH_BAN");
+        } catch (com.weib.exception.SanctionDeniedException e) {
+            model.addAttribute("error", "当前账号暂时不能发布或编辑职位");
+            model.addAttribute("user", user);
+            return "boss-jobs";
         }
         
         // 获取公司
@@ -892,6 +901,7 @@ public class BossController {
         if (user == null || !"boss".equals(user.getRole())) return Result.error("请先登录");
 
         try {
+            sanctionService.assertAllowed(user.getId(), "PUBLISH_BAN");
             Job job = jobService.getJobById(id);
             Company company = companyService.getCompanyByBossId(user.getId());
             if (!job.getCompanyId().equals(company.getId())) {

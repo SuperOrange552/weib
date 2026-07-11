@@ -2,6 +2,7 @@ package com.weib.controller;
 
 import com.weib.entity.Resume;
 import com.weib.entity.User;
+import com.weib.service.SanctionService;
 import com.weib.service.ResumeService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -70,6 +71,7 @@ public class ResumeController {
      * - 检查简历状态
      */
     private final ResumeService resumeService;
+    private final SanctionService sanctionService;
 
     /**
      * ========================================
@@ -205,6 +207,7 @@ public class ResumeController {
         
         // 保存简历
         try {
+            sanctionService.assertAllowed(user.getId(), "PUBLISH_BAN");
             resumeService.saveResume(resume);
             model.addAttribute("success", "简历保存成功！");
         } catch (Exception e) {

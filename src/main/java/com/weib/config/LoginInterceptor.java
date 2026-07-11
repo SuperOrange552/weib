@@ -2,6 +2,7 @@ package com.weib.config;
 
 import com.weib.entity.User;
 import com.weib.repository.UserRepository;
+import com.weib.service.SanctionService;
 import com.weib.util.JwtUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.Cookie;
@@ -21,6 +22,7 @@ public class LoginInterceptor implements HandlerInterceptor {
 
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
+    private final SanctionService sanctionService;
 
     private static final String CSRF_TOKEN_ATTR = "csrf_token";
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -98,7 +100,8 @@ public class LoginInterceptor implements HandlerInterceptor {
 
     /** 检查用户是否已被封禁 */
     private boolean isBlocked(User user) {
-        return "banned".equals(user.getStatus());
+        return "banned".equals(user.getStatus())
+                || (user.getId() != null && sanctionService.hasActive(user.getId(), "ACCOUNT_BAN"));
     }
 
     private User getUserFromRememberToken(HttpServletRequest request) {

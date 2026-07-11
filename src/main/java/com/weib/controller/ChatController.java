@@ -13,6 +13,7 @@ import com.weib.service.CompanyService;
 import com.weib.service.JobService;
 import com.weib.service.MessageService;
 import com.weib.service.UserService;
+import com.weib.service.SanctionService;
 import com.weib.dto.PublicUserProfile;
 import com.weib.repository.MessageRepository;
 import com.weib.repository.UserRepository;
@@ -57,6 +58,7 @@ public class ChatController {
     private final UserRepository userRepository;
     private final MessageRepository messageRepository;
     private final UserService userService;
+    private final SanctionService sanctionService;
     private final WebSocketSessionManager sessionManager;
     private final IdObfuscator idObfuscator;
 
@@ -447,6 +449,12 @@ public class ChatController {
         }
         String conversationId = (String) payload.get("conversationId");
         Long senderId = Long.valueOf(principal.getName());
+        try {
+            sanctionService.assertAllowed(senderId, "MUTE");
+        } catch (com.weib.exception.SanctionDeniedException e) {
+            log.info("WebSocket message rejected by mute sanction, userId={}", senderId);
+            return;
+        }
 
         // 解析会话参与者（一次 DB 查询验证双方身份）
         Long[] participantIds = resolveParticipantIds(conversationId);
@@ -527,6 +535,11 @@ public class ChatController {
     public Result<Message> sendMessage(@RequestBody Map<String, Object> payload, HttpSession session) {
         User user = (User) session.getAttribute("user");
         if (user == null) return Result.error("请先登录");
+        try {
+            sanctionService.assertAllowed(user.getId(), "MUTE");
+        } catch (com.weib.exception.SanctionDeniedException e) {
+            return Result.error("当前账号暂时不能发言");
+        }
 
         String conversationId = (String) payload.get("conversationId");
         Long senderId = user.getId();
