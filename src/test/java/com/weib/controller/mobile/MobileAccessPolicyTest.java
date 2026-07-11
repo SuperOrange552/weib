@@ -2,6 +2,7 @@ package com.weib.controller.mobile;
 
 import com.weib.entity.User;
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.web.MockHttpSession;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -10,9 +11,9 @@ class MobileAccessPolicyTest {
 
     @Test
     void onlyAllowsRequestedAppRole() {
-        assertTrue(policy.hasRole(user("seeker"), "seeker"));
-        assertTrue(policy.hasRole(user("boss"), "boss"));
-        assertFalse(policy.hasRole(user("admin"), "boss"));
+        assertTrue(policy.hasRole(session(user("seeker"), "SEEKER"), "seeker"));
+        assertTrue(policy.hasRole(session(user("seeker"), "BOSS"), "boss"));
+        assertFalse(policy.hasRole(session(user("boss"), "SEEKER"), "boss"));
         assertFalse(policy.hasRole(null, "seeker"));
     }
 
@@ -27,5 +28,12 @@ class MobileAccessPolicyTest {
         User user = new User();
         user.setRole(role);
         return user;
+    }
+
+    private MockHttpSession session(User user, String activeRole) {
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute("user", user);
+        session.setAttribute("activeRole", activeRole);
+        return session;
     }
 }

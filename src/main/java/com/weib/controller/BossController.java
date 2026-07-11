@@ -17,6 +17,7 @@ import com.weib.service.SanctionService;
 import com.weib.dto.PublicUserProfile;
 import com.weib.repository.UserRepository;
 import com.weib.util.IdObfuscator;
+import com.weib.identity.ActiveIdentityResolver;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -98,6 +99,7 @@ public class BossController {
     private final SanctionService sanctionService;
     private final UserRepository userRepository;
     private final IdObfuscator idObfuscator;
+    private final ActiveIdentityResolver activeIdentityResolver;
 
     // ==========================================
     // 【Boss首页】我的公司
@@ -138,7 +140,7 @@ public class BossController {
             return "redirect:/login";
         }
         
-        if (!"boss".equals(user.getRole())) {
+        if (!activeIdentityResolver.hasRole(session, "BOSS")) {
             return "redirect:/";
         }
         
@@ -233,7 +235,7 @@ public class BossController {
             return "redirect:/login";
         }
         
-        if (!"boss".equals(user.getRole())) {
+        if (!activeIdentityResolver.hasRole(session, "BOSS")) {
             return "redirect:/";
         }
         
@@ -286,7 +288,7 @@ public class BossController {
         }
 
         // 非Boss用户不能入驻
-        if (!"boss".equals(user.getRole())) {
+        if (!activeIdentityResolver.hasRole(session, "BOSS")) {
             return "redirect:/";
         }
 
@@ -344,7 +346,7 @@ public class BossController {
         
         User user = (User) session.getAttribute("user");
         
-        if (user == null || !"boss".equals(user.getRole())) {
+        if (user == null || !activeIdentityResolver.hasRole(session, "BOSS")) {
             return "redirect:/login";
         }
         
@@ -387,7 +389,7 @@ public class BossController {
         
         User user = (User) session.getAttribute("user");
         
-        if (user == null || !"boss".equals(user.getRole())) {
+        if (user == null || !activeIdentityResolver.hasRole(session, "BOSS")) {
             return "redirect:/login";
         }
         
@@ -415,7 +417,7 @@ public class BossController {
 
         User user = (User) session.getAttribute("user");
 
-        if (user == null || !"boss".equals(user.getRole())) {
+        if (user == null || !activeIdentityResolver.hasRole(session, "BOSS")) {
             return "redirect:/login";
         }
 
@@ -467,7 +469,7 @@ public class BossController {
         
         User user = (User) session.getAttribute("user");
         
-        if (user == null || !"boss".equals(user.getRole())) {
+        if (user == null || !activeIdentityResolver.hasRole(session, "BOSS")) {
             return "redirect:/login";
         }
         try {
@@ -560,7 +562,7 @@ public class BossController {
 
         User user = (User) session.getAttribute("user");
 
-        if (user == null || !"boss".equals(user.getRole())) {
+        if (user == null || !activeIdentityResolver.hasRole(session, "BOSS")) {
             return "redirect:/login";
         }
 
@@ -600,7 +602,7 @@ public class BossController {
         
         User user = (User) session.getAttribute("user");
         
-        if (user == null || !"boss".equals(user.getRole())) {
+        if (user == null || !activeIdentityResolver.hasRole(session, "BOSS")) {
             return "redirect:/login";
         }
         
@@ -700,7 +702,7 @@ public class BossController {
         if (userId == null) return Result.error("参数无效");
 
         User user = (User) session.getAttribute("user");
-        if (user == null || !"boss".equals(user.getRole())) {
+        if (user == null || !activeIdentityResolver.hasRole(session, "BOSS")) {
             return Result.error("请先登录");
         }
         try {
@@ -744,7 +746,7 @@ public class BossController {
 
         User user = (User) session.getAttribute("user");
 
-        if (user == null || !"boss".equals(user.getRole())) {
+        if (user == null || !activeIdentityResolver.hasRole(session, "BOSS")) {
             return Result.error("请先登录");
         }
 
@@ -789,7 +791,7 @@ public class BossController {
     @GetMapping("/boss/company/edit")
     public String editCompany(HttpSession session, Model model) {
         User user = (User) session.getAttribute("user");
-        if (user == null || !"boss".equals(user.getRole())) return "redirect:/login";
+        if (user == null || !activeIdentityResolver.hasRole(session, "BOSS")) return "redirect:/login";
         try {
             Company company = companyService.getCompanyByBossId(user.getId());
             model.addAttribute("company", company);
@@ -812,7 +814,7 @@ public class BossController {
                                 @RequestParam(required = false) Double latitude,
                                 HttpSession session, Model model) {
         User user = (User) session.getAttribute("user");
-        if (user == null || !"boss".equals(user.getRole())) return "redirect:/login";
+        if (user == null || !activeIdentityResolver.hasRole(session, "BOSS")) return "redirect:/login";
 
         try {
             Company company = companyService.getCompanyByBossId(user.getId());
@@ -856,7 +858,7 @@ public class BossController {
         if (id == null) return Result.error("参数无效");
 
         User user = (User) session.getAttribute("user");
-        if (user == null || !"boss".equals(user.getRole())) return Result.error("请先登录");
+        if (user == null || !activeIdentityResolver.hasRole(session, "BOSS")) return Result.error("请先登录");
 
         try {
             Application app = applicationService.getApplicationById(id);
@@ -898,7 +900,7 @@ public class BossController {
         if (id == null) return Result.error("参数无效");
 
         User user = (User) session.getAttribute("user");
-        if (user == null || !"boss".equals(user.getRole())) return Result.error("请先登录");
+        if (user == null || !activeIdentityResolver.hasRole(session, "BOSS")) return Result.error("请先登录");
 
         try {
             sanctionService.assertAllowed(user.getId(), "PUBLISH_BAN");
@@ -929,7 +931,7 @@ public class BossController {
         if (id == null) return Result.error("参数无效");
 
         User user = (User) session.getAttribute("user");
-        if (user == null || !"boss".equals(user.getRole())) return Result.error("请先登录");
+        if (user == null || !activeIdentityResolver.hasRole(session, "BOSS")) return Result.error("请先登录");
 
         try {
             Job job = jobService.getJobById(id);

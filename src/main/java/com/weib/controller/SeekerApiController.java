@@ -4,6 +4,7 @@ import com.weib.dto.Result;
 import com.weib.entity.*;
 import com.weib.service.*;
 import com.weib.util.IdObfuscator;
+import com.weib.identity.ActiveIdentityResolver;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -47,6 +48,7 @@ public class SeekerApiController {
     private final NotificationService notificationService;
     private final MessageService messageService;
     private final IdObfuscator idObfuscator;
+    private final ActiveIdentityResolver activeIdentityResolver;
 
     // ============================================
     // 通用工具方法
@@ -55,7 +57,7 @@ public class SeekerApiController {
     /** 从 Session 提取用户，验证已登录且角色为 seeker */
     private User requireSeeker(HttpSession session) {
         User user = (User) session.getAttribute("user");
-        if (user == null || !"seeker".equals(user.getRole())) {
+        if (user == null || !activeIdentityResolver.hasRole(session, "SEEKER")) {
             return null;
         }
         return user;
@@ -144,7 +146,7 @@ public class SeekerApiController {
         Set<Long> appliedJobIds = Set.of();
         Set<Long> favoritedJobIds = Set.of();
         User user = (User) session.getAttribute("user");
-        if (user != null && "seeker".equals(user.getRole())) {
+        if (user != null && activeIdentityResolver.hasRole(session, "SEEKER")) {
             List<Long> jobIds = jobs.stream().map(Job::getId).collect(Collectors.toList());
             if (!jobIds.isEmpty()) {
                 appliedJobIds = applicationService.getApplicationsByJobIds(jobIds).stream()
@@ -202,7 +204,7 @@ public class SeekerApiController {
             boolean hasApplied = false;
             boolean isFavorited = false;
             User user = (User) session.getAttribute("user");
-            if (user != null && "seeker".equals(user.getRole())) {
+            if (user != null && activeIdentityResolver.hasRole(session, "SEEKER")) {
                 hasApplied = jobService.hasApplied(id, user.getId());
                 isFavorited = favoriteJobService.isFavorited(id, user.getId());
             }
@@ -239,7 +241,7 @@ public class SeekerApiController {
             Set<Long> appliedJobIds = Set.of();
             Set<Long> favoritedJobIds = Set.of();
             User user = (User) session.getAttribute("user");
-            if (user != null && "seeker".equals(user.getRole()) && !jobs.isEmpty()) {
+            if (user != null && activeIdentityResolver.hasRole(session, "SEEKER") && !jobs.isEmpty()) {
                 List<Long> jobIds = jobs.stream().map(Job::getId).collect(Collectors.toList());
                 appliedJobIds = applicationService.getApplicationsByJobIds(jobIds).stream()
                         .filter(a -> a.getUserId().equals(user.getId()))

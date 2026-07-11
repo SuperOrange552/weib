@@ -1,14 +1,16 @@
 package com.weib.controller.mobile;
 
-import com.weib.entity.User;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Component;
 
 import java.util.Objects;
 
 @Component
 public class MobileAccessPolicy {
-    public boolean hasRole(User user, String role) {
-        return user != null && role.equals(user.getRole());
+    public boolean hasRole(HttpSession session, String role) {
+        if (session == null || session.getAttribute("user") == null) return false;
+        Object activeRole = session.getAttribute("activeRole");
+        return activeRole != null && role.equalsIgnoreCase(activeRole.toString());
     }
 
     public boolean ownsCompanyResource(Long ownerCompanyId, Long resourceCompanyId) {

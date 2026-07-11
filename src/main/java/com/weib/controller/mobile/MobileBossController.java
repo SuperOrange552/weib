@@ -256,7 +256,7 @@ public class MobileBossController {
 
     private User currentBoss(HttpSession session) {
         User user = (User) session.getAttribute("user");
-        return accessPolicy.hasRole(user, "boss") ? user : null;
+        return accessPolicy.hasRole(session, "boss") ? user : null;
     }
 
     private Company companyOrNull(User boss) {

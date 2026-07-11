@@ -78,6 +78,6 @@ public class MobileSeekerActionController {
 
     private User currentSeeker(HttpSession session) {
         User user = (User) session.getAttribute("user");
-        return accessPolicy.hasRole(user, "seeker") ? user : null;
+        return accessPolicy.hasRole(session, "seeker") ? user : null;
     }
 }
