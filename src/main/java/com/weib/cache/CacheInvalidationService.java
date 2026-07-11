@@ -2,6 +2,7 @@ package com.weib.cache;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.Cursor;
@@ -28,7 +29,7 @@ public class CacheInvalidationService {
 
     @Autowired
     public CacheInvalidationService(RedisTemplate<String, Object> redis,
-                                    TaskScheduler scheduler,
+                                    @Qualifier("cacheTaskScheduler") TaskScheduler scheduler,
                                     @Value("${weib.cache.enabled:true}") boolean enabled,
                                     @Value("${weib.cache.delayed-delete-ms:800}") long delayedDeleteMillis) {
         this.redis = redis;
