@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { getUserDetail } from '../api/users'
+import { getUserDetail, getUserIdentities, type UserIdentity } from '../api/users'
+import { getUserSessions, type LoginSlot } from '../api/sessions'
 import { getRoleLabel, getStatusLabel, formatDate } from '../utils'
 import type { User, UserDetail } from '../types'
 import { Drawer, Typography, Chip, Divider, Skeleton, Box } from '@mui/material'
@@ -13,13 +14,19 @@ interface Props {
 const UserDetailDrawer: React.FC<Props> = ({ open, user, onClose }) => {
   const [detail, setDetail] = useState<UserDetail | null>(null)
   const [loading, setLoading] = useState(false)
+  const [identities, setIdentities] = useState<UserIdentity[]>([])
+  const [sessions, setSessions] = useState<Record<string, LoginSlot>>({})
 
   useEffect(() => {
     if (open && user) {
       setDetail(null)
       setLoading(true)
-      getUserDetail(user.id)
-        .then(res => setDetail(res.data.data))
+      Promise.all([getUserDetail(user.id), getUserIdentities(user.id), getUserSessions(user.id)])
+        .then(([detailRes, identityRes, sessionRes]) => {
+          setDetail(detailRes.data.data)
+          setIdentities(identityRes.data.data || [])
+          setSessions(sessionRes.data.data || {})
+        })
         .catch(() => {})
         .finally(() => setLoading(false))
     }
@@ -38,6 +45,24 @@ const UserDetailDrawer: React.FC<Props> = ({ open, user, onClose }) => {
             <Typography variant="h6" className="font-semibold">
               {detail.nickname || detail.username}
             </Typography>
+            <Divider />
+            <Typography variant="subtitle1" className="font-semibold">身份与权限</Typography>
+            <div className="flex gap-2 flex-wrap">
+              {identities.length === 0 ? <span className="text-gray-500">暂无已开通身份</span> : identities.map(identity => (
+                <Chip key={identity.id} label={`${identity.roleType} · ${identity.status}`}
+                      color={identity.status === 'ACTIVE' ? 'success' : 'default'} size="small" />
+              ))}
+            </div>
+            <Divider />
+            <Typography variant="subtitle1" className="font-semibold">在线会话</Typography>
+            <div className="space-y-2 text-sm">
+              {Object.keys(sessions).length === 0 ? <span className="text-gray-500">当前无在线会话</span> :
+                Object.entries(sessions).map(([clientType, slot]) => (
+                  <div key={clientType} className="bg-gray-50 rounded p-2">
+                    <b>{clientType}</b> · {slot.activeRole} · 登录时间 {formatDate(new Date(slot.issuedAt).toISOString())}
+                  </div>
+                ))}
+            </div>
             <Divider />
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
