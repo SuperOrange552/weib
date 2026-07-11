@@ -43,6 +43,10 @@ public final class CacheKeys {
         return "lock:cache:load:" + cacheKey;
     }
 
+    public static String forumSections() { return "cache:forum:sections"; }
+
+    public static String forumPost(Long postId) { return "cache:forum:post:" + postId; }
+
     public static String sanction(Long userId, String sanctionType) {
         return "cache:sanction:" + userId + ":" + sanctionType;
     }
