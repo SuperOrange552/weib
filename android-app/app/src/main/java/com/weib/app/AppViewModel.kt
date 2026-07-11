@@ -139,6 +139,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 .onFailure { _state.value = _state.value.copy(actionMessage = it.message ?: "上传失败") }
         }
     }
+    fun saveResume(fields: Map<String, Any?>) {
+        viewModelScope.launch {
+            runCatching { repository.saveResume(fields) }
+                .onSuccess { result ->
+                    _state.value = _state.value.copy(actionMessage = if (result.code == 200) "简历保存成功" else result.msg)
+                    if (result.code == 200) retry()
+                }.onFailure { _state.value = _state.value.copy(actionMessage = it.message ?: "简历保存失败") }
+        }
+    }
 
     fun logout() {
         viewModelScope.launch {

@@ -134,21 +134,22 @@ private fun MainShell(state: AppUiState, viewModel: AppViewModel) {
         }
     ) { padding ->
         ContentScreen(state, viewModel::retry, viewModel::logout, viewModel::apply,
-            viewModel::toggleFavorite, viewModel::withdraw, viewModel::uploadResumeMedia, Modifier.padding(padding))
+            viewModel::toggleFavorite, viewModel::withdraw, viewModel::uploadResumeMedia, viewModel::saveResume, Modifier.padding(padding))
     }
 }
 
 @Composable
 private fun ContentScreen(state: AppUiState, retry: () -> Unit, logout: () -> Unit,
                           apply: (String) -> Unit, favorite: (String) -> Unit,
-                          withdraw: (String) -> Unit, upload: (Uri, String) -> Unit, modifier: Modifier) {
+                          withdraw: (String) -> Unit, upload: (Uri, String) -> Unit,
+                          saveResume: (Map<String, Any?>) -> Unit, modifier: Modifier) {
     when {
         state.content.loading -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         state.content.error != null -> ErrorState(state.content.error, retry, modifier)
         state.selected == AppDestination.Jobs -> JobList(state.content.data, apply, favorite, modifier)
         state.selected == AppDestination.Applications -> ApplicationList(state.content.data, withdraw, modifier)
         state.selected == AppDestination.Dashboard -> Dashboard(state.content.data, modifier)
-        state.selected == AppDestination.Profile -> Profile(state.content.data, state.role, upload, logout, modifier)
+        state.selected == AppDestination.Profile -> Profile(state.content.data, state.role, upload, saveResume, logout, modifier)
         else -> GenericList(state.content.title, state.content.data, modifier)
     }
 }
@@ -233,13 +234,31 @@ private fun GenericList(title: String, data: JsonElement?, modifier: Modifier) {
 }
 
 @Composable
-private fun Profile(data: JsonElement?, role: String?, upload: (Uri, String) -> Unit, logout: () -> Unit, modifier: Modifier) {
+private fun Profile(data: JsonElement?, role: String?, upload: (Uri, String) -> Unit,
+                    saveResume: (Map<String, Any?>) -> Unit, logout: () -> Unit, modifier: Modifier) {
     val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { it?.let { uri -> upload(uri, "avatar") } }
     val attachmentPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { it?.let { uri -> upload(uri, "attachment") } }
+    val resume = data?.takeIf { it.isJsonObject }?.asJsonObject
+    var realName by remember(data) { mutableStateOf(resume?.string("realName").orEmpty()) }
+    var phone by remember(data) { mutableStateOf(resume?.string("phone").orEmpty()) }
+    var email by remember(data) { mutableStateOf(resume?.string("email").orEmpty()) }
+    var school by remember(data) { mutableStateOf(resume?.string("school").orEmpty()) }
+    var major by remember(data) { mutableStateOf(resume?.string("major").orEmpty()) }
+    var skills by remember(data) { mutableStateOf(resume?.string("skills").orEmpty()) }
+    var introduction by remember(data) { mutableStateOf(resume?.string("selfIntroduction").orEmpty()) }
     LazyColumn(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { Text("我的", style = MaterialTheme.typography.headlineMedium) }
         item { WeibCard { JsonSummary(data); Text("论坛、投诉与申诉", style = MaterialTheme.typography.titleMedium); Text("用户提交后由 Web 管理后台审核", color = WeibMuted) } }
         if (role == "seeker") item { WeibCard {
+            Text("编辑简历", style = MaterialTheme.typography.titleLarge)
+            OutlinedTextField(realName,{realName=it},Modifier.fillMaxWidth(),label={Text("姓名")})
+            OutlinedTextField(phone,{phone=it},Modifier.fillMaxWidth(),label={Text("手机号")})
+            OutlinedTextField(email,{email=it},Modifier.fillMaxWidth(),label={Text("邮箱")})
+            OutlinedTextField(school,{school=it},Modifier.fillMaxWidth(),label={Text("毕业院校")})
+            OutlinedTextField(major,{major=it},Modifier.fillMaxWidth(),label={Text("专业")})
+            OutlinedTextField(skills,{skills=it},Modifier.fillMaxWidth(),label={Text("技能")})
+            OutlinedTextField(introduction,{introduction=it},Modifier.fillMaxWidth(),label={Text("自我介绍")},minLines=3)
+            Button(onClick={saveResume(mapOf("id" to resume?.get("id")?.takeIf{!it.isJsonNull}?.asLong,"realName" to realName,"phone" to phone,"email" to email,"school" to school,"major" to major,"skills" to skills,"selfIntroduction" to introduction))},Modifier.fillMaxWidth(),enabled=realName.isNotBlank()&&phone.isNotBlank()&&email.contains("@")){Text("保存简历")}
             Text("简历文件", style = MaterialTheme.typography.titleMedium)
             Button(onClick = { avatarPicker.launch("image/*") }, Modifier.fillMaxWidth()) { Text("选择并上传头像") }
             OutlinedButton(onClick = { attachmentPicker.launch("application/pdf") }, Modifier.fillMaxWidth()) { Text("选择并上传简历附件") }
