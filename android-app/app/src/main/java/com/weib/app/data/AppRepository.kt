@@ -19,8 +19,11 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
 class AppRepository(context: Context) {
+    private val appContext = context.applicationContext
     val session = SessionStore(context)
     private val api: WeibApi
+    private lateinit var httpClient: OkHttpClient
+    private lateinit var realtime: com.weib.app.data.realtime.RealtimeClient
     private val _securityEvents = MutableSharedFlow<String>(extraBufferCapacity = 1)
     val securityEvents = _securityEvents.asSharedFlow()
 
@@ -43,7 +46,11 @@ class AppRepository(context: Context) {
             }
         if (BuildConfig.DEBUG) builder.addInterceptor(HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BASIC))
         if (BuildConfig.DEBUG && BuildConfig.TRUST_LOCAL_CERT) trustLocalCertificate(builder)
-        api = Retrofit.Builder().baseUrl(BuildConfig.API_BASE_URL).client(builder.build())
+        httpClient = builder.build()
+        realtime = com.weib.app.data.realtime.RealtimeClient(httpClient, BuildConfig.API_BASE_URL,
+            { reason -> _securityEvents.tryEmit(reason) },
+            { id, type, title -> com.weib.app.data.notification.SystemNotificationFactory.show(appContext, id, type, title) })
+        api = Retrofit.Builder().baseUrl(BuildConfig.API_BASE_URL).client(httpClient)
             .addConverterFactory(GsonConverterFactory.create()).build().create(WeibApi::class.java)
     }
 
@@ -58,6 +65,7 @@ class AppRepository(context: Context) {
         val result = api.login(LoginRequest(username, password, captcha, selectedRole))
         if (result.code != 200 || result.data == null) error(result.msg ?: "登录失败")
         session.save(result.data.accessToken, result.data.user.role)
+        realtime.connect()
         return result.data
     }
 
@@ -73,7 +81,9 @@ class AppRepository(context: Context) {
         else -> ApiEnvelope(400, "页面不存在", null)
     }
 
-    suspend fun logout() { runCatching { api.logout() }; session.clear() }
+    suspend fun logout() { realtime.disconnect(); runCatching { api.logout() }; session.clear() }
+
+    fun connectRealtime() = realtime.connect()
     suspend fun notificationEvents(afterEventId: Long) = api.notificationEvents(afterEventId)
 
     private fun trustLocalCertificate(builder: OkHttpClient.Builder) {
