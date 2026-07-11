@@ -1,5 +1,9 @@
 package com.weib.service;
 
+import com.weib.cache.CacheAsideService;
+import com.weib.cache.CacheInvalidationService;
+import com.weib.cache.CacheKeys;
+import com.weib.dto.PublicUserProfile;
 import com.weib.entity.User;
 import com.weib.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -9,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.time.Duration;
 
 /**
  * ============================================
@@ -166,6 +171,18 @@ public class UserService {
      */
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final CacheAsideService cache;
+    private final CacheInvalidationService cacheInvalidation;
+
+    @Transactional(readOnly = true)
+    public PublicUserProfile getPublicUserProfile(Long userId) {
+        return cache.getOrLoad(CacheKeys.userPublic(userId), PublicUserProfile.class,
+                () -> userRepository.findById(userId)
+                        .map(user -> new PublicUserProfile(user.getId(), user.getRole(), user.getUsername(),
+                                user.getNickname(), user.getAvatar(), user.getStatus()))
+                        .orElse(null),
+                Duration.ofMinutes(10));
+    }
 
     /**
      * 用户注册

@@ -1,5 +1,8 @@
 package com.weib.service;
 
+import com.weib.cache.CacheAsideService;
+import com.weib.cache.CacheInvalidationService;
+import com.weib.cache.CacheKeys;
 import com.weib.entity.Job;
 import com.weib.repository.JobRepository;
 import com.weib.repository.ApplicationRepository;
@@ -14,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.time.Duration;
 
 /**
  * ============================================
@@ -64,6 +68,8 @@ public class JobService {
      * 用于检查用户是否已投递职位
      */
     private final ApplicationRepository applicationRepository;
+    private final CacheAsideService cache;
+    private final CacheInvalidationService cacheInvalidation;
 
     /**
      * ========================================
@@ -85,13 +91,21 @@ public class JobService {
      * @return 活跃职位列表
      */
     @Transactional(readOnly = true)
+    @SuppressWarnings("unchecked")
     public List<Job> getAllActiveJobs() {
-        return jobRepository.findByStatusOrderByCreatedAtDesc("active");
+        return (List<Job>) (List<?>) cache.getOrLoad(
+                CacheKeys.jobsList("status=active", 0, 0), List.class,
+                () -> jobRepository.findByStatusOrderByCreatedAtDesc("active"), Duration.ofMinutes(2));
     }
 
     @Transactional(readOnly = true)
+    @SuppressWarnings("unchecked")
     public List<Job> getRecentActiveJobs(int limit) {
-        return jobRepository.findByStatusOrderByCreatedAtDesc("active", PageRequest.of(0, limit)).getContent();
+        int boundedLimit = Math.min(Math.max(limit, 1), 100);
+        return (List<Job>) (List<?>) cache.getOrLoad(
+                CacheKeys.jobsList("status=active|recent=" + boundedLimit, 0, boundedLimit), List.class,
+                () -> jobRepository.findByStatusOrderByCreatedAtDesc("active", PageRequest.of(0, boundedLimit)).getContent(),
+                Duration.ofMinutes(2));
     }
 
     /**
@@ -111,8 +125,10 @@ public class JobService {
     @Transactional(readOnly = true)
     // @Cacheable 不用于 JPA 实体 —— PageImpl 无默认构造器，反序列化会失败
     public Job getJobById(Long id) {
-        return jobRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("职位不存在: " + id));
+        return cache.getOrLoad(CacheKeys.job(id), Job.class,
+                () -> jobRepository.findById(id)
+                        .orElseThrow(() -> new RuntimeException("职位不存在: " + id)),
+                Duration.ofMinutes(5));
     }
 
     /**
@@ -127,8 +143,11 @@ public class JobService {
      * @return 该公司的职位列表
      */
     @Transactional(readOnly = true)
+    @SuppressWarnings("unchecked")
     public List<Job> getJobsByCompanyId(Long companyId) {
-        return jobRepository.findByCompanyIdOrderByCreatedAtDesc(companyId);
+        return (List<Job>) (List<?>) cache.getOrLoad(
+                CacheKeys.jobsList("company=" + companyId, 0, 0), List.class,
+                () -> jobRepository.findByCompanyIdOrderByCreatedAtDesc(companyId), Duration.ofMinutes(2));
     }
 
     /**
@@ -157,10 +176,11 @@ public class JobService {
      * @return 符合条件的职位列表
      */
     @Transactional(readOnly = true)
+    @SuppressWarnings("unchecked")
     public List<Job> searchJobs(String keyword, String city, String education) {
         // 三个条件都为空，返回所有活跃职位
         if (keyword == null && city == null && education == null) {
-            return jobRepository.findByStatusOrderByCreatedAtDesc("active");
+            return getAllActiveJobs();
         }
 
         // 第一步：用 keyword 过滤（无 keyword 则取所有活跃职位）
@@ -172,13 +192,13 @@ public class JobService {
          *   SELECT * FROM jobs WHERE title LIKE '%keyword%'
          * - IgnoreCase = 忽略大小写
          */
-        List<Job> result;
-        if (keyword != null) {
-            // 修复：keyword 搜索也只查活跃职位，避免返回已关闭职位
-            result = jobRepository.findByTitleContainingIgnoreCaseAndStatus(keyword, "active");
-        } else {
-            result = jobRepository.findByStatus("active");
-        }
+        String normalizedKeyword = keyword == null ? "" : keyword.trim().toLowerCase();
+        List<Job> result = (List<Job>) (List<?>) cache.getOrLoad(
+                CacheKeys.jobsList("status=active|keyword=" + normalizedKeyword, 0, 0), List.class,
+                () -> keyword != null
+                        ? jobRepository.findByTitleContainingIgnoreCaseAndStatus(keyword, "active")
+                        : jobRepository.findByStatus("active"),
+                Duration.ofMinutes(2));
 
         // 第二步：city 精确过滤
         if (city != null && !city.isEmpty()) {
@@ -214,7 +234,10 @@ public class JobService {
     @Transactional
     @CacheEvict(value = "jobs", allEntries = true)
     public Job createJob(Job job) {
-        return jobRepository.save(job);
+        Job saved = jobRepository.save(job);
+        cacheInvalidation.invalidatePattern("cache:jobs:list:*");
+        if (saved.getId() != null) cacheInvalidation.invalidate(CacheKeys.job(saved.getId()));
+        return saved;
     }
 
     /**
@@ -272,6 +295,8 @@ public class JobService {
     @CacheEvict(value = "jobs", allEntries = true)
     public void deleteJob(Long id) {
         jobRepository.deleteById(id);
+        cacheInvalidation.invalidate(CacheKeys.job(id));
+        cacheInvalidation.invalidatePattern("cache:jobs:list:*");
     }
 
     /**
@@ -333,29 +358,33 @@ public class JobService {
      */
     @Transactional(readOnly = true)
     // PageImpl 不可缓存（无默认构造器，反序列化失败）
+    @SuppressWarnings("unchecked")
     public Page<Job> getActiveJobsPaged(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        return jobRepository.findByStatusOrderByCreatedAtDesc("active", pageable);
+        int boundedSize = Math.min(Math.max(size, 1), 100);
+        Pageable pageable = PageRequest.of(Math.max(page, 0), boundedSize);
+        List<Job> all = (List<Job>) (List<?>) cache.getOrLoad(
+                CacheKeys.jobsList("status=active", 0, 0), List.class,
+                () -> jobRepository.findByStatus("active"), Duration.ofMinutes(2));
+        return toPage(all, pageable);
     }
 
     /**
      * 分页搜索职位
      */
     @Transactional(readOnly = true)
+    @SuppressWarnings("unchecked")
     public Page<Job> searchJobsPaged(String keyword, String city, String education,
                                       String experience,
                                       Integer salaryMin, Integer salaryMax,
                                       String sort, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        List<Job> allJobs;
-
-        if (keyword != null && !keyword.isEmpty()) {
-            // keyword 搜索：先查出所有匹配的活跃职位，再内存过滤+分页
-            allJobs = jobRepository.findByTitleContainingIgnoreCaseAndStatus(keyword, "active");
-        } else {
-            // 无 keyword：查出所有活跃职位，内存过滤+分页（避免 JPA 分页后再手工分页导致的双重分页）
-            allJobs = jobRepository.findByStatus("active");
-        }
+        String normalizedKeyword = keyword == null ? "" : keyword.trim().toLowerCase();
+        List<Job> allJobs = (List<Job>) (List<?>) cache.getOrLoad(
+                CacheKeys.jobsList("status=active|keyword=" + normalizedKeyword, 0, 0), List.class,
+                () -> keyword != null && !keyword.isEmpty()
+                        ? jobRepository.findByTitleContainingIgnoreCaseAndStatus(keyword, "active")
+                        : jobRepository.findByStatus("active"),
+                Duration.ofMinutes(2));
 
         List<Job> filtered = new ArrayList<>(allJobs);
         if (city != null && !city.isEmpty()) {
@@ -386,4 +415,12 @@ public class JobService {
         List<Job> pageContent = start < total ? filtered.subList(start, end) : List.of();
         return new org.springframework.data.domain.PageImpl<>(pageContent, pageable, total);
     }
+    private Page<Job> toPage(List<Job> jobs, Pageable pageable) {
+        int total = jobs.size();
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), total);
+        List<Job> content = start < total ? jobs.subList(start, end) : List.of();
+        return new org.springframework.data.domain.PageImpl<>(content, pageable, total);
+    }
+
 }

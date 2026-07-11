@@ -19,6 +19,10 @@ public final class CacheKeys {
         return "cache:company:" + companyId;
     }
 
+    public static String companyByBoss(Long bossId) {
+        return "cache:company:boss:" + bossId;
+    }
+
     public static String job(Long jobId) {
         return "cache:job:" + jobId;
     }

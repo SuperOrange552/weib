@@ -1,5 +1,8 @@
 package com.weib.service;
 
+import com.weib.cache.CacheAsideService;
+import com.weib.cache.CacheInvalidationService;
+import com.weib.cache.CacheKeys;
 import com.weib.entity.Resume;
 import com.weib.repository.ResumeRepository;
 import lombok.RequiredArgsConstructor;
@@ -9,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.time.Duration;
 
 /**
  * ============================================
@@ -84,6 +88,8 @@ public class ResumeService {
      * - 提供自定义查询方法
      */
     private final ResumeRepository resumeRepository;
+    private final CacheAsideService cache;
+    private final CacheInvalidationService cacheInvalidation;
 
     /**
      * ========================================
@@ -100,8 +106,10 @@ public class ResumeService {
      */
     @Transactional(readOnly = true)
     public Resume getResumeById(Long id) {
-        return resumeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("简历不存在: id=" + id));
+        return cache.getOrLoad(CacheKeys.resumePublic(id), Resume.class,
+                () -> resumeRepository.findById(id)
+                        .orElseThrow(() -> new RuntimeException("简历不存在: id=" + id)),
+                Duration.ofMinutes(10));
     }
 
     /**
@@ -114,8 +122,10 @@ public class ResumeService {
      */
     @Transactional(readOnly = true)
     public Resume getResumeByUserId(Long userId) {
-        return resumeRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("简历不存在: userId=" + userId));
+        return cache.getOrLoad(CacheKeys.resumeByUser(userId), Resume.class,
+                () -> resumeRepository.findByUserId(userId)
+                        .orElseThrow(() -> new RuntimeException("简历不存在: userId=" + userId)),
+                Duration.ofMinutes(10));
     }
 
     /**
@@ -146,18 +156,25 @@ public class ResumeService {
                 resume.setStatus("draft");
                 // 并发保护：INSERT 时 userId 唯一约束冲突 → 自动重试为 UPDATE
                 try {
-                    return resumeRepository.save(resume);
+                    return persistAndInvalidate(resume);
                 } catch (DataIntegrityViolationException e) {
                     resume = mergeWithExisting(resume);
                 }
             }
         }
-        return resumeRepository.save(resume);
+        return persistAndInvalidate(resume);
     }
 
     /**
      * 将新简历的数据合并到已有简历中，保留不可变字段
      */
+    private Resume persistAndInvalidate(Resume resume) {
+        Resume saved = resumeRepository.save(resume);
+        if (saved.getId() != null) cacheInvalidation.invalidate(CacheKeys.resumePublic(saved.getId()));
+        if (saved.getUserId() != null) cacheInvalidation.invalidate(CacheKeys.resumeByUser(saved.getUserId()));
+        return saved;
+    }
+
     private Resume mergeWithExisting(Resume newResume) {
         Resume existing = getResumeByUserId(newResume.getUserId());
         existing.setRealName(newResume.getRealName() != null ? newResume.getRealName() : existing.getRealName());
@@ -201,7 +218,17 @@ public class ResumeService {
     @Transactional(readOnly = true)
     public Map<Long, Resume> getResumeMapByUserIds(List<Long> userIds) {
         if (userIds.isEmpty()) return Map.of();
-        return resumeRepository.findByUserIdIn(userIds).stream()
-                .collect(java.util.stream.Collectors.toMap(Resume::getUserId, r -> r));
+        return userIds.stream()
+                .map(this::getResumeIfPresent)
+                .filter(java.util.Objects::nonNull)
+                .collect(java.util.stream.Collectors.toMap(Resume::getUserId, r -> r, (left, right) -> left));
+    }
+
+    private Resume getResumeIfPresent(Long userId) {
+        try {
+            return getResumeByUserId(userId);
+        } catch (RuntimeException ignored) {
+            return null;
+        }
     }
 }

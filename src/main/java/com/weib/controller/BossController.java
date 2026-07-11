@@ -12,6 +12,8 @@ import com.weib.service.JobService;
 import com.weib.service.MapService;
 import com.weib.service.NotificationService;
 import com.weib.service.ResumeService;
+import com.weib.service.UserService;
+import com.weib.dto.PublicUserProfile;
 import com.weib.repository.UserRepository;
 import com.weib.util.IdObfuscator;
 import jakarta.servlet.http.HttpSession;
@@ -91,6 +93,7 @@ public class BossController {
     private final MapService mapService;
     private final NotificationService notificationService;
     private final ResumeService resumeService;
+    private final UserService userService;
     private final UserRepository userRepository;
     private final IdObfuscator idObfuscator;
 
@@ -702,10 +705,11 @@ public class BossController {
             }
 
             Resume resume = resumeService.getResumeByUserId(userId);
-            User seeker = userRepository.findById(userId).orElse(null);
+            PublicUserProfile seeker = userService.getPublicUserProfile(userId);
             Map<String, Object> data = new HashMap<>();
             data.put("resume", resume);
-            data.put("seekerName", seeker != null ? (seeker.getNickname() != null ? seeker.getNickname() : seeker.getUsername()) : "未知");
+            data.put("seekerName", seeker != null
+                    ? (seeker.nickname() != null ? seeker.nickname() : seeker.username()) : "未知");
             return Result.success(data);
         } catch (Exception e) {
             return Result.error("简历不存在");

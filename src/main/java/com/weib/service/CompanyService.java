@@ -1,5 +1,8 @@
 package com.weib.service;
 
+import com.weib.cache.CacheAsideService;
+import com.weib.cache.CacheInvalidationService;
+import com.weib.cache.CacheKeys;
 import com.weib.entity.Company;
 import com.weib.repository.CompanyRepository;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.time.Duration;
 
 @Service
 @RequiredArgsConstructor
@@ -20,30 +24,42 @@ public class CompanyService {
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(CompanyService.class);
     private final CompanyRepository companyRepository;
     private final MapService mapService;
+    private final CacheAsideService cache;
+    private final CacheInvalidationService cacheInvalidation;
 
     @Transactional(readOnly = true)
     public Company getCompanyById(Long id) {
-        return companyRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("公司不存在: " + id));
+        return cache.getOrLoad(CacheKeys.company(id), Company.class,
+                () -> companyRepository.findById(id)
+                        .orElseThrow(() -> new RuntimeException("公司不存在: " + id)),
+                Duration.ofMinutes(30));
     }
 
     @Transactional(readOnly = true)
     public Map<Long, Company> getCompanyMapByIds(List<Long> ids) {
         if (ids.isEmpty()) return Map.of();
-        return companyRepository.findAllById(ids).stream()
-                .collect(Collectors.toMap(Company::getId, Function.identity()));
+        return ids.stream()
+                .map(id -> cache.getOrLoad(CacheKeys.company(id), Company.class,
+                        () -> companyRepository.findById(id).orElse(null), Duration.ofMinutes(30)))
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toMap(Company::getId, Function.identity(), (left, right) -> left));
     }
 
     @Transactional(readOnly = true)
     public Company getCompanyByBossId(Long bossId) {
-        return companyRepository.findByBossId(bossId).stream()
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("该公司Boss的公司不存在: " + bossId));
+        return cache.getOrLoad(CacheKeys.companyByBoss(bossId), Company.class,
+                () -> companyRepository.findByBossId(bossId).stream()
+                        .findFirst()
+                        .orElseThrow(() -> new RuntimeException("该 Boss 的公司不存在: " + bossId)),
+                Duration.ofMinutes(30));
     }
 
     @Transactional
     public Company createCompany(Company company) {
-        return companyRepository.save(company);
+        Company saved = companyRepository.save(company);
+        if (saved.getId() != null) cacheInvalidation.invalidate(CacheKeys.company(saved.getId()));
+        if (saved.getBossId() != null) cacheInvalidation.invalidate(CacheKeys.companyByBoss(saved.getBossId()));
+        return saved;
     }
 
     @Transactional

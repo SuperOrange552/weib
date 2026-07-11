@@ -12,6 +12,8 @@ import com.weib.service.ApplicationService;
 import com.weib.service.CompanyService;
 import com.weib.service.JobService;
 import com.weib.service.MessageService;
+import com.weib.service.UserService;
+import com.weib.dto.PublicUserProfile;
 import com.weib.repository.MessageRepository;
 import com.weib.repository.UserRepository;
 import com.weib.util.IdObfuscator;
@@ -54,6 +56,7 @@ public class ChatController {
     private final SimpMessagingTemplate messagingTemplate;
     private final UserRepository userRepository;
     private final MessageRepository messageRepository;
+    private final UserService userService;
     private final WebSocketSessionManager sessionManager;
     private final IdObfuscator idObfuscator;
 
@@ -258,9 +261,9 @@ public class ChatController {
         String otherUserName = "未知用户";
         if (otherUserId != null) {
             try {
-                User otherUser = userRepository.findById(otherUserId).orElse(null);
+                PublicUserProfile otherUser = userService.getPublicUserProfile(otherUserId);
                 if (otherUser != null) {
-                    otherUserName = otherUser.getNickname() != null ? otherUser.getNickname() : otherUser.getUsername();
+                    otherUserName = otherUser.nickname() != null ? otherUser.nickname() : otherUser.username();
                 }
             } catch (Exception e) {
                 log.warn("获取对话用户信息失败, otherUserId={}", otherUserId, e);

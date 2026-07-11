@@ -4,11 +4,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.RedisCallback;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 /** 数据库事务成功后立即删除并延迟二次删除缓存。 */
 @Slf4j
@@ -34,7 +40,10 @@ public class CacheInvalidationService {
     public CacheInvalidationService(RedisTemplate<String, Object> redis,
                                     TaskScheduler scheduler,
                                     long delayedDeleteMillis) {
-        this(redis, scheduler, true, delayedDeleteMillis);
+        this.redis = redis;
+        this.scheduler = scheduler;
+        this.enabled = true;
+        this.delayedDeleteMillis = Math.max(0, delayedDeleteMillis);
     }
 
     public void invalidate(String... keys) {
@@ -53,6 +62,26 @@ public class CacheInvalidationService {
         } catch (RuntimeException e) {
             log.warn("Unable to schedule delayed cache deletion, keys={}, error={}",
                     Arrays.toString(normalized), e.getMessage());
+        }
+    }
+
+    /** 使用 Redis SCAN 清理命名空间，避免生产环境调用阻塞性的 KEYS。 */
+    public void invalidatePattern(String pattern) {
+        if (!enabled || pattern == null || pattern.isBlank()) return;
+        try {
+            Set<String> keys = redis.execute((RedisCallback<Set<String>>) connection -> {
+                Set<String> found = new HashSet<>();
+                try (Cursor<byte[]> cursor = connection.scan(
+                        ScanOptions.scanOptions().match(pattern).count(100).build())) {
+                    while (cursor.hasNext()) {
+                        found.add(new String(cursor.next(), StandardCharsets.UTF_8));
+                    }
+                }
+                return found;
+            });
+            if (keys != null && !keys.isEmpty()) invalidate(keys.toArray(new String[0]));
+        } catch (RuntimeException e) {
+            log.warn("Redis SCAN invalidation failed, pattern={}, error={}", pattern, e.getMessage());
         }
     }
 
