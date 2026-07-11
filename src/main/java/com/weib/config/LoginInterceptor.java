@@ -59,7 +59,7 @@ public class LoginInterceptor implements HandlerInterceptor {
             User sessionUser = (User) session.getAttribute("user");
             if (isBlocked(sessionUser) && !isAppealPath(request)) {
                 session.invalidate();
-                response.sendRedirect("/login?blocked");
+                reject(request, response, 403, "账号已被封禁，可提交申诉材料");
                 return false;
             }
             return true;
@@ -69,7 +69,7 @@ public class LoginInterceptor implements HandlerInterceptor {
         User user = getUserFromRememberToken(request);
         if (user != null) {
             if (isBlocked(user) && !isAppealPath(request)) {
-                response.sendRedirect("/login?blocked");
+                reject(request, response, 403, "账号已被封禁，可提交申诉材料");
                 return false;
             }
             createSession(request, session, user);
@@ -80,7 +80,7 @@ public class LoginInterceptor implements HandlerInterceptor {
         user = getUserFromJwt(request);
         if (user != null) {
             if (isBlocked(user) && !isAppealPath(request)) {
-                response.sendRedirect("/login?blocked");
+                reject(request, response, 403, "账号已被封禁，可提交申诉材料");
                 return false;
             }
             createSession(request, session, user);
@@ -88,8 +88,19 @@ public class LoginInterceptor implements HandlerInterceptor {
         }
 
         // 4. 未登录，重定向到登录页
-        response.sendRedirect("/login");
+        reject(request, response, 401, "未登录或登录已过期");
         return false;
+    }
+
+    private void reject(HttpServletRequest request, HttpServletResponse response, int status, String message)
+            throws java.io.IOException {
+        if (request.getRequestURI().startsWith("/api/")) {
+            response.setStatus(status);
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write("{\"code\":" + status + ",\"msg\":\"" + message + "\",\"data\":null}");
+        } else {
+            response.sendRedirect(status == 403 ? "/login?blocked" : "/login");
+        }
     }
 
     private void createSession(HttpServletRequest request, HttpSession oldSession, User user) {

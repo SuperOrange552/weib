@@ -202,3 +202,44 @@ csrfToken=<页面隐藏字段提取>
 sessionCookie=<JSESSIONID>
 idempotencyKey=<每个新操作生成 UUID；重试时保持不变>
 ```
+# Android 移动端接口补充
+
+> Android App 只支持 `seeker` 和 `boss`，管理员仍使用 Web 管理后台。
+
+## 移动端登录
+
+1. `GET /captcha`：保存响应的 `JSESSIONID`，读取响应头 `X-Captcha-Expires-In`（当前为 120 秒）。刷新过快返回 HTTP 429 和 `Retry-After`。
+2. `POST /api/mobile/auth/login`：必须使用与验证码相同的 Cookie 会话。
+
+```json
+{
+  "username": "seeker_ahua",
+  "password": "用户密码",
+  "captcha": "AB12"
+}
+```
+
+成功时 `data.accessToken` 用于后续 `Authorization: Bearer <token>`；`data.user.role` 只会是 `seeker` 或 `boss`。管理员账号返回业务码 403。
+
+## 求职者写接口
+
+- `POST /api/mobile/seeker/jobs/{encodedJobId}/apply`
+- `POST /api/mobile/seeker/jobs/{encodedJobId}/favorite`
+- `POST /api/mobile/seeker/applications/{encodedApplicationId}/withdraw`
+
+上述写接口携带 `Idempotency-Key: <UUID>`。职位、投递、收藏、简历、通知和会话读接口继续使用 `/api/seeker/**`。
+
+## 招聘者接口
+
+- `GET /api/mobile/boss/dashboard`
+- `GET|PUT /api/mobile/boss/company`
+- `GET|POST /api/mobile/boss/jobs`
+- `PUT /api/mobile/boss/jobs/{encodedJobId}`
+- `POST /api/mobile/boss/jobs/{encodedJobId}/close|reopen`
+- `GET /api/mobile/boss/jobs/{encodedJobId}/stats`
+- `GET /api/mobile/boss/applications`
+- `GET /api/mobile/boss/applications/{encodedApplicationId}/resume`
+- `POST /api/mobile/boss/applications/{encodedApplicationId}/status`
+- `POST /api/mobile/boss/applications/{encodedApplicationId}/interview`
+
+服务端会校验 Boss 与公司、职位、投递记录的归属关系，不能用其他公司的混淆 ID 越权操作。
