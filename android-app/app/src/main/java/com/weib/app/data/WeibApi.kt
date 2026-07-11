@@ -6,6 +6,7 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Query
 
 interface WeibApi {
     @GET("captcha") suspend fun captcha(): Response<ResponseBody>
@@ -27,4 +28,7 @@ interface WeibApi {
     @GET("api/mobile/boss/company") suspend fun bossCompany(): ApiEnvelope<JsonElement>
 
     @GET("api/forum/posts") suspend fun forumPosts(): ApiEnvelope<JsonElement>
+    @GET("api/mobile/notifications") suspend fun notificationEvents(
+        @Query("afterEventId") afterEventId: Long, @Query("limit") limit: Int = 100
+    ): ApiEnvelope<JsonElement>
 }

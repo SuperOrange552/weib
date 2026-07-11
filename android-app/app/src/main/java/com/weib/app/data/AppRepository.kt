@@ -65,6 +65,7 @@ class AppRepository(context: Context) {
     }
 
     suspend fun logout() { runCatching { api.logout() }; session.clear() }
+    suspend fun notificationEvents(afterEventId: Long) = api.notificationEvents(afterEventId)
 
     private fun trustLocalCertificate(builder: OkHttpClient.Builder) {
         val trustManager = object : X509TrustManager {
