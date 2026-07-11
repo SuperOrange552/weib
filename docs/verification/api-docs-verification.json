@@ -1,14 +1,27 @@
 {
   "controllerEndpointCount": 89,
-  "controllerBusinessEndpointCount": 65,
-  "controllerPageEndpointCount": 24,
-  "documentedMainEndpointCount": 65,
+  "controllerBusinessEndpointCount": 66,
+  "controllerPageEndpointCount": 23,
+  "documentedMainEndpointCount": 75,
   "documentedAppendixEndpointCount": 24,
   "missingEndpoints": [],
-  "unknownDocumentedEndpoints": [],
-  "misplacedPageEndpoints": [],
+  "unknownDocumentedEndpoints": [
+    "GET /api/seeker/applications",
+    "GET /api/seeker/company/{encodedId}",
+    "GET /api/seeker/conversations",
+    "GET /api/seeker/favorites",
+    "GET /api/seeker/job/{encodedId}",
+    "GET /api/seeker/jobs",
+    "GET /api/seeker/notifications",
+    "GET /api/seeker/resume",
+    "POST /api/seeker/logout",
+    "POST /api/seeker/resume"
+  ],
+  "misplacedPageEndpoints": [
+    "GET /notifications"
+  ],
   "requiredTextMissing": [],
-  "status": "PASS",
+  "status": "INCOMPLETE",
   "verifiedAt": "2026-07-10T21:53:27+08:00",
   "live": {
     "baseUrl": "http://superorange.top",

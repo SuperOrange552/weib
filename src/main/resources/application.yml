@@ -137,3 +137,6 @@ logging:
   level:
     root: warn
     com.weib: info
+    com.weib.cache: info
+    com.weib.service.ComplaintService: info
+    com.weib.service.admin.AdminComplaintService: info

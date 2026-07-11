@@ -15,7 +15,8 @@ export interface Complaint {
 }
 
 export interface SanctionCreateRequest {
-  userId: number
+  /** Optional when resolving a JOB/COMPANY/RESUME complaint; backend infers owner. */
+  userId?: number
   sanctionType: 'MUTE' | 'PUBLISH_BAN' | 'ACCOUNT_BAN'
   targetType?: string
   targetId?: number

@@ -1780,6 +1780,40 @@ clientMessageId=
 - 能判断HTTP状态、业务`code`、HTML重定向和二进制响应。
 - 每个模块至少完成一个正常、一个异常、一个权限和一个边界用例。
 
+## 12.5 投诉与处罚接口（可直接用于 Apifox/Postman）
+
+以下标题采用 `METHOD /path` 格式，便于接口文档校验脚本和测试工具识别。
+
+### `POST /api/complaints`
+提交投诉，登录用户必填 `targetType`、`targetId`、`category`、`description`，可选 `evidenceUrls`。
+
+### `GET /api/complaints/mine`
+查询当前登录用户提交的投诉列表。
+
+### `GET /api/complaints/{id}`
+查询当前用户自己的投诉详情。
+
+### `GET /api/admin/complaints`
+管理员分页查询投诉，支持 `status`、`targetType`、`category`、`page`、`size`、`sort`。
+
+### `GET /api/admin/complaints/{id}`
+管理员查询投诉详情、证据和关联处罚。
+
+### `POST /api/admin/complaints/{id}/reject`
+管理员驳回投诉，请求体：`{"reason":"证据不足"}`。
+
+### `POST /api/admin/complaints/{id}/resolve`
+管理员处理投诉，可提交 `contentAction` 和 `sanction` 处罚对象。
+
+### `GET /api/admin/sanctions`
+管理员分页查询处罚记录，支持 `userId`、`sanctionType`、`activeOnly`、`page`、`size`、`sort`。
+
+### `POST /api/admin/sanctions`
+管理员直接创建处罚，请求体至少包含 `userId`、`sanctionType`、`reason`，可选 `targetType`、`targetId`、`endsAt`。
+
+### `POST /api/admin/sanctions/{id}/revoke`
+超级管理员撤销处罚，请求体：`{"reason":"复核后撤销"}`。
+
 ## 13. 页面型路由附录
 
 以下路由主要返回HTML或管理后台SPA，不作为JSON业务接口。练习时可用于验证页面权限、Session和跳转。
@@ -1879,3 +1913,73 @@ Boss公司信息编辑页；未入驻时重定向入驻页。
 ### `GET /admin/{path1:[^.]+}/{path2:[^.]+}`
 
 管理后台二级前端路由回退到SPA入口。
+
+---
+
+# 新增：投诉与处罚接口（2026-07-11）
+
+## 用户端投诉接口
+
+### POST `/api/complaints`
+
+登录后提交投诉。请求体：
+
+```json
+{
+  "targetType": "JOB",
+  "targetId": 123,
+  "category": "FAKE_JOB",
+  "description": "职位薪资与实际不符",
+  "evidenceUrls": ["/uploads/evidence.png"]
+}
+```
+
+`targetType` 支持 `USER`、`JOB`、`COMPANY`、`RESUME`、`MEDIA`；`category` 支持 `FAKE_JOB`、`FAKE_PHOTO`、`FRAUD`、`HARASSMENT`、`SPAM`、`ILLEGAL`、`OTHER`。说明长度为 2-2000 个字符，证据最多 5 个，地址必须为 `/uploads/` 或 `http(s)://`。
+
+响应：`200` 表示已进入 `PENDING` 审核；重复待审核投诉返回 `409`；未登录返回 `401`；参数错误返回 `400`。
+
+### GET `/api/complaints/mine`
+
+查询当前用户提交的投诉列表。
+
+### GET `/api/complaints/{id}`
+
+查询当前用户自己的投诉详情。查看他人投诉返回 `400`。
+
+## 管理端投诉审核接口
+
+管理端请求基地址为 `/api/admin`，需要管理员 JWT。审核员可以处理普通投诉；永久账号封禁和撤销处罚需要超级管理员。
+
+| 方法 | 路径 | 请求体/参数 | 说明 |
+|---|---|---|---|
+| GET | `/complaints?status=PENDING&page=0&size=20` | 查询参数 | 分页查询投诉 |
+| GET | `/complaints/{id}` | - | 投诉详情和证据 |
+| POST | `/complaints/{id}/reject` | `{"reason":"证据不足"}` | 驳回投诉 |
+| POST | `/complaints/{id}/resolve` | 见下方示例 | 通过投诉并可下架/处罚 |
+| GET | `/sanctions?page=0&size=20` | 查询参数 | 处罚历史 |
+| POST | `/sanctions` | 见下方示例 | 直接创建处罚 |
+| POST | `/sanctions/{id}/revoke` | `{"reason":"复核后撤销"}` | 超级管理员撤销处罚 |
+
+处理投诉示例：
+
+```json
+{
+  "reason": "确认发布虚假职位",
+  "contentAction": "OFFLINE",
+  "sanction": {
+    "userId": 20,
+    "sanctionType": "PUBLISH_BAN",
+    "targetType": "JOB",
+    "targetId": 123,
+    "sourceComplaintId": 1,
+    "reason": "首次违规，禁止发布 7 天",
+    "endsAt": "2026-07-18T12:00:00"
+  }
+}
+```
+
+`sanctionType` 支持 `MUTE`（禁言）、`PUBLISH_BAN`（禁止发布/编辑）、`ACCOUNT_BAN`（账号封禁）；`endsAt` 为空表示永久。投诉审核和处罚操作均写入 `audit_logs`，并发送站内通知。
+
+## Redis 缓存行为
+
+Boss、求职者公开资料、公司、职位、简历读取均先查 Redis，未命中才回源 MySQL 并回填。缓存使用 TTL 抖动、空值短缓存、单 Key 加载锁；数据库事务提交后立即删除相关 Key，并在约 800ms 后二次删除。Redis 故障时受控降级到 MySQL，密码、Token、验证码等敏感字段不会进入缓存。

@@ -55,7 +55,10 @@ const ComplaintReviewPage: React.FC = () => {
     const request: ComplaintReviewRequest = { reason: reason.trim() }
     if (offline) request.contentAction = 'OFFLINE'
     if (sanctionType) request.sanction = {
-      userId: selected.targetType === 'USER' ? selected.targetId : selected.reporterId,
+      // For non-user complaints the backend resolves the target owner's userId
+      // from JOB/COMPANY/RESUME ownership. Sending reporterId would sanction
+      // the complainant instead of the reported account.
+      userId: selected.targetType === 'USER' ? selected.targetId : undefined,
       sanctionType: sanctionType as 'MUTE' | 'PUBLISH_BAN' | 'ACCOUNT_BAN',
       targetType: selected.targetType, targetId: selected.targetId, sourceComplaintId: selected.id,
       reason: reason.trim(), endsAt: endsAt || undefined
