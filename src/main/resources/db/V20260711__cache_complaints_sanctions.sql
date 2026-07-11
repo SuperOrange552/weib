@@ -17,11 +17,11 @@ CREATE TABLE IF NOT EXISTS complaints (
     CONSTRAINT fk_complaints_reviewer FOREIGN KEY (reviewer_id) REFERENCES users(id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_complaints_status_created
+CREATE INDEX idx_complaints_status_created
     ON complaints(status, created_at);
-CREATE INDEX IF NOT EXISTS idx_complaints_target
+CREATE INDEX idx_complaints_target
     ON complaints(target_type, target_id);
-CREATE INDEX IF NOT EXISTS idx_complaints_reporter_target
+CREATE INDEX idx_complaints_reporter_target
     ON complaints(reporter_id, target_type, target_id, status);
 
 CREATE TABLE IF NOT EXISTS user_sanctions (
@@ -43,9 +43,10 @@ CREATE TABLE IF NOT EXISTS user_sanctions (
     CONSTRAINT fk_sanctions_complaint FOREIGN KEY (source_complaint_id) REFERENCES complaints(id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_sanctions_user_type_status
+CREATE INDEX idx_sanctions_user_type_status
     ON user_sanctions(user_id, sanction_type, status);
-CREATE INDEX IF NOT EXISTS idx_sanctions_window
+CREATE INDEX idx_sanctions_window
     ON user_sanctions(starts_at, ends_at);
-CREATE INDEX IF NOT EXISTS idx_sanctions_complaint
+CREATE INDEX idx_sanctions_complaint
     ON user_sanctions(source_complaint_id);
+

@@ -16,6 +16,6 @@ CREATE TABLE IF NOT EXISTS sanction_appeals (
     CONSTRAINT fk_appeals_reviewer FOREIGN KEY (reviewer_id) REFERENCES users(id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_appeals_user_created ON sanction_appeals(user_id, created_at);
-CREATE INDEX IF NOT EXISTS idx_appeals_status_created ON sanction_appeals(status, created_at);
-CREATE INDEX IF NOT EXISTS idx_appeals_sanction_status ON sanction_appeals(sanction_id, status);
+CREATE INDEX idx_appeals_user_created ON sanction_appeals(user_id, created_at);
+CREATE INDEX idx_appeals_status_created ON sanction_appeals(status, created_at);
+CREATE INDEX idx_appeals_sanction_status ON sanction_appeals(sanction_id, status);
