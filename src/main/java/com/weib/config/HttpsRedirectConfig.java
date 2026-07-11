@@ -5,6 +5,7 @@ import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactor
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 
 /**
  * ============================================
@@ -19,6 +20,7 @@ import org.springframework.context.annotation.Configuration;
  * - 额外开 8080 端口，只做 302 重定向到 8443
  */
 @Configuration
+@Profile("local")
 public class HttpsRedirectConfig {
 
     /**

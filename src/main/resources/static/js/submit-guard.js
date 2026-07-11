@@ -1,5 +1,5 @@
 (()=>{
- const uuid=()=>crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random().toString(16).slice(2)}`;
+ const uuid=()=>typeof globalThis.crypto?.randomUUID==='function'?globalThis.crypto.randomUUID():`${Date.now()}-${Math.random().toString(16).slice(2)}`;
  document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('form').forEach(form=>{
    const method=(form.getAttribute('method')||'get').toLowerCase();if(method==='get')return;

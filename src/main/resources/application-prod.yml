@@ -1,0 +1,19 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+server:
+  port: ${SERVER_PORT:8888}
+  ssl:
+    enabled: false
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        secure: false
+        http-only: true
+        same-site: lax
+
+websocket:
+  allowed-origins: ${WEBSOCKET_ALLOWED_ORIGINS:http://superorange.top,http://www.superorange.top}

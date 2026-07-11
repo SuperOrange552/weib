@@ -1,10 +1,4 @@
 server:
-  port: 8443
-  ssl:
-    key-store: classpath:keystore.p12
-    key-store-password: ${SSL_KEYSTORE_PASSWORD:}
-    key-store-type: PKCS12
-    key-alias: weib
   tomcat:
     threads:
       max: 300
@@ -23,7 +17,6 @@ server:
     session:
       timeout: 30m
       cookie:
-        # 由反向代理/请求协议决定业务 Cookie 的 Secure 属性；当前站点通过 HTTP 提供服务。
         secure: false
         http-only: true
         same-site: lax
@@ -77,9 +70,6 @@ storage:
   avatar-dir: ./weib/uploads/avatars
   attachment-dir: ./weib/uploads/attachments
   chat-dir: ./weib/uploads/chat
-
-websocket:
-  allowed-origins: ${WEBSOCKET_ALLOWED_ORIGINS:https://localhost:8443}
 
 id-obfuscator:
   secret: ${ID_OBFUSCATOR_SECRET:}
