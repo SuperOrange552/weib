@@ -112,6 +112,9 @@ class AppRepository(context: Context) {
             url
         } finally { temp.delete() }
     }
+    suspend fun updateApplicationStatus(id: String, status: String) = api.updateApplicationStatus(id, mapOf("status" to status))
+    suspend fun closeJob(id: String) = api.closeJob(id)
+    suspend fun reopenJob(id: String) = api.reopenJob(id)
 
     private fun trustLocalCertificate(builder: OkHttpClient.Builder) {
         val trustManager = object : X509TrustManager {

@@ -47,4 +47,8 @@ interface WeibApi {
     @Multipart @POST("api/seeker/resume/media") suspend fun uploadResumeMedia(
         @Part file: MultipartBody.Part, @Part("kind") kind: RequestBody
     ): ApiEnvelope<JsonElement>
+    @POST("api/mobile/boss/applications/{id}/status") suspend fun updateApplicationStatus(
+        @Path("id") id: String, @Body body: Map<String, String>): ApiEnvelope<JsonElement>
+    @POST("api/mobile/boss/jobs/{id}/close") suspend fun closeJob(@Path("id") id: String): ApiEnvelope<JsonElement>
+    @POST("api/mobile/boss/jobs/{id}/reopen") suspend fun reopenJob(@Path("id") id: String): ApiEnvelope<JsonElement>
 }

@@ -148,6 +148,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 }.onFailure { _state.value = _state.value.copy(actionMessage = it.message ?: "简历保存失败") }
         }
     }
+    fun updateApplication(id: String, status: String) = runAction("投递状态已更新") { repository.updateApplicationStatus(id, status) }
+    fun toggleJob(id: String, active: Boolean) = runAction("职位状态已更新") { if (active) repository.closeJob(id) else repository.reopenJob(id) }
 
     fun logout() {
         viewModelScope.launch {
