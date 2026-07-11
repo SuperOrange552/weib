@@ -1814,7 +1814,87 @@ clientMessageId=
 ### `POST /api/admin/sanctions/{id}/revoke`
 超级管理员撤销处罚，请求体：`{"reason":"复核后撤销"}`。
 
+## 12.6 封禁申诉、管理员检索与论坛接口
+
+### `POST /api/appeals`
+提交当前账号处罚申诉，JSON：`{"sanctionId":1,"reason":"说明申诉理由","evidenceUrls":["/uploads/appeals/proof.png"]}`。账号受限用户仍可访问申诉页；同一处罚存在待审核申诉时返回 `409`。
+
+### `GET /api/appeals/mine`
+查询当前用户申诉，支持 `page`、`size`。
+
+### `GET /api/appeals/{id}`
+查询本人申诉详情。
+
+### `POST /api/appeals/evidence`
+以 multipart `file` 上传申诉图片，单张不超过 10MB，返回 `/uploads/appeals/` URL。
+
+### `GET /api/admin/appeals`
+管理员分页查询申诉，支持 `status`、`page`、`size`。
+
+### `POST /api/admin/appeals/{id}/approve`
+批准申诉并撤销对应处罚；请求体：`{"reason":"复核通过"}`。
+
+### `POST /api/admin/appeals/{id}/reject`
+驳回申诉；请求体：`{"reason":"证据不足"}`。
+
+### `GET /api/admin/search`
+管理员统一搜索，参数：`type=ALL|USER|COMPANY|JOB|RESUME`、`q`、`page`、`size`。
+
+### `GET /api/admin/search/{type}/{id}`
+查看搜索对象详情；敏感字段按管理员角色脱敏。
+
+### `GET /api/forum/sections`
+查询论坛板块。
+
+### `GET /api/forum/posts`
+查询帖子，支持 `sectionId`、`q`、`page`、`size`。
+
+### `POST /api/forum/posts`
+登录用户发布图文帖子，字段：`sectionId`、`title`、`content`、`tags`、`imageUrls`。
+
+### `GET /api/forum/posts/{id}`
+查询帖子详情，返回作者头像、发布时间、标签和互动计数。
+
+### `POST /api/forum/posts/{id}/comments`
+发表评论，JSON：`{"content":"评论内容"}`。
+
+### `GET /api/forum/posts/{id}/comments`
+查询帖子评论。
+
+### `POST /api/forum/posts/{id}/like` / `DELETE /api/forum/posts/{id}/like`
+点赞/取消点赞，重复点赞幂等。
+
+### `POST /api/forum/posts/{id}/favorite` / `DELETE /api/forum/posts/{id}/favorite`
+收藏/取消收藏，重复收藏幂等。
+
+### `POST /api/forum/media`
+上传论坛图片，单张不超过 10MB，仅支持 PNG/JPEG/GIF/WebP。
+
+### Redis 与布局约定
+论坛帖子/互动变更会删除 `cache:forum:post:*` 和 `cache:forum:posts:list:*`；所有前台页面统一引用 `/css/app-shell.css`，管理端统一使用 MUI theme 和 1200px PageContainer。
+
+### `GET /api/admin/appeals/{id}`
+管理员查看单条申诉及证据详情。
+
+### `DELETE /api/forum/posts/{id}/like`
+取消帖子点赞。
+
+### `DELETE /api/forum/posts/{id}/favorite`
+取消帖子收藏。
+
 ## 13. 页面型路由附录
+### `GET /appeal`
+处罚申诉页面，账号受限用户可访问。
+
+### `GET /forum`
+论坛首页，展示板块和帖子列表。
+
+### `GET /forum/post/new`
+论坛发帖页面。
+
+### `GET /forum/post/{id}`
+论坛帖子详情和评论页面。
+
 
 以下路由主要返回HTML或管理后台SPA，不作为JSON业务接口。练习时可用于验证页面权限、Session和跳转。
 

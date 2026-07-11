@@ -1,9 +1,9 @@
 {
-  "controllerEndpointCount": 89,
-  "controllerBusinessEndpointCount": 66,
-  "controllerPageEndpointCount": 23,
-  "documentedMainEndpointCount": 75,
-  "documentedAppendixEndpointCount": 24,
+  "controllerEndpointCount": 114,
+  "controllerBusinessEndpointCount": 87,
+  "controllerPageEndpointCount": 27,
+  "documentedMainEndpointCount": 96,
+  "documentedAppendixEndpointCount": 28,
   "missingEndpoints": [],
   "unknownDocumentedEndpoints": [
     "GET /api/seeker/applications",
