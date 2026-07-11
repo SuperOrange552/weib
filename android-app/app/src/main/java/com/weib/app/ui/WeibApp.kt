@@ -32,6 +32,10 @@ import com.weib.app.ui.theme.WeibTitle
 @Composable
 fun WeibApp(viewModel: AppViewModel) {
     val state by viewModel.state.collectAsState()
+    state.securityDialog?.let { message ->
+        AlertDialog(onDismissRequest = {}, title = { Text("账号安全提醒") }, text = { Text(message) },
+            confirmButton = { TextButton(onClick = viewModel::dismissSecurityDialog) { Text("我知道了") } })
+    }
     when {
         state.restoring -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         !state.loggedIn -> LoginScreen(state, viewModel)

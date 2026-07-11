@@ -28,6 +28,7 @@ data class AppUiState(
     val authError: String? = null,
     val selected: AppDestination? = null,
     val content: ContentState = ContentState()
+    ,val securityDialog: String? = null
 ) {
     val role: String? get() = user?.role ?: restoredRole
     val loggedIn: Boolean get() = role == "seeker" || role == "boss"
@@ -40,6 +41,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private var timer: Job? = null
 
     init {
+        viewModelScope.launch {
+            repository.securityEvents.collect { reason ->
+                val reduced = com.weib.app.data.realtime.ForcedLogoutReducer.reduce(
+                    com.weib.app.data.realtime.SecurityState(repository.session.token(), null),
+                    com.weib.app.data.realtime.SecurityEvent(reason))
+                repository.session.clear()
+                _state.value = AppUiState(restoring = false, securityDialog = reduced.dialog)
+                refreshCaptcha(manual = false)
+            }
+        }
         viewModelScope.launch {
             val role = repository.session.restore()
             if (role == "seeker" || role == "boss") {
@@ -112,6 +123,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             refreshCaptcha(manual = false)
         }
     }
+
+    fun dismissSecurityDialog() { _state.value = _state.value.copy(securityDialog = null) }
 
     private fun load(destination: AppDestination) {
         val role = _state.value.role ?: return

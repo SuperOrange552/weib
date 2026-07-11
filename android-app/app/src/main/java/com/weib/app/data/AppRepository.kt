@@ -15,10 +15,14 @@ import java.util.UUID
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 
 class AppRepository(context: Context) {
     val session = SessionStore(context)
     private val api: WeibApi
+    private val _securityEvents = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val securityEvents = _securityEvents.asSharedFlow()
 
     init {
         val builder = OkHttpClient.Builder()
@@ -30,7 +34,12 @@ class AppRepository(context: Context) {
                         header("Idempotency-Key", UUID.randomUUID().toString())
                     }
                 }.build()
-                chain.proceed(request)
+                val response = chain.proceed(request)
+                if (response.code == 401) {
+                    val body = runCatching { response.peekBody(4096).string() }.getOrDefault("")
+                    if (body.contains("KICKED")) _securityEvents.tryEmit("KICKED")
+                }
+                response
             }
         if (BuildConfig.DEBUG) builder.addInterceptor(HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BASIC))
         if (BuildConfig.DEBUG && BuildConfig.TRUST_LOCAL_CERT) trustLocalCertificate(builder)
