@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import android.net.Uri
 
 data class AppUiState(
     val restoring: Boolean = true,
@@ -131,6 +132,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun dismissActionMessage() { _state.value = _state.value.copy(actionMessage = null) }
+    fun uploadResumeMedia(uri: Uri, kind: String) {
+        viewModelScope.launch {
+            runCatching { repository.uploadResumeMedia(uri, kind) }
+                .onSuccess { _state.value = _state.value.copy(actionMessage = "上传成功"); retry() }
+                .onFailure { _state.value = _state.value.copy(actionMessage = it.message ?: "上传失败") }
+        }
+    }
 
     fun logout() {
         viewModelScope.launch {

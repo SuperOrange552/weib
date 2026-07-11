@@ -428,6 +428,8 @@ public class SeekerApiController {
         data.put("projectExperience", resume.getProjectExperience());
         data.put("skills", resume.getSkills());
         data.put("selfIntroduction", resume.getSelfIntroduction());
+        data.put("avatar", resume.getAvatar());
+        data.put("attachmentPath", resume.getAttachmentPath());
         data.put("status", resume.getStatus());
         data.put("createdAt", resume.getCreatedAt() != null ? resume.getCreatedAt().toString() : null);
         data.put("updatedAt", resume.getUpdatedAt() != null ? resume.getUpdatedAt().toString() : null);
@@ -477,6 +479,8 @@ public class SeekerApiController {
             if (body.get("projectExperience") != null) resume.setProjectExperience((String) body.get("projectExperience"));
             if (body.get("skills") != null) resume.setSkills((String) body.get("skills"));
             if (body.get("selfIntroduction") != null) resume.setSelfIntroduction((String) body.get("selfIntroduction"));
+            if (body.get("avatar") != null) resume.setAvatar((String) body.get("avatar"));
+            if (body.get("attachmentPath") != null) resume.setAttachmentPath((String) body.get("attachmentPath"));
 
             Resume saved = resumeService.saveResume(resume);
             return Result.success(buildResumeJson(saved));

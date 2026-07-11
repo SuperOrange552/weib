@@ -9,6 +9,10 @@ import retrofit2.http.POST
 import retrofit2.http.Query
 import retrofit2.http.Path
 import retrofit2.http.DELETE
+import retrofit2.http.Multipart
+import retrofit2.http.Part
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 
 interface WeibApi {
     @GET("captcha") suspend fun captcha(): Response<ResponseBody>
@@ -40,4 +44,7 @@ interface WeibApi {
     @POST("api/mobile/seeker/jobs/{id}/favorite") suspend fun toggleFavorite(@Path("id") id: String): ApiEnvelope<JsonElement>
     @POST("api/mobile/seeker/applications/{id}/withdraw") suspend fun withdraw(@Path("id") id: String): ApiEnvelope<JsonElement>
     @POST("api/seeker/resume") suspend fun saveResume(@Body body: Map<String, @JvmSuppressWildcards Any?>): ApiEnvelope<JsonElement>
+    @Multipart @POST("api/seeker/resume/media") suspend fun uploadResumeMedia(
+        @Part file: MultipartBody.Part, @Part("kind") kind: RequestBody
+    ): ApiEnvelope<JsonElement>
 }

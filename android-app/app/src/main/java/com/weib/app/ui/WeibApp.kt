@@ -28,6 +28,9 @@ import com.weib.app.ui.theme.WeibBody
 import com.weib.app.ui.theme.WeibMuted
 import com.weib.app.ui.theme.WeibPrimary
 import com.weib.app.ui.theme.WeibTitle
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.net.Uri
 
 @Composable
 fun WeibApp(viewModel: AppViewModel) {
@@ -131,21 +134,21 @@ private fun MainShell(state: AppUiState, viewModel: AppViewModel) {
         }
     ) { padding ->
         ContentScreen(state, viewModel::retry, viewModel::logout, viewModel::apply,
-            viewModel::toggleFavorite, viewModel::withdraw, Modifier.padding(padding))
+            viewModel::toggleFavorite, viewModel::withdraw, viewModel::uploadResumeMedia, Modifier.padding(padding))
     }
 }
 
 @Composable
 private fun ContentScreen(state: AppUiState, retry: () -> Unit, logout: () -> Unit,
                           apply: (String) -> Unit, favorite: (String) -> Unit,
-                          withdraw: (String) -> Unit, modifier: Modifier) {
+                          withdraw: (String) -> Unit, upload: (Uri, String) -> Unit, modifier: Modifier) {
     when {
         state.content.loading -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         state.content.error != null -> ErrorState(state.content.error, retry, modifier)
         state.selected == AppDestination.Jobs -> JobList(state.content.data, apply, favorite, modifier)
         state.selected == AppDestination.Applications -> ApplicationList(state.content.data, withdraw, modifier)
         state.selected == AppDestination.Dashboard -> Dashboard(state.content.data, modifier)
-        state.selected == AppDestination.Profile -> Profile(state.content.data, logout, modifier)
+        state.selected == AppDestination.Profile -> Profile(state.content.data, state.role, upload, logout, modifier)
         else -> GenericList(state.content.title, state.content.data, modifier)
     }
 }
@@ -223,10 +226,17 @@ private fun GenericList(title: String, data: JsonElement?, modifier: Modifier) {
 }
 
 @Composable
-private fun Profile(data: JsonElement?, logout: () -> Unit, modifier: Modifier) {
+private fun Profile(data: JsonElement?, role: String?, upload: (Uri, String) -> Unit, logout: () -> Unit, modifier: Modifier) {
+    val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { it?.let { uri -> upload(uri, "avatar") } }
+    val attachmentPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { it?.let { uri -> upload(uri, "attachment") } }
     LazyColumn(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { Text("我的", style = MaterialTheme.typography.headlineMedium) }
         item { WeibCard { JsonSummary(data); Text("论坛、投诉与申诉", style = MaterialTheme.typography.titleMedium); Text("用户提交后由 Web 管理后台审核", color = WeibMuted) } }
+        if (role == "seeker") item { WeibCard {
+            Text("简历文件", style = MaterialTheme.typography.titleMedium)
+            Button(onClick = { avatarPicker.launch("image/*") }, Modifier.fillMaxWidth()) { Text("选择并上传头像") }
+            OutlinedButton(onClick = { attachmentPicker.launch("application/pdf") }, Modifier.fillMaxWidth()) { Text("选择并上传简历附件") }
+        } }
         item { OutlinedButton(onClick = logout, Modifier.fillMaxWidth()) { Text("退出登录") } }
     }
 }

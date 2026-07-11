@@ -15,6 +15,11 @@ import java.util.UUID
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
+import android.net.Uri
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.MultipartBody
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
@@ -89,6 +94,24 @@ class AppRepository(context: Context) {
     suspend fun toggleFavorite(jobId: String) = api.toggleFavorite(jobId)
     suspend fun withdraw(applicationId: String) = api.withdraw(applicationId)
     suspend fun saveResume(fields: Map<String, Any?>) = api.saveResume(fields)
+    suspend fun uploadResumeMedia(uri: Uri, kind: String): String = withContext(Dispatchers.IO) {
+        val resolver = appContext.contentResolver
+        val mime = resolver.getType(uri) ?: "application/octet-stream"
+        val name = resolver.query(uri, null, null, null, null)?.use { cursor ->
+            val index = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+            if (cursor.moveToFirst() && index >= 0) cursor.getString(index) else null
+        } ?: "upload"
+        val temp = kotlin.io.path.createTempFile(appContext.cacheDir.toPath(), "resume-", "-" + name).toFile()
+        resolver.openInputStream(uri)?.use { input -> temp.outputStream().use(input::copyTo) } ?: error("无法读取文件")
+        try {
+            val part = MultipartBody.Part.createFormData("file", name, temp.asRequestBody(mime.toMediaTypeOrNull()))
+            val result = api.uploadResumeMedia(part, kind.toRequestBody("text/plain".toMediaTypeOrNull()))
+            if (result.code != 200) error(result.msg ?: "上传失败")
+            val url = result.data?.asJsonObject?.get("url")?.asString ?: error("上传结果无效")
+            saveResume(mapOf((if (kind == "avatar") "avatar" else "attachmentPath") to url))
+            url
+        } finally { temp.delete() }
+    }
 
     private fun trustLocalCertificate(builder: OkHttpClient.Builder) {
         val trustManager = object : X509TrustManager {
