@@ -108,6 +108,13 @@ spring.data.redis:
       min-idle: 2
       max-wait: 3000ms
 
+weib.cache:
+  enabled: ${WEIB_CACHE_ENABLED:true}
+  lock-wait-ms: ${WEIB_CACHE_LOCK_WAIT_MS:150}
+  lock-poll-ms: ${WEIB_CACHE_LOCK_POLL_MS:10}
+  ttl-jitter-seconds: ${WEIB_CACHE_TTL_JITTER_SECONDS:30}
+  delayed-delete-ms: ${WEIB_CACHE_DELAYED_DELETE_MS:800}
+
 # ============================================
 # 读写分离 — 从库配置
 # ============================================
