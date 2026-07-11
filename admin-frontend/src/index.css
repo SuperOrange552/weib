@@ -1,3 +1,5 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.admin-main{background:#f8fafc}.admin-main h1,.admin-main h2,.admin-main h3{letter-spacing:-.01em}

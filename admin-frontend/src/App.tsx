@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { ThemeProvider, CssBaseline } from '@mui/material'
+import { adminTheme } from './theme'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminLayout from './components/AdminLayout'
 import LoginPage from './pages/LoginPage'
@@ -14,7 +16,9 @@ import GlobalSearchPage from './pages/GlobalSearchPage'
 
 function App() {
   return (
-    <AuthProvider>
+    <ThemeProvider theme={adminTheme}>
+      <CssBaseline />
+      <AuthProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/admin/login" element={<LoginPage />} />
@@ -38,7 +42,8 @@ function App() {
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
       </BrowserRouter>
-    </AuthProvider>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
 

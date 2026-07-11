@@ -2,6 +2,7 @@ import React from 'react'
 import { Outlet } from 'react-router-dom'
 import AdminSidebar from './AdminSidebar'
 import AdminNavbar from './AdminNavbar'
+import PageContainer from './PageContainer'
 
 const AdminLayout: React.FC = () => {
   return (
@@ -9,8 +10,8 @@ const AdminLayout: React.FC = () => {
       <AdminSidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <AdminNavbar />
-        <main className="flex-1 overflow-auto p-6">
-          <Outlet />
+        <main className="admin-main flex-1 overflow-auto p-6">
+          <PageContainer><Outlet /></PageContainer>
         </main>
       </div>
     </div>
