@@ -2,6 +2,7 @@ package com.weib.controller.mobile;
 
 import com.weib.entity.User;
 import com.weib.service.CaptchaService;
+import com.weib.service.IdentityService;
 import com.weib.service.UserService;
 import com.weib.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +14,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -24,6 +27,7 @@ class MobileAuthControllerTest {
     private UserService userService;
     private CaptchaService captchaService;
     private JwtUtil jwtUtil;
+    private IdentityService identityService;
     private MockMvc mvc;
 
     @BeforeEach
@@ -31,8 +35,12 @@ class MobileAuthControllerTest {
         userService = mock(UserService.class);
         captchaService = mock(CaptchaService.class);
         jwtUtil = mock(JwtUtil.class);
+        identityService = mock(IdentityService.class);
+        when(identityService.requireEnabledRole(anyLong(), anyString()))
+                .thenAnswer(invocation -> invocation.getArgument(1, String.class)
+                        .toUpperCase(java.util.Locale.ROOT));
         mvc = MockMvcBuilders.standaloneSetup(
-                new MobileAuthController(userService, captchaService, jwtUtil)
+                new MobileAuthController(userService, captchaService, jwtUtil, identityService)
         ).build();
     }
 
@@ -53,7 +61,7 @@ class MobileAuthControllerTest {
         seeker.setStatus(null); // 兼容历史生产数据：空状态等同于未封禁
         when(captchaService.verify(any(), eq("AB12"))).thenReturn(CaptchaService.VerifyStatus.VALID);
         when(userService.login("seeker_ahua", "Secret123")).thenReturn(Optional.of(seeker));
-        when(jwtUtil.generateToken(7L, "seeker_ahua", "seeker")).thenReturn("seeker.jwt");
+        when(jwtUtil.generateToken(7L, "seeker_ahua", "SEEKER")).thenReturn("seeker.jwt");
 
         mvc.perform(post("/api/mobile/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -71,7 +79,7 @@ class MobileAuthControllerTest {
         boss.setStatus("ACTIVE");
         when(captchaService.verify(any(), eq("CD34"))).thenReturn(CaptchaService.VerifyStatus.VALID);
         when(userService.login("boss_zhang", "Secret123")).thenReturn(Optional.of(boss));
-        when(jwtUtil.generateToken(8L, "boss_zhang", "boss")).thenReturn("boss.jwt");
+        when(jwtUtil.generateToken(8L, "boss_zhang", "BOSS")).thenReturn("boss.jwt");
 
         mvc.perform(post("/api/mobile/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -79,6 +87,22 @@ class MobileAuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.accessToken").value("boss.jwt"))
                 .andExpect(jsonPath("$.data.user.role").value("boss"));
+    }
+
+    @Test
+    void dualRoleAccountUsesSelectedBossIdentity() throws Exception {
+        User account = user(7L, "seeker_ahua", "阿华", "seeker");
+        when(captchaService.verify(any(), eq("ZX90"))).thenReturn(CaptchaService.VerifyStatus.VALID);
+        when(userService.login("seeker_ahua", "Secret123")).thenReturn(Optional.of(account));
+        when(jwtUtil.generateToken(7L, "seeker_ahua", "BOSS")).thenReturn("boss.identity.jwt");
+
+        mvc.perform(post("/api/mobile/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"seeker_ahua\",\"password\":\"Secret123\",\"captcha\":\"ZX90\",\"selectedRole\":\"BOSS\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.accessToken").value("boss.identity.jwt"))
+                .andExpect(jsonPath("$.data.user.activeRole").value("BOSS"));
     }
 
     @Test

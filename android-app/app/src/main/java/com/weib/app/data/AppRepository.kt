@@ -45,8 +45,8 @@ class AppRepository(context: Context) {
             response.headers()["X-Captcha-Expires-In"]?.toIntOrNull() ?: 120)
     }
 
-    suspend fun login(username: String, password: String, captcha: String): LoginData {
-        val result = api.login(LoginRequest(username, password, captcha))
+    suspend fun login(username: String, password: String, captcha: String, selectedRole: String): LoginData {
+        val result = api.login(LoginRequest(username, password, captcha, selectedRole))
         if (result.code != 200 || result.data == null) error(result.msg ?: "登录失败")
         session.save(result.data.accessToken, result.data.user.role)
         return result.data

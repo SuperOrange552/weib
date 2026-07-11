@@ -4,6 +4,7 @@ import com.weib.annotation.RateLimit;
 import com.weib.entity.User;
 import com.weib.service.UserService;
 import com.weib.service.CaptchaService;
+import com.weib.service.IdentityService;
 import com.weib.util.CookieUtil;
 import com.weib.util.JwtUtil;
 import jakarta.servlet.http.HttpServletResponse;
@@ -86,6 +87,7 @@ public class UserController {
     private final UserService userService;
     private final JwtUtil jwtUtil;
     private final CaptchaService captchaService;
+    private final IdentityService identityService;
 
     /**
      * 显示登录页面
@@ -311,6 +313,7 @@ public class UserController {
     public String login(@RequestParam String username,
                         @RequestParam String password,
                         @RequestParam String captcha,
+                        @RequestParam(defaultValue = "SEEKER") String selectedRole,
                         HttpSession session,
                         HttpServletRequest request,
                         HttpServletResponse response,
@@ -342,11 +345,24 @@ public class UserController {
             return "login";
         }
 
+        final String activeRole;
+        try {
+            activeRole = identityService.requireEnabledRole(user.getId(), selectedRole);
+        } catch (com.weib.exception.RoleNotEnabledException e) {
+            model.addAttribute("error", e.getMessage());
+            return "login";
+        } catch (IllegalArgumentException e) {
+            model.addAttribute("error", e.getMessage());
+            return "login";
+        }
+
         // 防止会话固定攻击：先销毁旧Session，再创建新Session
         session.invalidate();
         HttpSession newSession = request.getSession(true);
         newSession.setAttribute("user", user);
         newSession.setAttribute("username", user.getUsername());
+        newSession.setAttribute("activeRole", activeRole);
+        newSession.setAttribute("clientType", "WEB");
 
         // 修复 BUG-012: 在新 Session 中立即生成 CSRF Token
         String csrfToken = com.weib.config.CsrfInterceptor.generateCsrfToken(newSession);
@@ -357,11 +373,11 @@ public class UserController {
         CookieUtil.addRememberTokenCookie(response, token, request);
 
         // 生成 JWT 令牌，用于安全的身份认证传输
-        String jwt = jwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole());
+        String jwt = jwtUtil.generateToken(user.getId(), user.getUsername(), activeRole);
         CookieUtil.addJwtCookie(response, jwt, request);
 
         // 重定向到首页
-        return "redirect:/";
+        return "BOSS".equals(activeRole) ? "redirect:/boss" : "redirect:/";
     }
 
     /**

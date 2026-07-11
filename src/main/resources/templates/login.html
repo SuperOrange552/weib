@@ -278,6 +278,19 @@
             <form action="/login" method="post">
                 <input type="hidden" name="_csrf" th:value="${csrf_token}">
                 <div class="form-group">
+                    <label class="form-label">选择本次登录身份</label>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                        <label style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border:1px solid #99f6e4;border-radius:10px;background:#ecfeff;color:#0f172a;cursor:pointer">
+                            <input type="radio" name="selectedRole" value="SEEKER" checked>
+                            <span style="color:#0f172a">求职者</span>
+                        </label>
+                        <label style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border:1px solid #99f6e4;border-radius:10px;background:#ecfeff;color:#0f172a;cursor:pointer">
+                            <input type="radio" name="selectedRole" value="BOSS">
+                            <span style="color:#0f172a">招聘者</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
                     <label class="form-label">用户名 / 手机号</label>
                     <input type="text" name="username" class="form-input" placeholder="请输入用户名或手机号" required>
                 </div>

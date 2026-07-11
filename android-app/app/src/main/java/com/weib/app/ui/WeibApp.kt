@@ -44,12 +44,30 @@ private fun LoginScreen(state: AppUiState, viewModel: AppViewModel) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var captcha by remember { mutableStateOf("") }
+    var selectedRole by remember { mutableStateOf("SEEKER") }
     Box(Modifier.fillMaxSize().background(WeibBackground).padding(20.dp), contentAlignment = Alignment.Center) {
         Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(Color.White),
             elevation = CardDefaults.cardElevation(8.dp)) {
             Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Text("◆ 微招", style = MaterialTheme.typography.headlineMedium, color = WeibPrimary)
                 Text("求职者 · 招聘者移动端", style = MaterialTheme.typography.bodyLarge, color = WeibBody)
+                Text("选择本次登录身份", style = MaterialTheme.typography.titleMedium, color = WeibTitle)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    FilterChip(
+                        selected = selectedRole == "SEEKER",
+                        onClick = { selectedRole = "SEEKER" },
+                        label = { Text("求职者") },
+                        leadingIcon = { Icon(Icons.Default.Person, null) },
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterChip(
+                        selected = selectedRole == "BOSS",
+                        onClick = { selectedRole = "BOSS" },
+                        label = { Text("招聘者") },
+                        leadingIcon = { Icon(Icons.Default.BusinessCenter, null) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
                 OutlinedTextField(username, { username = it }, Modifier.fillMaxWidth(), label = { Text("账号") }, singleLine = true)
                 OutlinedTextField(password, { password = it }, Modifier.fillMaxWidth(), label = { Text("密码") }, singleLine = true,
                     visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password))
@@ -73,7 +91,7 @@ private fun LoginScreen(state: AppUiState, viewModel: AppViewModel) {
                     }
                 }
                 state.authError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-                Button(onClick = { viewModel.login(username, password, captcha) }, Modifier.fillMaxWidth().height(50.dp),
+                Button(onClick = { viewModel.login(username, password, captcha, selectedRole) }, Modifier.fillMaxWidth().height(50.dp),
                     enabled = !state.loggingIn, shape = RoundedCornerShape(10.dp)) {
                     if (state.loggingIn) CircularProgressIndicator(Modifier.size(22.dp), color = Color.White) else Text("登录")
                 }

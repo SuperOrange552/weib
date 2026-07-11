@@ -6,6 +6,7 @@ public record MobileLoginResponse(
         long expiresIn,
         MobileUser user
 ) {
-    public record MobileUser(Long id, String username, String nickname, String avatar, String role) {
+    public record MobileUser(Long id, String username, String nickname, String avatar,
+                             String role, String activeRole) {
     }
 }

@@ -75,7 +75,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun login(username: String, password: String, captcha: String) {
+    fun login(username: String, password: String, captcha: String, selectedRole: String) {
         if (username.isBlank() || password.isBlank() || captcha.isBlank()) {
             _state.value = _state.value.copy(authError = "账号、密码和验证码不能为空")
             return
@@ -86,7 +86,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
         viewModelScope.launch {
             _state.value = _state.value.copy(loggingIn = true, authError = null)
-            runCatching { repository.login(username.trim(), password, captcha.trim()) }
+            runCatching { repository.login(username.trim(), password, captcha.trim(), selectedRole) }
                 .onSuccess { result ->
                     val destination = destinationsForRole(result.user.role).first()
                     timer?.cancel()

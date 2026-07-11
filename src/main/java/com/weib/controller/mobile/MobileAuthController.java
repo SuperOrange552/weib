@@ -5,18 +5,18 @@ import com.weib.dto.Result;
 import com.weib.dto.mobile.MobileLoginRequest;
 import com.weib.dto.mobile.MobileLoginResponse;
 import com.weib.entity.User;
+import com.weib.exception.RoleNotEnabledException;
 import com.weib.security.CredentialPolicy;
 import com.weib.service.CaptchaService;
+import com.weib.service.IdentityService;
 import com.weib.service.UserService;
 import com.weib.util.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Locale;
 
 @RestController
 @RequestMapping("/api/mobile/auth")
@@ -26,18 +26,20 @@ public class MobileAuthController {
     private final UserService userService;
     private final CaptchaService captchaService;
     private final JwtUtil jwtUtil;
+    private final IdentityService identityService;
 
-    public MobileAuthController(UserService userService, CaptchaService captchaService, JwtUtil jwtUtil) {
+    public MobileAuthController(UserService userService, CaptchaService captchaService, JwtUtil jwtUtil,
+                                IdentityService identityService) {
         this.userService = userService;
         this.captchaService = captchaService;
         this.jwtUtil = jwtUtil;
+        this.identityService = identityService;
     }
 
     @RateLimit(maxRequests = 10, windowSeconds = 60, key = "ip")
     @PostMapping("/login")
     public Result<MobileLoginResponse> login(@Valid @RequestBody MobileLoginRequest body,
-                                              HttpSession session,
-                                              HttpServletRequest request) {
+                                              HttpSession session, HttpServletRequest request) {
         CaptchaService.VerifyStatus captchaStatus = captchaService.verify(session, body.captcha());
         if (captchaStatus != CaptchaService.VerifyStatus.VALID) {
             return Result.error(captchaMessage(captchaStatus));
@@ -53,35 +55,48 @@ public class MobileAuthController {
             }
             return Result.error(401, "账号或密码错误");
         }
-        if (!"seeker".equals(user.getRole()) && !"boss".equals(user.getRole())) {
+        if ("admin".equalsIgnoreCase(user.getRole())) {
             return Result.error(403, "App仅支持求职者和招聘者登录");
         }
         if ("banned".equalsIgnoreCase(user.getStatus())) {
             return Result.error(403, "账号已被封禁，可在申诉页面提交材料");
         }
 
+        String requestedRole = body.selectedRole();
+        if (requestedRole == null || requestedRole.isBlank()) requestedRole = user.getRole();
+        final String activeRole;
+        try {
+            activeRole = identityService.requireEnabledRole(user.getId(), requestedRole);
+        } catch (RoleNotEnabledException e) {
+            return Result.error(403, e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return Result.error(400, e.getMessage());
+        }
+
         session.invalidate();
         HttpSession newSession = request.getSession(true);
         newSession.setAttribute("user", user);
         newSession.setAttribute("username", user.getUsername());
+        newSession.setAttribute("activeRole", activeRole);
+        newSession.setAttribute("clientType", "MOBILE");
         String csrfToken = com.weib.config.CsrfInterceptor.generateCsrfToken(newSession);
         newSession.setAttribute("csrf_token", csrfToken);
 
-        String jwt = jwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole());
-        MobileLoginResponse.MobileUser mobileUser = toMobileUser(user);
-        return Result.success(new MobileLoginResponse(jwt, "Bearer", TOKEN_EXPIRES_IN_SECONDS, mobileUser));
+        String jwt = jwtUtil.generateToken(user.getId(), user.getUsername(), activeRole);
+        return Result.success(new MobileLoginResponse(jwt, "Bearer", TOKEN_EXPIRES_IN_SECONDS,
+                toMobileUser(user, activeRole)));
     }
 
     @GetMapping("/me")
     public Result<MobileLoginResponse.MobileUser> me(HttpSession session) {
         User user = (User) session.getAttribute("user");
-        if (user == null) {
-            return Result.error(401, "未登录或登录已过期");
-        }
-        if (!"seeker".equals(user.getRole()) && !"boss".equals(user.getRole())) {
+        if (user == null) return Result.error(401, "未登录或登录已过期");
+        String activeRole = (String) session.getAttribute("activeRole");
+        if (activeRole == null || activeRole.isBlank()) activeRole = user.getRole();
+        if (!"SEEKER".equalsIgnoreCase(activeRole) && !"BOSS".equalsIgnoreCase(activeRole)) {
             return Result.error(403, "App仅支持求职者和招聘者登录");
         }
-        return Result.success(toMobileUser(user));
+        return Result.success(toMobileUser(user, activeRole));
     }
 
     @PostMapping("/logout")
@@ -90,9 +105,10 @@ public class MobileAuthController {
         return Result.success();
     }
 
-    private MobileLoginResponse.MobileUser toMobileUser(User user) {
-        return new MobileLoginResponse.MobileUser(
-                user.getId(), user.getUsername(), user.getNickname(), user.getAvatar(), user.getRole());
+    private MobileLoginResponse.MobileUser toMobileUser(User user, String activeRole) {
+        String canonical = activeRole.toUpperCase(Locale.ROOT);
+        return new MobileLoginResponse.MobileUser(user.getId(), user.getUsername(), user.getNickname(),
+                user.getAvatar(), canonical.toLowerCase(Locale.ROOT), canonical);
     }
 
     private String captchaMessage(CaptchaService.VerifyStatus status) {
