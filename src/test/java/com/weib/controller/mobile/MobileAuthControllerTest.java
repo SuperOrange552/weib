@@ -50,6 +50,7 @@ class MobileAuthControllerTest {
     @Test
     void returnsBearerTokenForSeeker() throws Exception {
         User seeker = user(7L, "seeker_ahua", "求职者阿华", "seeker");
+        seeker.setStatus(null); // 兼容历史生产数据：空状态等同于未封禁
         when(captchaService.verify(any(), eq("AB12"))).thenReturn(CaptchaService.VerifyStatus.VALID);
         when(userService.login("seeker_ahua", "Secret123")).thenReturn(Optional.of(seeker));
         when(jwtUtil.generateToken(7L, "seeker_ahua", "seeker")).thenReturn("seeker.jwt");

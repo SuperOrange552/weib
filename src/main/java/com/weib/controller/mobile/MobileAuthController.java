@@ -56,7 +56,7 @@ public class MobileAuthController {
         if (!"seeker".equals(user.getRole()) && !"boss".equals(user.getRole())) {
             return Result.error(403, "App仅支持求职者和招聘者登录");
         }
-        if (!"active".equalsIgnoreCase(user.getStatus())) {
+        if ("banned".equalsIgnoreCase(user.getStatus())) {
             return Result.error(403, "账号已被封禁，可在申诉页面提交材料");
         }
 
