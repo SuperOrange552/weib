@@ -30,15 +30,26 @@ public class MessageService {
     public Message saveMessage(String conversationId, Long senderId, Long receiverId,
                                String content, String messageType,
                                String fileName, String filePath, Long fileSize, String clientMessageId) {
+        return saveMessage(conversationId, senderId, "LEGACY", receiverId, "LEGACY", content,
+                messageType, fileName, filePath, fileSize, clientMessageId);
+    }
+
+    public Message saveMessage(String conversationId, Long senderId, String senderRole,
+                               Long receiverId, String receiverRole, String content, String messageType,
+                               String fileName, String filePath, Long fileSize, String clientMessageId) {
         if (clientMessageId != null && !clientMessageId.matches("^[A-Za-z0-9._:-]{8,64}$")) throw new IllegalArgumentException("Invalid client message id");
         if (clientMessageId != null) {
-            var existing = messageRepository.findBySenderIdAndClientMessageId(senderId, clientMessageId);
+            var existing = "LEGACY".equals(senderRole)
+                    ? messageRepository.findBySenderIdAndClientMessageId(senderId, clientMessageId)
+                    : messageRepository.findBySenderIdAndSenderRoleAndClientMessageId(senderId, senderRole, clientMessageId);
             if (existing.isPresent()) return existing.get();
         }
         Message message = new Message();
         message.setConversationId(conversationId);
         message.setSenderId(senderId);
+        message.setSenderRole(senderRole);
         message.setReceiverId(receiverId);
+        message.setReceiverRole(receiverRole);
         message.setClientMessageId(clientMessageId);
         message.setContent(content);
         message.setMessageType(messageType);
@@ -51,6 +62,11 @@ public class MessageService {
     @Transactional(readOnly = true)
     public List<Message> getConversationMessages(String conversationId) {
         return messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Message> getConversationMessages(String conversationId, Long userId, String role) {
+        return messageRepository.findVisibleToIdentity(conversationId, userId, role);
     }
 
     /**
@@ -72,6 +88,19 @@ public class MessageService {
         return senders;
     }
 
+    @Transactional
+    public Set<Long> markAsReadAndGetSenders(String conversationId, Long receiverId, String receiverRole) {
+        List<Message> unreadMessages = messageRepository
+                .findByConversationIdAndReceiverIdAndReceiverRoleAndIsReadFalse(conversationId, receiverId, receiverRole);
+        Set<Long> senders = new HashSet<>();
+        for (Message message : unreadMessages) {
+            message.setIsRead(true);
+            senders.add(message.getSenderId());
+        }
+        if (!unreadMessages.isEmpty()) messageRepository.saveAll(unreadMessages);
+        return senders;
+    }
+
     /**
      * 简单标记已读（兼容旧调用，不需要回执ID）
      */
@@ -85,9 +114,18 @@ public class MessageService {
         return messageRepository.countByConversationIdAndReceiverIdAndIsReadFalse(conversationId, userId);
     }
 
+    public int getUnreadCount(String conversationId, Long userId, String role) {
+        return messageRepository.countByConversationIdAndReceiverIdAndReceiverRoleAndIsReadFalse(
+                conversationId, userId, role);
+    }
+
     @Transactional(readOnly = true)
     public int getTotalUnreadCount(Long userId) {
         return messageRepository.countByReceiverIdAndIsReadFalse(userId);
+    }
+
+    public int getTotalUnreadCount(Long userId, String role) {
+        return messageRepository.countByReceiverIdAndReceiverRoleAndIsReadFalse(userId, role);
     }
 
     /**

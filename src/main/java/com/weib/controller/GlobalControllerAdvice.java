@@ -36,7 +36,7 @@ public class GlobalControllerAdvice {
         User user = (User) session.getAttribute("user");
         if (user == null) return 0;
         try {
-            return messageService.getTotalUnreadCount(user.getId());
+            return messageService.getTotalUnreadCount(user.getId(), activeIdentityResolver.current(session).role());
         } catch (Exception e) {
             return 0;
         }

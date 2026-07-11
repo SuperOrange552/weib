@@ -1,6 +1,7 @@
 package com.weib.config;
 
 import com.weib.entity.User;
+import com.weib.identity.ActivePrincipal;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
@@ -56,7 +57,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                                                       Map<String, Object> attributes) {
                         Object userId = attributes.get("userId");
                         if (userId != null) {
-                            return () -> userId.toString();
+                            return new ActivePrincipal(Long.valueOf(userId.toString()),
+                                    String.valueOf(attributes.get("activeRole")));
                         }
                         return null;
                     }
@@ -73,6 +75,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                                 User user = (User) session.getAttribute("user");
                                 if (user != null) {
                                     attributes.put("userId", user.getId());
+                                    attributes.put("activeRole", session.getAttribute("activeRole"));
                                     return true;
                                 }
                             }

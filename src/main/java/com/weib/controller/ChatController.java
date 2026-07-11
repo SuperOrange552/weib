@@ -19,6 +19,7 @@ import com.weib.repository.MessageRepository;
 import com.weib.repository.UserRepository;
 import com.weib.util.IdObfuscator;
 import com.weib.identity.ActiveIdentityResolver;
+import com.weib.identity.ActivePrincipal;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -115,7 +116,7 @@ public class ChatController {
             Map<Long, Company> companyMap = batchLoadCompanyMap(jobMap);
 
             for (Application app : apps) {
-                conversations.add(buildConversationMap(app, user.getId(), jobMap, companyMap));
+                conversations.add(buildConversationMap(app, user.getId(), "SEEKER", jobMap, companyMap));
             }
         } else if (activeIdentityResolver.hasRole(session, "BOSS")) {
             try {
@@ -138,7 +139,7 @@ public class ChatController {
                 Map<Long, Company> companyMap = Map.of(company.getId(), company);
 
                 for (Application app : apps) {
-                    Map<String, Object> conv = buildConversationMap(app, user.getId(), jobMap, companyMap);
+                    Map<String, Object> conv = buildConversationMap(app, user.getId(), "BOSS", jobMap, companyMap);
                     User seeker = seekerMap.get(app.getUserId());
                     if (seeker != null) {
                         conv.put("seekerName", seeker.getNickname() != null ? seeker.getNickname() : seeker.getUsername());
@@ -165,7 +166,7 @@ public class ChatController {
      * 构建单个会话的展示数据
      * 包含：基本信息、未读数、最后一条消息预览
      */
-    private Map<String, Object> buildConversationMap(Application app, Long currentUserId,
+    private Map<String, Object> buildConversationMap(Application app, Long currentUserId, String currentRole,
                                                       Map<Long, Job> jobMap, Map<Long, Company> companyMap) {
         Map<String, Object> conv = new HashMap<>();
         conv.put("applicationId", app.getId());
@@ -173,7 +174,7 @@ public class ChatController {
         conv.put("status", app.getStatus());
         String conversationId = "app_" + app.getId();
         conv.put("conversationId", conversationId);
-        conv.put("unread", messageService.getUnreadCount(conversationId, currentUserId));
+        conv.put("unread", messageService.getUnreadCount(conversationId, currentUserId, currentRole));
 
         // 最后一条消息预览
         messageService.getLastMessage(conversationId).ifPresent(lastMsg -> {
@@ -225,6 +226,7 @@ public class ChatController {
         if (applicationId == null) return "redirect:/chat";
 
         User user = (User) session.getAttribute("user");
+        String activeRole = activeIdentityResolver.current(session).role();
         if (user == null) {
             return "redirect:/login";
         }
@@ -248,10 +250,10 @@ public class ChatController {
         }
 
         String conversationId = "app_" + applicationId;
-        List<Message> messages = messageService.getConversationMessages(conversationId);
+        List<Message> messages = messageService.getConversationMessages(conversationId, user.getId(), activeRole);
 
         // 标记已读并获取发送者ID列表，向每个发送者推送已读回执
-        Set<Long> senderIds = messageService.markAsReadAndGetSenders(conversationId, user.getId());
+        Set<Long> senderIds = messageService.markAsReadAndGetSenders(conversationId, user.getId(), activeRole);
         for (Long senderId : senderIds) {
             Map<String, Object> receipt = new HashMap<>();
             receipt.put("type", "read_receipt");
@@ -451,6 +453,7 @@ public class ChatController {
         }
         String conversationId = (String) payload.get("conversationId");
         Long senderId = Long.valueOf(principal.getName());
+        String senderRole = principal instanceof ActivePrincipal active ? active.activeRole() : "LEGACY";
         try {
             sanctionService.assertAllowed(senderId, "MUTE");
         } catch (com.weib.exception.SanctionDeniedException e) {
@@ -463,7 +466,7 @@ public class ChatController {
         if (participantIds == null) {
             return;
         }
-        if (!senderId.equals(participantIds[0]) && !senderId.equals(participantIds[1])) {
+        if (!isParticipant(participantIds, senderId, senderRole)) {
             return;
         }
 
@@ -498,8 +501,9 @@ public class ChatController {
         Object fileSizeObj = payload.get("fileSize");
         Long fileSize = fileSizeObj != null ? Long.valueOf(fileSizeObj.toString()) : null;
 
-        Message saved = messageService.saveMessage(conversationId, senderId, receiverId,
-                content, messageType, fileName, filePath, fileSize);
+        String receiverRole = "SEEKER".equalsIgnoreCase(senderRole) ? "BOSS" : "SEEKER";
+        Message saved = messageService.saveMessage(conversationId, senderId, senderRole, receiverId, receiverRole,
+                content, messageType, fileName, filePath, fileSize, null);
 
         // 实时推送给接收者（在线时即时送达，离线时下次上线通过历史记录查看）
         messagingTemplate.convertAndSendToUser(
@@ -545,10 +549,11 @@ public class ChatController {
 
         String conversationId = (String) payload.get("conversationId");
         Long senderId = user.getId();
+        String senderRole = activeIdentityResolver.current(session).role();
 
         Long[] participantIds = resolveParticipantIds(conversationId);
         if (participantIds == null) return Result.error("无效的会话");
-        if (!senderId.equals(participantIds[0]) && !senderId.equals(participantIds[1])) {
+        if (!isParticipant(participantIds, senderId, senderRole)) {
             return Result.error("无权在此会话发言");
         }
 
@@ -576,7 +581,8 @@ public class ChatController {
         Long fileSize = fileSizeObj != null ? Long.valueOf(fileSizeObj.toString()) : null;
 
         String clientMessageId = payload.get("clientMessageId") == null ? null : payload.get("clientMessageId").toString();
-        Message saved = messageService.saveMessage(conversationId, senderId, receiverId,
+        String receiverRole = "SEEKER".equals(senderRole) ? "BOSS" : "SEEKER";
+        Message saved = messageService.saveMessage(conversationId, senderId, senderRole, receiverId, receiverRole,
                 content, messageType, fileName, filePath, fileSize, clientMessageId);
 
         // 接收者在线则实时推送
@@ -605,9 +611,10 @@ public class ChatController {
                                                HttpSession session) {
         User user = (User) session.getAttribute("user");
         if (user == null) return Result.error("请先登录");
-        if (!isParticipant(conversationId, user.getId())) return Result.error("无权访问该会话");
+        String activeRole = activeIdentityResolver.current(session).role();
+        if (!isParticipant(conversationId, user.getId(), activeRole)) return Result.error("无权访问该会话");
 
-        List<Message> allMessages = messageService.getConversationMessages(conversationId);
+        List<Message> allMessages = messageService.getConversationMessages(conversationId, user.getId(), activeRole);
         if (sinceId <= 0) {
             return Result.success(allMessages);
         }
@@ -656,6 +663,7 @@ public class ChatController {
     public Result<?> apiMarkRead(@RequestBody Map<String, String> body, HttpSession session) {
         User user = (User) session.getAttribute("user");
         if (user == null) return Result.error("请先登录");
+        String activeRole = activeIdentityResolver.current(session).role();
 
         String conversationId = body.get("conversationId");
         if (conversationId == null || conversationId.isBlank()) {
@@ -663,11 +671,11 @@ public class ChatController {
         }
 
         // 验证用户是会话参与者
-        if (!isParticipant(conversationId, user.getId())) {
+        if (!isParticipant(conversationId, user.getId(), activeRole)) {
             return Result.error("无权访问该会话");
         }
 
-        Set<Long> senderIds = messageService.markAsReadAndGetSenders(conversationId, user.getId());
+        Set<Long> senderIds = messageService.markAsReadAndGetSenders(conversationId, user.getId(), activeRole);
         for (Long senderId : senderIds) {
             Map<String, Object> receipt = new HashMap<>();
             receipt.put("type", "read_receipt");
@@ -687,6 +695,16 @@ public class ChatController {
     private boolean isParticipant(String conversationId, Long userId) {
         Long[] ids = resolveParticipantIds(conversationId);
         return ids != null && (userId.equals(ids[0]) || userId.equals(ids[1]));
+    }
+
+    private boolean isParticipant(String conversationId, Long userId, String role) {
+        return isParticipant(resolveParticipantIds(conversationId), userId, role);
+    }
+
+    private boolean isParticipant(Long[] ids, Long userId, String role) {
+        if (ids == null || role == null) return false;
+        return ("SEEKER".equalsIgnoreCase(role) && userId.equals(ids[0]))
+                || ("BOSS".equalsIgnoreCase(role) && userId.equals(ids[1]));
     }
 
     private Map<Long, Job> batchLoadJobMap(List<Long> jobIds) {
