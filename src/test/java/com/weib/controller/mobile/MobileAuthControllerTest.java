@@ -67,6 +67,7 @@ class MobileAuthControllerTest {
     @Test
     void returnsBearerTokenForBoss() throws Exception {
         User boss = user(8L, "boss_zhang", "张经理", "boss");
+        boss.setStatus("ACTIVE");
         when(captchaService.verify(any(), eq("CD34"))).thenReturn(CaptchaService.VerifyStatus.VALID);
         when(userService.login("boss_zhang", "Secret123")).thenReturn(Optional.of(boss));
         when(jwtUtil.generateToken(8L, "boss_zhang", "boss")).thenReturn("boss.jwt");

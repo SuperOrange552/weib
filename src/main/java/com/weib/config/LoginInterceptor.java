@@ -121,7 +121,7 @@ public class LoginInterceptor implements HandlerInterceptor {
 
     /** 检查用户是否已被封禁 */
     private boolean isBlocked(User user) {
-        return "banned".equals(user.getStatus())
+        return "banned".equalsIgnoreCase(user.getStatus())
                 || (user.getId() != null && sanctionService.hasActive(user.getId(), "ACCOUNT_BAN"));
     }
 
