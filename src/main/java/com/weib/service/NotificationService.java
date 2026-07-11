@@ -7,12 +7,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+import com.weib.notification.NotificationEventService;
 
 @Service
 @RequiredArgsConstructor
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final NotificationEventService eventService;
 
     @Transactional
     public void createNotification(Long userId, String type, String content, Long relatedId) {
@@ -22,6 +26,7 @@ public class NotificationService {
         notification.setContent(content);
         notification.setRelatedId(relatedId);
         notificationRepository.save(notification);
+        publishEvent(userId, targetRole(type), type, relatedId, content);
     }
 
     @Transactional
@@ -31,6 +36,7 @@ public class NotificationService {
         notification.setType(type);
         notification.setContent(content);
         notificationRepository.save(notification);
+        publishEvent(userId, targetRole(type), type, null, title + "：" + content);
     }
 
     @Transactional(readOnly = true)
@@ -73,5 +79,24 @@ public class NotificationService {
     @Transactional
     public void createSystemNotification(Long userId, String type, String content, Long relatedId) {
         createNotification(userId, type, content, relatedId);
+    }
+
+    @Transactional
+    public void createIdentityNotification(Long userId, String role, String type, String content, Long relatedId) {
+        Notification notification = new Notification();
+        notification.setUserId(userId); notification.setType(type); notification.setContent(content); notification.setRelatedId(relatedId);
+        notificationRepository.save(notification);
+        publishEvent(userId, role, type, relatedId, content);
+    }
+
+    private void publishEvent(Long userId, String role, String type, Long relatedId, String content) {
+        eventService.create(UUID.randomUUID().toString(), userId, role, type.toUpperCase(Locale.ROOT),
+                relatedId, content, "{}");
+    }
+
+    private String targetRole(String type) {
+        String value = type == null ? "" : type.toLowerCase(Locale.ROOT);
+        if (value.contains("company") || value.contains("job_")) return "BOSS";
+        return "SEEKER";
     }
 }

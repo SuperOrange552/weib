@@ -6,6 +6,8 @@ import com.weib.entity.Resume;
 import com.weib.repository.ApplicationRepository;
 import com.weib.repository.JobRepository;
 import com.weib.repository.ResumeRepository;
+import com.weib.repository.CompanyRepository;
+import com.weib.notification.NotificationEventService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +26,8 @@ public class ApplicationService {
     private final ApplicationRepository applicationRepository;
     private final JobRepository jobRepository;
     private final ResumeRepository resumeRepository;
+    private final CompanyRepository companyRepository;
+    private final NotificationEventService notificationEvents;
 
     /**
      * 投递职位
@@ -52,7 +56,12 @@ public class ApplicationService {
         application.setUserId(userId);
         application.setResumeId(resume.getId());
         try {
-            return applicationRepository.save(application);
+            Application saved = applicationRepository.save(application);
+            companyRepository.findById(job.getCompanyId()).ifPresent(company ->
+                    notificationEvents.create("application:new:" + saved.getId(), company.getBossId(), "BOSS",
+                            "NEW_APPLICATION", saved.getId(), "收到新的简历投递",
+                            "{\"jobId\":" + jobId + ",\"applicationId\":" + saved.getId() + "}"));
+            return saved;
         } catch (Exception e) {
             // 并发情况下可能因唯一约束冲突抛异常，视为已投递
             if (hasApplied(jobId, userId)) {

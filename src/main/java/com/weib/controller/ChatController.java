@@ -64,6 +64,7 @@ public class ChatController {
     private final WebSocketSessionManager sessionManager;
     private final IdObfuscator idObfuscator;
     private final ActiveIdentityResolver activeIdentityResolver;
+    private final com.weib.notification.NotificationEventService notificationEvents;
 
     @Value("${storage.chat-dir:./weib/uploads/chat}")
     private String chatDir;
@@ -504,6 +505,8 @@ public class ChatController {
         String receiverRole = "SEEKER".equalsIgnoreCase(senderRole) ? "BOSS" : "SEEKER";
         Message saved = messageService.saveMessage(conversationId, senderId, senderRole, receiverId, receiverRole,
                 content, messageType, fileName, filePath, fileSize, null);
+        notificationEvents.create("chat:" + saved.getId(), receiverId, receiverRole, "CHAT_MESSAGE", saved.getId(),
+                "收到一条新消息", "{\"conversationId\":\"" + conversationId + "\"}");
 
         // 实时推送给接收者（在线时即时送达，离线时下次上线通过历史记录查看）
         messagingTemplate.convertAndSendToUser(
@@ -584,6 +587,8 @@ public class ChatController {
         String receiverRole = "SEEKER".equals(senderRole) ? "BOSS" : "SEEKER";
         Message saved = messageService.saveMessage(conversationId, senderId, senderRole, receiverId, receiverRole,
                 content, messageType, fileName, filePath, fileSize, clientMessageId);
+        notificationEvents.create("chat:" + saved.getId(), receiverId, receiverRole, "CHAT_MESSAGE", saved.getId(),
+                "收到一条新消息", "{\"conversationId\":\"" + conversationId + "\"}");
 
         // 接收者在线则实时推送
         messagingTemplate.convertAndSendToUser(
