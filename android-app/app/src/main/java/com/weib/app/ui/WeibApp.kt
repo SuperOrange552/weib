@@ -156,9 +156,14 @@ private fun ContentScreen(state: AppUiState, retry: () -> Unit, logout: () -> Un
 @Composable
 private fun JobList(data: JsonElement?, apply: (String) -> Unit, favorite: (String) -> Unit, modifier: Modifier) {
     val array = data?.asJsonObject?.getAsJsonArray("content")?.mapNotNull { it.takeIf(JsonElement::isJsonObject)?.asJsonObject } ?: emptyList()
+    var keyword by remember { mutableStateOf("") }
+    var city by remember { mutableStateOf("") }
+    var expandedId by remember { mutableStateOf<String?>(null) }
+    val filtered = array.filter { job -> (keyword.isBlank() || job.string("title").contains(keyword,true) || job.getAsJsonObject("company")?.string("name")?.contains(keyword,true)==true) && (city.isBlank() || job.string("city").contains(city,true)) }
     LazyColumn(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { Text("发现好职位", style = MaterialTheme.typography.headlineMedium); Text("职位信息与 Web 端数据实时同步", color = WeibMuted) }
-        items(array) { job -> WeibCard {
+        item { OutlinedTextField(keyword,{keyword=it},Modifier.fillMaxWidth(),label={Text("搜索职位或公司")}); OutlinedTextField(city,{city=it},Modifier.fillMaxWidth(),label={Text("城市筛选")}) }
+        items(filtered) { job -> WeibCard {
             Text(job.string("title", "职位名称"), style = MaterialTheme.typography.titleLarge, color = WeibTitle)
             Text(salary(job), style = MaterialTheme.typography.titleMedium, color = WeibPrimary)
             Text(listOf(job.string("city"), job.string("education"), job.string("experience")).filter { it.isNotBlank() }.joinToString(" · "), color = WeibBody)
@@ -170,8 +175,10 @@ private fun JobList(data: JsonElement?, apply: (String) -> Unit, favorite: (Stri
                 Button(onClick = { apply(id) }, enabled = id.isNotBlank() && job["applied"]?.asBoolean != true) { Text(if (job["applied"]?.asBoolean == true) "已投递" else "立即投递") }
                 OutlinedButton(onClick = { favorite(id) }, enabled = id.isNotBlank()) { Text(if (job["favorited"]?.asBoolean == true) "取消收藏" else "收藏") }
             }
+            TextButton(onClick={expandedId=if(expandedId==id)null else id}){Text(if(expandedId==id)"收起详情" else "查看详情")}
+            if(expandedId==id){ HorizontalDivider(); Text(job.string("description","暂无职位描述")); Text(job.string("requirements","暂无任职要求")); company?.let{Text("公司：${it.string("name")}\n${it.string("description")}")}; Text("地址：${job.string("address","-")}") }
         } }
-        if (array.isEmpty()) item { EmptyCard("暂无职位") }
+        if (filtered.isEmpty()) item { EmptyCard("暂无职位") }
     }
 }
 
