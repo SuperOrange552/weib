@@ -43,6 +43,10 @@ interface WeibApi {
         @Path("conversationId") conversationId: String, @Query("sinceId") sinceId: Long = 0
     ): ApiEnvelope<JsonElement>
     @POST("api/chat/send") suspend fun sendMessage(@Body body: Map<String, @JvmSuppressWildcards Any?>): ApiEnvelope<JsonElement>
+    @GET("api/mobile/resume-access/requests") suspend fun resumeAccessRequests(): ApiEnvelope<JsonElement>
+    @POST("api/mobile/resume-access/requests") suspend fun requestResumeAccess(@Body body: Map<String, String>): ApiEnvelope<JsonElement>
+    @POST("api/mobile/resume-access/requests/{id}/decision") suspend fun decideResumeAccess(@Path("id") id: Long, @Body body: Map<String, Boolean>): ApiEnvelope<JsonElement>
+    @GET("api/mobile/resume-access/requests/{id}/resume") suspend fun authorizedResume(@Path("id") id: Long): ApiEnvelope<JsonElement>
 
     @GET("api/forum/posts") suspend fun forumPosts(): ApiEnvelope<JsonElement>
     @GET("api/mobile/notifications") suspend fun notificationEvents(

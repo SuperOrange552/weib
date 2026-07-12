@@ -137,7 +137,9 @@ private fun MainShell(state: AppUiState, viewModel: AppViewModel) {
             viewModel::toggleFavorite, viewModel::withdraw, viewModel::uploadResumeMedia, viewModel::saveResume,
             viewModel::searchJobs, viewModel::loadNextJobs, viewModel::searchTalents, viewModel::loadNextTalents,
             viewModel::saveJob, viewModel::toggleJob, viewModel::openConversation,
-            viewModel::closeConversation, viewModel::sendChatMessage, Modifier.padding(padding))
+            viewModel::closeConversation, viewModel::sendChatMessage, viewModel::requestFullResume,
+            viewModel::decideResumeAccess, viewModel::viewAuthorizedResume, viewModel::closeAuthorizedResume,
+            Modifier.padding(padding))
     }
 }
 
@@ -151,6 +153,8 @@ private fun ContentScreen(state: AppUiState, retry: () -> Unit, logout: () -> Un
                           saveJob: (String?, Map<String, Any?>) -> Unit, toggleJob: (String, Boolean) -> Unit,
                           openConversation: (String) -> Unit, closeConversation: () -> Unit,
                           sendChatMessage: (String) -> Unit,
+                          requestFullResume: (String) -> Unit, decideResumeAccess: (Long, Boolean) -> Unit,
+                          viewAuthorizedResume: (Long) -> Unit, closeAuthorizedResume: () -> Unit,
                           modifier: Modifier) {
     when {
         state.content.loading -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
@@ -158,9 +162,10 @@ private fun ContentScreen(state: AppUiState, retry: () -> Unit, logout: () -> Un
         state.selected == AppDestination.Jobs -> JobList(state, apply, favorite, searchJobs, loadNextJobs, modifier)
         state.selected == AppDestination.Applications -> ApplicationList(state.content.data, withdraw, modifier)
         state.selected == AppDestination.Dashboard -> Dashboard(state.content.data, modifier)
-        state.selected == AppDestination.Talent -> TalentList(state, searchTalents, loadNextTalents, modifier)
+        state.selected == AppDestination.Talent -> TalentList(state, searchTalents, loadNextTalents, requestFullResume, modifier)
         state.selected == AppDestination.BossJobs -> BossJobList(state.content.data, saveJob, toggleJob, modifier)
-        state.selected == AppDestination.Messages -> MessageScreen(state, openConversation, closeConversation, sendChatMessage, modifier)
+        state.selected == AppDestination.Messages -> MessageScreen(state, openConversation, closeConversation, sendChatMessage,
+            decideResumeAccess, viewAuthorizedResume, closeAuthorizedResume, modifier)
         state.selected == AppDestination.Profile -> Profile(state.content.data, state.role, upload, saveResume, logout, modifier)
         else -> GenericList(state.content.title, state.content.data, modifier)
     }
@@ -201,7 +206,8 @@ private fun JobList(state: AppUiState, apply: (String) -> Unit, favorite: (Strin
 
 @Composable
 private fun MessageScreen(state: AppUiState, open: (String) -> Unit, close: () -> Unit,
-                          send: (String) -> Unit, modifier: Modifier) {
+                          send: (String) -> Unit, decide: (Long, Boolean) -> Unit,
+                          viewResume: (Long) -> Unit, closeResume: () -> Unit, modifier: Modifier) {
     var draft by remember(state.activeConversation) { mutableStateOf("") }
     if (state.activeConversation != null) {
         val messages = state.chatMessages?.takeIf { it.isJsonArray }?.asJsonArray?.map { it.asJsonObject } ?: emptyList()
@@ -213,12 +219,20 @@ private fun MessageScreen(state: AppUiState, open: (String) -> Unit, close: () -
         }
         return
     }
+    state.authorizedResume?.let { resume ->
+        LazyColumn(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            item { Button(onClick=closeResume){Text("返回消息")}; Text("已授权的完整简历",style=MaterialTheme.typography.headlineMedium); WeibCard { JsonSummary(resume); Text(resume.asJsonObject.string("phone"),color=WeibBody);Text(resume.asJsonObject.string("email"),color=WeibBody);Text(resume.asJsonObject.string("workExperience"),color=WeibBody);Text(resume.asJsonObject.string("projectExperience"),color=WeibBody) } }
+        }; return
+    }
     val conversations = when {
         state.content.data?.isJsonArray == true -> state.content.data.asJsonArray.map { it.asJsonObject }
         else -> emptyList()
     }
     LazyColumn(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { Text("消息", style = MaterialTheme.typography.headlineMedium) }
+        val requests = state.resumeAccessRequests?.takeIf{it.isJsonArray}?.asJsonArray?.map{it.asJsonObject} ?: emptyList()
+        if (requests.isNotEmpty()) item { Text("完整简历授权",style=MaterialTheme.typography.titleLarge) }
+        items(requests,key={it.string("id")}) { request -> WeibCard { Text("申请状态：${request.string("status")}",color=WeibPrimary); val id=request["id"]?.asLong?:0L; if(state.role=="seeker"&&request.string("status")=="PENDING"){Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){Button(onClick={decide(id,true)}){Text("同意")};OutlinedButton(onClick={decide(id,false)}){Text("拒绝")}}}; if(state.role=="boss"&&request.string("status")=="APPROVED"){Button(onClick={viewResume(id)}){Text("查看完整简历")}} } }
         items(conversations) { conversation -> WeibCard {
             Text(conversation.string("jobTitle", conversation.string("companyName", "招聘沟通")), style = MaterialTheme.typography.titleLarge)
             Text(conversation.string("seekerName", conversation.string("companyName")), color = WeibBody)
@@ -254,7 +268,8 @@ private fun BossJobList(data: JsonElement?, save: (String?, Map<String, Any?>) -
 }
 
 @Composable
-private fun TalentList(state: AppUiState, search: (String) -> Unit, loadNext: () -> Unit, modifier: Modifier) {
+private fun TalentList(state: AppUiState, search: (String) -> Unit, loadNext: () -> Unit,
+                       requestResume: (String) -> Unit, modifier: Modifier) {
     var query by remember { mutableStateOf(state.talentQuery) }
     val talents = state.talents.items
     LazyColumn(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -265,7 +280,7 @@ private fun TalentList(state: AppUiState, search: (String) -> Unit, loadNext: ()
             Text(listOf(talent.string("education"), talent.string("school"), talent.string("major")).filter(String::isNotBlank).joinToString(" · "), color = WeibBody)
             Text(talent.string("skills", "暂未填写技能"), color = WeibBody)
             Text(talent.string("selfIntroduction", "暂未填写自我介绍"), color = WeibMuted)
-            Button(onClick = { }, enabled = false) { Text("私聊与完整简历请求将在消息流程启用") }
+            Button(onClick = { requestResume(talent.string("seekerId")) }, enabled = talent.string("seekerId").isNotBlank()) { Text("申请查看完整简历") }
         } }
         if (talents.isEmpty() && !state.talents.refreshing) item { EmptyCard("暂无公开人才") }
         if (state.talents.refreshing || state.talents.appending) item { Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }

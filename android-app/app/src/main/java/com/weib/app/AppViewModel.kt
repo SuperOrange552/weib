@@ -43,6 +43,8 @@ data class AppUiState(
     ,val activeConversation: String? = null
     ,val chatMessages: com.google.gson.JsonElement? = null
     ,val chatLoading: Boolean = false
+    ,val resumeAccessRequests: com.google.gson.JsonElement? = null
+    ,val authorizedResume: com.google.gson.JsonElement? = null
 ) {
     val role: String? get() = user?.role ?: restoredRole
     val loggedIn: Boolean get() = role == "seeker" || role == "boss"
@@ -166,6 +168,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun requestFullResume(seekerId: String) = runAction("完整简历申请已发送") { repository.requestResumeAccess(seekerId) }
+
+    fun decideResumeAccess(id: Long, approved: Boolean) = runAction(if (approved) "已同意完整简历授权" else "已拒绝完整简历授权") {
+        repository.decideResumeAccess(id, approved)
+    }
+
+    fun viewAuthorizedResume(id: Long) {
+        viewModelScope.launch {
+            runCatching { repository.authorizedResume(id) }
+                .onSuccess { result -> _state.value = _state.value.copy(authorizedResume = result.data, actionMessage = if (result.code == 200) null else result.msg) }
+                .onFailure { _state.value = _state.value.copy(actionMessage = it.message) }
+        }
+    }
+
+    fun closeAuthorizedResume() { _state.value = _state.value.copy(authorizedResume = null) }
+
     fun apply(jobId: String) = runAction("投递成功") { repository.apply(jobId) }
     fun toggleFavorite(jobId: String) = runAction("收藏状态已更新") { repository.toggleFavorite(jobId) }
     fun withdraw(applicationId: String) = runAction("投递已撤回") { repository.withdraw(applicationId) }
@@ -214,6 +232,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun load(destination: AppDestination) {
         val role = _state.value.role ?: return
+        if (destination == AppDestination.Messages) loadResumeAccessRequests()
         if (destination == AppDestination.Jobs) {
             loadJobs(refresh = true)
             return
@@ -233,6 +252,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
                 .onFailure { _state.value = _state.value.copy(content = ContentState(destination.label, error = it.message)) }
+        }
+    }
+
+    private fun loadResumeAccessRequests() {
+        viewModelScope.launch {
+            runCatching { repository.resumeAccessRequests() }
+                .onSuccess { result -> if (result.code == 200) _state.value = _state.value.copy(resumeAccessRequests = result.data) }
         }
     }
 

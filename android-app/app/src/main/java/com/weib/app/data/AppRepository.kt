@@ -125,6 +125,10 @@ class AppRepository(context: Context) {
         "conversationId" to conversationId, "content" to content, "messageType" to "text",
         "clientMessageId" to UUID.randomUUID().toString()
     ))
+    suspend fun resumeAccessRequests() = api.resumeAccessRequests()
+    suspend fun requestResumeAccess(seekerId: String) = api.requestResumeAccess(mapOf("seekerId" to seekerId))
+    suspend fun decideResumeAccess(id: Long, approved: Boolean) = api.decideResumeAccess(id, mapOf("approved" to approved))
+    suspend fun authorizedResume(id: Long) = api.authorizedResume(id)
 
     private fun trustLocalCertificate(builder: OkHttpClient.Builder) {
         val trustManager = object : X509TrustManager {
