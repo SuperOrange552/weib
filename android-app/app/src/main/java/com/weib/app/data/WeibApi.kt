@@ -60,6 +60,8 @@ interface WeibApi {
     @POST("api/complaints") suspend fun createComplaint(@Body body: Map<String, @JvmSuppressWildcards Any?>): ApiEnvelope<JsonElement>
     @GET("api/appeals/mine") suspend fun myAppeals(): ApiEnvelope<JsonElement>
     @POST("api/appeals") suspend fun createAppeal(@Body body: Map<String, @JvmSuppressWildcards Any?>): ApiEnvelope<JsonElement>
+    @Multipart @POST("api/forum/media") suspend fun uploadForumImage(@Part file: MultipartBody.Part): ApiEnvelope<JsonElement>
+    @Multipart @POST("api/appeals/evidence") suspend fun uploadEvidenceImage(@Part file: MultipartBody.Part): ApiEnvelope<JsonElement>
     @GET("api/mobile/notifications") suspend fun notificationEvents(
         @Query("afterEventId") afterEventId: Long, @Query("limit") limit: Int = 100
     ): ApiEnvelope<JsonElement>

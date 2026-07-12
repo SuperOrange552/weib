@@ -141,6 +141,13 @@ class AppRepository(context: Context) {
     suspend fun createComplaint(fields: Map<String, Any?>) = api.createComplaint(fields)
     suspend fun myAppeals() = api.myAppeals()
     suspend fun createAppeal(fields: Map<String, Any?>) = api.createAppeal(fields)
+    suspend fun uploadImage(uri: Uri, evidence: Boolean): String = withContext(Dispatchers.IO) {
+        val resolver=appContext.contentResolver; val mime=resolver.getType(uri) ?: "image/jpeg"
+        val name=resolver.query(uri,null,null,null,null)?.use{c->val i=c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME);if(c.moveToFirst()&&i>=0)c.getString(i) else null} ?: "image.jpg"
+        val temp=kotlin.io.path.createTempFile(appContext.cacheDir.toPath(),"image-","-"+name).toFile()
+        resolver.openInputStream(uri)?.use{input->temp.outputStream().use(input::copyTo)} ?: error("无法读取图片")
+        try { val part=MultipartBody.Part.createFormData("file",name,temp.asRequestBody(mime.toMediaTypeOrNull())); val result=if(evidence)api.uploadEvidenceImage(part)else api.uploadForumImage(part); if(result.code!=200)error(result.msg?:"上传失败"); result.data?.asJsonObject?.get("url")?.asString?:error("上传结果无效") } finally { temp.delete() }
+    }
 
     private fun trustLocalCertificate(builder: OkHttpClient.Builder) {
         val trustManager = object : X509TrustManager {

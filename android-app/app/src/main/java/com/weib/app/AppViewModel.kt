@@ -49,6 +49,8 @@ data class AppUiState(
     ,val forumComments: com.google.gson.JsonElement? = null
     ,val complaints: com.google.gson.JsonElement? = null
     ,val appeals: com.google.gson.JsonElement? = null
+    ,val forumImageUrl: String? = null
+    ,val evidenceImageUrl: String? = null
 ) {
     val role: String? get() = user?.role ?: restoredRole
     val loggedIn: Boolean get() = role == "seeker" || role == "boss"
@@ -195,6 +197,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun commentForumPost(content: String) { val id=_state.value.activeForumPost?:return; runAction("评论成功") { repository.createForumComment(id,content) } }
     fun createComplaint(fields: Map<String, Any?>) = runAction("投诉已提交") { repository.createComplaint(fields) }
     fun createAppeal(fields: Map<String, Any?>) = runAction("申诉已提交") { repository.createAppeal(fields) }
+    fun uploadForumImage(uri: Uri) = uploadImage(uri, false)
+    fun uploadEvidenceImage(uri: Uri) = uploadImage(uri, true)
+    fun searchForum(query: String, sectionId: Long?) { viewModelScope.launch { _state.value=_state.value.copy(content=ContentState("论坛",loading=true)); runCatching{repository.forumPosts(0,query,sectionId)}.onSuccess{r->_state.value=_state.value.copy(content=if(r.code==200)ContentState("论坛",r.data)else ContentState("论坛",error=r.msg))}.onFailure{_state.value=_state.value.copy(content=ContentState("论坛",error=it.message))} } }
+    private fun uploadImage(uri: Uri, evidence: Boolean) { viewModelScope.launch { runCatching { repository.uploadImage(uri,evidence) }.onSuccess { url->_state.value=if(evidence)_state.value.copy(evidenceImageUrl=url,actionMessage="证据图片上传成功") else _state.value.copy(forumImageUrl=url,actionMessage="论坛图片上传成功") }.onFailure { _state.value=_state.value.copy(actionMessage=it.message) } } }
 
     fun apply(jobId: String) = runAction("投递成功") { repository.apply(jobId) }
     fun toggleFavorite(jobId: String) = runAction("收藏状态已更新") { repository.toggleFavorite(jobId) }
