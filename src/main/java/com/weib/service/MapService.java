@@ -5,9 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import java.net.URI;
 
 @Service
 public class MapService {
@@ -23,11 +23,8 @@ public class MapService {
 
     public double[] geocode(String address, String city) {
         try {
-            String fullAddress = (city != null && !city.isEmpty()) ? city + address : address;
-            String encodedAddress = URLEncoder.encode(fullAddress, StandardCharsets.UTF_8);
-            String url = GEOCODE_URL + "?address=" + encodedAddress + "&key=" + amapKey;
-
-            String response = restTemplate.getForObject(url, String.class);
+            URI uri = buildGeocodeUri(address, city, amapKey);
+            String response = restTemplate.getForObject(uri, String.class);
             JsonNode root = objectMapper.readTree(response);
             if (root.get("status").asInt() == 1 && root.get("count").asInt() > 0) {
                 String location = root.get("geocodes").get(0).get("location").asText();
@@ -43,5 +40,15 @@ public class MapService {
             log.warn("地理编码失败, address={}", address, e);
         }
         return null;
+    }
+
+    static URI buildGeocodeUri(String address, String city, String key) {
+        String fullAddress = (city != null && !city.isBlank()) ? city + address : address;
+        return UriComponentsBuilder.fromHttpUrl(GEOCODE_URL)
+                .queryParam("address", fullAddress)
+                .queryParam("key", key)
+                .build()
+                .encode()
+                .toUri();
     }
 }
