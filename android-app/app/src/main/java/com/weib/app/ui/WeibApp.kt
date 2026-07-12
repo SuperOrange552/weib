@@ -136,7 +136,7 @@ private fun MainShell(state: AppUiState, viewModel: AppViewModel) {
         ContentScreen(state, viewModel::retry, viewModel::logout, viewModel::apply,
             viewModel::toggleFavorite, viewModel::withdraw, viewModel::uploadResumeMedia, viewModel::saveResume,
             viewModel::searchJobs, viewModel::loadNextJobs, viewModel::searchTalents, viewModel::loadNextTalents,
-            Modifier.padding(padding))
+            viewModel::saveJob, viewModel::toggleJob, Modifier.padding(padding))
     }
 }
 
@@ -146,7 +146,9 @@ private fun ContentScreen(state: AppUiState, retry: () -> Unit, logout: () -> Un
                           withdraw: (String) -> Unit, upload: (Uri, String) -> Unit,
                           saveResume: (Map<String, Any?>) -> Unit,
                           searchJobs: (String, String) -> Unit, loadNextJobs: () -> Unit,
-                          searchTalents: (String) -> Unit, loadNextTalents: () -> Unit, modifier: Modifier) {
+                          searchTalents: (String) -> Unit, loadNextTalents: () -> Unit,
+                          saveJob: (String?, Map<String, Any?>) -> Unit, toggleJob: (String, Boolean) -> Unit,
+                          modifier: Modifier) {
     when {
         state.content.loading -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         state.content.error != null -> ErrorState(state.content.error, retry, modifier)
@@ -154,6 +156,7 @@ private fun ContentScreen(state: AppUiState, retry: () -> Unit, logout: () -> Un
         state.selected == AppDestination.Applications -> ApplicationList(state.content.data, withdraw, modifier)
         state.selected == AppDestination.Dashboard -> Dashboard(state.content.data, modifier)
         state.selected == AppDestination.Talent -> TalentList(state, searchTalents, loadNextTalents, modifier)
+        state.selected == AppDestination.BossJobs -> BossJobList(state.content.data, saveJob, toggleJob, modifier)
         state.selected == AppDestination.Profile -> Profile(state.content.data, state.role, upload, saveResume, logout, modifier)
         else -> GenericList(state.content.title, state.content.data, modifier)
     }
@@ -189,6 +192,30 @@ private fun JobList(state: AppUiState, apply: (String) -> Unit, favorite: (Strin
         state.jobs.error?.let { message -> item { Button(onClick = { if (array.isEmpty()) search(keyword, city) else loadNext() }, Modifier.fillMaxWidth()) { Text("加载失败，点击重试：$message") } } }
         if (array.isNotEmpty() && state.jobs.hasNext && !state.jobs.appending) item { LaunchedEffect(state.jobs.page, keyword, city) { loadNext() } }
         if (array.isNotEmpty() && !state.jobs.hasNext) item { Text("没有更多职位了", color = WeibMuted, modifier = Modifier.fillMaxWidth().padding(12.dp)) }
+    }
+}
+
+@Composable
+private fun BossJobList(data: JsonElement?, save: (String?, Map<String, Any?>) -> Unit,
+                        toggle: (String, Boolean) -> Unit, modifier: Modifier) {
+    val jobs = data?.takeIf { it.isJsonArray }?.asJsonArray?.map { it.asJsonObject } ?: emptyList()
+    var showForm by remember { mutableStateOf(false) }
+    var title by remember { mutableStateOf("") }; var city by remember { mutableStateOf("") }
+    var salaryMin by remember { mutableStateOf("") }; var salaryMax by remember { mutableStateOf("") }
+    var education by remember { mutableStateOf("") }; var experience by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }; var requirements by remember { mutableStateOf("") }
+    LazyColumn(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { Text("职位管理", style = MaterialTheme.typography.headlineMedium); Button(onClick = { showForm = !showForm }) { Text(if (showForm) "收起" else "发布职位") } } }
+        if (showForm) item { WeibCard {
+            OutlinedTextField(title,{title=it},Modifier.fillMaxWidth(),label={Text("职位名称")})
+            OutlinedTextField(city,{city=it},Modifier.fillMaxWidth(),label={Text("城市")})
+            Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedTextField(salaryMin,{salaryMin=it},Modifier.weight(1f),label={Text("最低薪资")});OutlinedTextField(salaryMax,{salaryMax=it},Modifier.weight(1f),label={Text("最高薪资")})}
+            OutlinedTextField(education,{education=it},Modifier.fillMaxWidth(),label={Text("学历要求")}); OutlinedTextField(experience,{experience=it},Modifier.fillMaxWidth(),label={Text("经验要求")})
+            OutlinedTextField(description,{description=it},Modifier.fillMaxWidth(),label={Text("职位描述")},minLines=3); OutlinedTextField(requirements,{requirements=it},Modifier.fillMaxWidth(),label={Text("任职要求")},minLines=3)
+            Button(onClick={save(null,mapOf("title" to title,"city" to city,"salaryMin" to salaryMin.toIntOrNull(),"salaryMax" to salaryMax.toIntOrNull(),"education" to education,"experience" to experience,"description" to description,"requirements" to requirements,"address" to city,"tags" to ""))},Modifier.fillMaxWidth(),enabled=title.isNotBlank()&&city.isNotBlank()&&description.isNotBlank()){Text("确认发布")}
+        } }
+        items(jobs, key={it.string("id")}) { job -> WeibCard { Text(job.string("title","职位"),style=MaterialTheme.typography.titleLarge,color=WeibTitle); Text(salary(job),color=WeibPrimary); Text("${job.string("city")} · ${job.string("education")} · ${job.string("experience")}",color=WeibBody); Text("状态：${job.string("status")}",color=WeibMuted); val active=job.string("status")=="active"; Button(onClick={toggle(job.string("id"),active)}){Text(if(active)"关闭职位" else "重新开放") } } }
+        if (jobs.isEmpty() && !showForm) item { EmptyCard("暂无已发布职位") }
     }
 }
 

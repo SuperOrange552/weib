@@ -173,6 +173,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
     fun updateApplication(id: String, status: String) = runAction("投递状态已更新") { repository.updateApplicationStatus(id, status) }
     fun toggleJob(id: String, active: Boolean) = runAction("职位状态已更新") { if (active) repository.closeJob(id) else repository.reopenJob(id) }
+    fun saveJob(id: String?, fields: Map<String, Any?>) = runAction(if (id == null) "职位发布成功" else "职位更新成功") {
+        if (id == null) repository.createJob(fields) else repository.updateJob(id, fields)
+    }
 
     fun logout() {
         viewModelScope.launch {

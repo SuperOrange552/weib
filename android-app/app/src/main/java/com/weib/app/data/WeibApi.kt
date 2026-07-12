@@ -9,6 +9,7 @@ import retrofit2.http.POST
 import retrofit2.http.Query
 import retrofit2.http.Path
 import retrofit2.http.DELETE
+import retrofit2.http.PUT
 import retrofit2.http.Multipart
 import retrofit2.http.Part
 import okhttp3.MultipartBody
@@ -57,4 +58,6 @@ interface WeibApi {
         @Path("id") id: String, @Body body: Map<String, String>): ApiEnvelope<JsonElement>
     @POST("api/mobile/boss/jobs/{id}/close") suspend fun closeJob(@Path("id") id: String): ApiEnvelope<JsonElement>
     @POST("api/mobile/boss/jobs/{id}/reopen") suspend fun reopenJob(@Path("id") id: String): ApiEnvelope<JsonElement>
+    @POST("api/mobile/boss/jobs") suspend fun createJob(@Body body: Map<String, @JvmSuppressWildcards Any?>): ApiEnvelope<JsonElement>
+    @PUT("api/mobile/boss/jobs/{id}") suspend fun updateJob(@Path("id") id: String, @Body body: Map<String, @JvmSuppressWildcards Any?>): ApiEnvelope<JsonElement>
 }

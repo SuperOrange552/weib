@@ -118,6 +118,8 @@ class AppRepository(context: Context) {
     suspend fun updateApplicationStatus(id: String, status: String) = api.updateApplicationStatus(id, mapOf("status" to status))
     suspend fun closeJob(id: String) = api.closeJob(id)
     suspend fun reopenJob(id: String) = api.reopenJob(id)
+    suspend fun createJob(fields: Map<String, Any?>) = api.createJob(fields)
+    suspend fun updateJob(id: String, fields: Map<String, Any?>) = api.updateJob(id, fields)
 
     private fun trustLocalCertificate(builder: OkHttpClient.Builder) {
         val trustManager = object : X509TrustManager {
