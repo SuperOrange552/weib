@@ -89,7 +89,7 @@ form.addEventListener('submit', async event => {
             sectionId: Number(document.getElementById('sectionId').value),
             title: document.getElementById('title').value.trim(),
             content: document.getElementById('content').value.trim(),
-            tags: document.getElementById('tags').value.split(',').map(tag => tag.trim()).filter(Boolean),
+            tags: document.getElementById('tags').value.split(/[,，]/).map(tag => tag.trim()).filter(Boolean),
             imageUrls
         };
         const response = await fetch('/api/forum/posts', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf }, body: JSON.stringify(body) });

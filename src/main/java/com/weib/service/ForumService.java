@@ -57,7 +57,7 @@ public class ForumService {
         String title = required(request.title(), 2, 120, "title");
         String content = required(request.content(), 2, 10000, "content");
         List<String> images = validateList(request.imageUrls(), 9, 500, "image");
-        List<String> tags = validateList(request.tags(), 5, 30, "tag");
+        List<String> tags = normalizeTags(request.tags());
         ForumPost p = new ForumPost();
         p.setSectionId(request.sectionId()); p.setAuthorId(userId); p.setAuthorRole(identityService.requireEnabledRole(userId, authorRole)); p.setTitle(title); p.setContent(content);
         p.setImageUrls(String.join("|", images)); p.setTags(String.join(",", tags)); p.setStatus("ACTIVE");
@@ -124,4 +124,17 @@ public class ForumService {
     private List<String> split(String s, String delimiter) { return s == null || s.isBlank() ? List.of() : Arrays.stream(s.split(delimiter, -1)).filter(v -> !v.isBlank()).toList(); }
     private String required(String s, int min, int max, String field) { if (s == null || s.trim().length() < min || s.trim().length() > max) throw new IllegalArgumentException(field + " length invalid"); return s.trim(); }
     private List<String> validateList(List<String> values, int max, int itemMax, String field) { if (values == null) return List.of(); if (values.size() > max) throw new IllegalArgumentException(field + " count exceeded"); return values.stream().map(v -> v == null ? "" : v.trim()).peek(v -> { if (v.isBlank() || v.length() > itemMax) throw new IllegalArgumentException(field + " invalid"); if (field.equals("image") && !(v.startsWith("/uploads/") || v.startsWith("http://") || v.startsWith("https://"))) throw new IllegalArgumentException("image url invalid"); }).toList(); }
+    private List<String> normalizeTags(List<String> values) {
+        if (values == null) return List.of();
+        List<String> tags = values.stream()
+                .filter(Objects::nonNull)
+                .flatMap(value -> Arrays.stream(value.split("[,，]", -1)))
+                .map(String::trim)
+                .filter(value -> !value.isBlank())
+                .distinct()
+                .toList();
+        if (tags.size() > 5) throw new IllegalArgumentException("tag count exceeded");
+        if (tags.stream().anyMatch(tag -> tag.length() > 30)) throw new IllegalArgumentException("tag invalid");
+        return tags;
+    }
 }

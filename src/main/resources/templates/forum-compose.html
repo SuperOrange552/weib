@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -10,7 +10,12 @@
 <script src="/js/app-shell.js"></script></head>
 <body>
 <main class="forum-page light-surface">
-    <a href="/forum">← 返回论坛</a>
+    <nav class="forum-system-nav" aria-label="论坛导航">
+        <a class="forum-system-back"
+           th:href="${activeRole == 'BOSS' ? '/boss' : '/'}"
+           th:text="${activeRole == 'BOSS' ? '← 返回Boss工作台' : '← 返回职位大厅'}">← 返回职位大厅</a>
+        <a class="forum-nav-link" href="/forum">← 返回论坛首页</a>
+    </nav>
     <form id="compose" class="forum-compose" style="margin-top:16px">
         <h1>发布帖子</h1>
         <label for="sectionId">板块</label>
@@ -19,8 +24,8 @@
         <input id="title" required minlength="2" maxlength="120" placeholder="请输入清晰的标题">
         <label for="content">正文</label>
         <textarea id="content" required minlength="2" maxlength="10000" placeholder="分享你的经验或问题"></textarea>
-        <label for="tags">标签（逗号分隔，最多 5 个）</label>
-        <input id="tags" maxlength="150" placeholder="面试,简历">
+        <label for="tags">标签（中文或英文逗号分隔，最多 5 个）</label>
+        <input id="tags" maxlength="150" placeholder="面试，简历,求职">
         <label>图片（可选）</label>
         <div id="upload" class="forum-upload" role="button" tabindex="0">
             <input id="images" type="file" accept="image/*" multiple>

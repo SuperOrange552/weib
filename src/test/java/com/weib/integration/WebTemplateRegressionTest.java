@@ -55,6 +55,24 @@ class WebTemplateRegressionTest {
     }
 
     @Test
+    void everyForumPageProvidesAnExplicitSystemReturnEntry() throws IOException {
+        for (String template : new String[]{"forum.html", "forum-detail.html", "forum-compose.html"}) {
+            String html = resource("templates/" + template);
+            assertThat(html).as(template).contains("class=\"forum-system-back\"");
+            assertThat(html).as(template).contains("activeRole == 'BOSS'");
+            assertThat(html).as(template).contains("返回Boss工作台", "返回职位大厅");
+        }
+    }
+
+    @Test
+    void forumComposeAcceptsChineseAndEnglishCommaTagSeparators() throws IOException {
+        String javascript = resource("static/js/forum-compose.js");
+        assertThat(javascript).contains(".split(/[,，]/)");
+        String html = resource("templates/forum-compose.html");
+        assertThat(html).contains("中文或英文逗号分隔");
+    }
+
+    @Test
     void pendingCompanyIsPresentedAsAwaitingAuditInsteadOfOperational() throws IOException {
         String html = resource("templates/boss-home.html");
         assertThat(html).contains("companyApproved");

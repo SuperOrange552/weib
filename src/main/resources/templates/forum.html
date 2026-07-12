@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -9,6 +9,12 @@
 <script src="/js/app-shell.js"></script></head>
 <body>
 <main class="forum-page light-surface">
+    <nav class="forum-system-nav" aria-label="论坛导航">
+        <a class="forum-system-back"
+           th:href="${activeRole == 'BOSS' ? '/boss' : '/'}"
+           th:text="${activeRole == 'BOSS' ? '← 返回Boss工作台' : '← 返回职位大厅'}">← 返回职位大厅</a>
+        <a class="forum-nav-link active" href="/forum">论坛首页</a>
+    </nav>
     <div class="forum-toolbar">
         <h1>微招论坛</h1>
         <input id="search" placeholder="搜索帖子、标签">
