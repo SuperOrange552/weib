@@ -39,6 +39,22 @@ class WebTemplateRegressionTest {
     }
 
     @Test
+    void forumUploadReportsGatewaySizeErrorsInsteadOfClaimingSessionExpired() throws IOException {
+        String javascript = resource("static/js/forum-compose.js");
+        assertThat(javascript).contains("response.status === 413");
+        assertThat(javascript).contains("图片超过服务器允许的上传大小（单张最大 10MB）");
+        assertThat(javascript).contains("response.status === 401 || response.status === 403");
+        assertThat(javascript).doesNotContain("if (!type.includes('application/json')) return { code: response.status, msg: '请先登录后再进行此操作' }");
+    }
+
+    @Test
+    void multipartRequestLimitAllowsTenMegabyteFilePlusFormOverhead() throws IOException {
+        String yaml = resource("application.yml");
+        assertThat(yaml).contains("max-file-size: 10MB");
+        assertThat(yaml).contains("max-request-size: 12MB");
+    }
+
+    @Test
     void pendingCompanyIsPresentedAsAwaitingAuditInsteadOfOperational() throws IOException {
         String html = resource("templates/boss-home.html");
         assertThat(html).contains("companyApproved");

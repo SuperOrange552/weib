@@ -10,8 +10,20 @@ function showMessage(text) { message.textContent = text || ''; }
 
 async function readJson(response) {
     const type = response.headers.get('content-type') || '';
-    if (!type.includes('application/json')) return { code: response.status, msg: '请先登录后再进行此操作' };
-    return response.json();
+    if (type.includes('application/json')) {
+        try { return await response.json(); }
+        catch (ignored) { return { code: response.status, msg: '服务器返回的数据格式不正确' }; }
+    }
+    if (response.status === 401 || response.status === 403) {
+        return { code: response.status, msg: '登录状态已失效，请重新登录' };
+    }
+    if (response.status === 413) {
+        return { code: response.status, msg: '图片超过服务器允许的上传大小（单张最大 10MB）' };
+    }
+    if (response.status === 429) {
+        return { code: response.status, msg: '图片上传过于频繁，请稍后重试' };
+    }
+    return { code: response.status, msg: `请求失败（HTTP ${response.status}），请稍后重试` };
 }
 
 function addFiles(files) {
@@ -60,7 +72,7 @@ async function uploadImages() {
         body.append('file', file);
         const response = await fetch('/api/forum/media', { method: 'POST', headers: { 'X-CSRF-Token': csrf }, body });
         const result = await readJson(response);
-        if (!response.ok || !result.data?.url) throw new Error(result.msg || '图片上传失败，请先登录');
+        if (!response.ok || !result.data?.url) throw new Error(`${file.name}：${result.msg || '图片上传失败'}`);
         urls.push(result.data.url);
     }
     return urls;
@@ -82,7 +94,7 @@ form.addEventListener('submit', async event => {
         };
         const response = await fetch('/api/forum/posts', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf }, body: JSON.stringify(body) });
         const result = await readJson(response);
-        if (!response.ok || !result.data?.id) throw new Error(result.msg || '发布失败，请先登录');
+        if (!response.ok || !result.data?.id) throw new Error(result.msg || '帖子发布失败，请稍后重试');
         location.href = '/forum/post/' + result.data.id;
     } catch (error) {
         showMessage(error.message || '操作失败，请稍后重试');
