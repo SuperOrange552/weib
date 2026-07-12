@@ -135,7 +135,8 @@ private fun MainShell(state: AppUiState, viewModel: AppViewModel) {
     ) { padding ->
         ContentScreen(state, viewModel::retry, viewModel::logout, viewModel::apply,
             viewModel::toggleFavorite, viewModel::withdraw, viewModel::uploadResumeMedia, viewModel::saveResume,
-            viewModel::searchJobs, viewModel::loadNextJobs, Modifier.padding(padding))
+            viewModel::searchJobs, viewModel::loadNextJobs, viewModel::searchTalents, viewModel::loadNextTalents,
+            Modifier.padding(padding))
     }
 }
 
@@ -144,13 +145,15 @@ private fun ContentScreen(state: AppUiState, retry: () -> Unit, logout: () -> Un
                           apply: (String) -> Unit, favorite: (String) -> Unit,
                           withdraw: (String) -> Unit, upload: (Uri, String) -> Unit,
                           saveResume: (Map<String, Any?>) -> Unit,
-                          searchJobs: (String, String) -> Unit, loadNextJobs: () -> Unit, modifier: Modifier) {
+                          searchJobs: (String, String) -> Unit, loadNextJobs: () -> Unit,
+                          searchTalents: (String) -> Unit, loadNextTalents: () -> Unit, modifier: Modifier) {
     when {
         state.content.loading -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         state.content.error != null -> ErrorState(state.content.error, retry, modifier)
         state.selected == AppDestination.Jobs -> JobList(state, apply, favorite, searchJobs, loadNextJobs, modifier)
         state.selected == AppDestination.Applications -> ApplicationList(state.content.data, withdraw, modifier)
         state.selected == AppDestination.Dashboard -> Dashboard(state.content.data, modifier)
+        state.selected == AppDestination.Talent -> TalentList(state, searchTalents, loadNextTalents, modifier)
         state.selected == AppDestination.Profile -> Profile(state.content.data, state.role, upload, saveResume, logout, modifier)
         else -> GenericList(state.content.title, state.content.data, modifier)
     }
@@ -186,6 +189,28 @@ private fun JobList(state: AppUiState, apply: (String) -> Unit, favorite: (Strin
         state.jobs.error?.let { message -> item { Button(onClick = { if (array.isEmpty()) search(keyword, city) else loadNext() }, Modifier.fillMaxWidth()) { Text("加载失败，点击重试：$message") } } }
         if (array.isNotEmpty() && state.jobs.hasNext && !state.jobs.appending) item { LaunchedEffect(state.jobs.page, keyword, city) { loadNext() } }
         if (array.isNotEmpty() && !state.jobs.hasNext) item { Text("没有更多职位了", color = WeibMuted, modifier = Modifier.fillMaxWidth().padding(12.dp)) }
+    }
+}
+
+@Composable
+private fun TalentList(state: AppUiState, search: (String) -> Unit, loadNext: () -> Unit, modifier: Modifier) {
+    var query by remember { mutableStateOf(state.talentQuery) }
+    val talents = state.talents.items
+    LazyColumn(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item { Text("发现合适人才", style = MaterialTheme.typography.headlineMedium); Text("仅展示求职者公开的简历摘要", color = WeibMuted) }
+        item { OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth(), label = { Text("搜索姓名、学校、专业或技能") }); Button(onClick = { search(query) }, Modifier.fillMaxWidth()) { Text("搜索人才") } }
+        items(talents, key = { it.string("id") }) { talent -> WeibCard {
+            Text(talent.string("name", "求职者"), style = MaterialTheme.typography.titleLarge, color = WeibTitle)
+            Text(listOf(talent.string("education"), talent.string("school"), talent.string("major")).filter(String::isNotBlank).joinToString(" · "), color = WeibBody)
+            Text(talent.string("skills", "暂未填写技能"), color = WeibBody)
+            Text(talent.string("selfIntroduction", "暂未填写自我介绍"), color = WeibMuted)
+            Button(onClick = { }, enabled = false) { Text("私聊与完整简历请求将在消息流程启用") }
+        } }
+        if (talents.isEmpty() && !state.talents.refreshing) item { EmptyCard("暂无公开人才") }
+        if (state.talents.refreshing || state.talents.appending) item { Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
+        state.talents.error?.let { message -> item { Button(onClick = { if (talents.isEmpty()) search(query) else loadNext() }, Modifier.fillMaxWidth()) { Text("加载失败，点击重试：$message") } } }
+        if (talents.isNotEmpty() && state.talents.hasNext && !state.talents.appending) item { LaunchedEffect(state.talents.page, query) { loadNext() } }
+        if (talents.isNotEmpty() && !state.talents.hasNext) item { Text("没有更多人才了", color = WeibMuted, modifier = Modifier.fillMaxWidth().padding(12.dp)) }
     }
 }
 

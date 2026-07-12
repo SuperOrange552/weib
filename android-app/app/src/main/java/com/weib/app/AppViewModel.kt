@@ -38,6 +38,8 @@ data class AppUiState(
     ,val jobs: PagingState<JsonObject> = PagingState()
     ,val jobKeyword: String = ""
     ,val jobCity: String = ""
+    ,val talents: PagingState<JsonObject> = PagingState()
+    ,val talentQuery: String = ""
 ) {
     val role: String? get() = user?.role ?: restoredRole
     val loggedIn: Boolean get() = role == "seeker" || role == "boss"
@@ -132,6 +134,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun loadNextJobs() = loadJobs(refresh = false)
 
+    fun searchTalents(query: String) {
+        _state.value = _state.value.copy(talentQuery = query)
+        loadTalents(refresh = true)
+    }
+
+    fun loadNextTalents() = loadTalents(refresh = false)
+
     fun apply(jobId: String) = runAction("投递成功") { repository.apply(jobId) }
     fun toggleFavorite(jobId: String) = runAction("收藏状态已更新") { repository.toggleFavorite(jobId) }
     fun withdraw(applicationId: String) = runAction("投递已撤回") { repository.withdraw(applicationId) }
@@ -181,6 +190,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             loadJobs(refresh = true)
             return
         }
+        if (destination == AppDestination.Talent) {
+            loadTalents(refresh = true)
+            return
+        }
         viewModelScope.launch {
             _state.value = _state.value.copy(content = ContentState(title = destination.label, loading = true))
             runCatching { repository.load(role, destination.route) }
@@ -221,6 +234,35 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 .onFailure { error ->
                     _state.value = _state.value.copy(jobs = PagingReducer.pageFailed(_state.value.jobs, error.message ?: "网络异常"))
+                }
+        }
+    }
+
+    private fun loadTalents(refresh: Boolean) {
+        if (_state.value.role != "boss") return
+        val current = _state.value.talents
+        val loading = if (refresh) PagingReducer.startRefresh(current) else PagingReducer.startAppend(current)
+        if (!refresh && loading === current) return
+        _state.value = _state.value.copy(talents = loading)
+        val requestedPage = if (refresh) 0 else current.page + 1
+        val query = _state.value.talentQuery
+        viewModelScope.launch {
+            runCatching { repository.talents(requestedPage, query) }
+                .onSuccess { result ->
+                    val data = result.data?.takeIf { it.isJsonObject }?.asJsonObject
+                    if (result.code != 200 || data == null) {
+                        _state.value = _state.value.copy(talents = PagingReducer.pageFailed(_state.value.talents, result.msg ?: "人才加载失败"))
+                    } else {
+                        val items = data.getAsJsonArray("content")?.mapNotNull { it.takeIf { e -> e.isJsonObject }?.asJsonObject } ?: emptyList()
+                        val page = data.get("currentPage")?.asInt ?: data.get("page")?.asInt ?: data.get("number")?.asInt ?: requestedPage
+                        val totalPages = data.get("totalPages")?.asInt ?: (page + 1)
+                        _state.value = _state.value.copy(talents = PagingReducer.pageLoaded(
+                            _state.value.talents, PageSlice(items, page, totalPages)
+                        ) { it.get("id")?.asString.orEmpty() })
+                    }
+                }
+                .onFailure { error ->
+                    _state.value = _state.value.copy(talents = PagingReducer.pageFailed(_state.value.talents, error.message ?: "网络异常"))
                 }
         }
     }
