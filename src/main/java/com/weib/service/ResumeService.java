@@ -13,6 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Map;
 import java.time.Duration;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 /**
  * ============================================
@@ -222,6 +225,15 @@ public class ResumeService {
                 .map(this::getResumeIfPresent)
                 .filter(java.util.Objects::nonNull)
                 .collect(java.util.stream.Collectors.toMap(Resume::getUserId, r -> r, (left, right) -> left));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Resume> searchPublished(String keyword, int page, int size) {
+        PageRequest request = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "updatedAt"));
+        if (keyword == null || keyword.isBlank()) {
+            return resumeRepository.findByStatus("published", request);
+        }
+        return resumeRepository.searchPublished(keyword.trim(), request);
     }
 
     private Resume getResumeIfPresent(Long userId) {

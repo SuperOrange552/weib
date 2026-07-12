@@ -360,7 +360,7 @@ public class JobService {
     // PageImpl 不可缓存（无默认构造器，反序列化失败）
     @SuppressWarnings("unchecked")
     public Page<Job> getActiveJobsPaged(int page, int size) {
-        int boundedSize = Math.min(Math.max(size, 1), 100);
+        int boundedSize = Math.min(Math.max(size, 1), 50);
         Pageable pageable = PageRequest.of(Math.max(page, 0), boundedSize);
         List<Job> all = (List<Job>) (List<?>) cache.getOrLoad(
                 CacheKeys.jobsList("status=active", 0, 0), List.class,

@@ -19,6 +19,9 @@ import com.weib.util.IdObfuscator;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Page;
+import com.weib.dto.admin.PageResponse;
+import com.weib.util.PageBounds;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -91,6 +94,19 @@ public class MobileBossController {
         Company company = companyOrNull(boss);
         if (company == null) return Result.success(List.of());
         return Result.success(jobService.getJobsByCompanyId(company.getId()).stream().map(this::jobJson).toList());
+    }
+
+    @GetMapping("/talents")
+    public Result<?> talents(@RequestParam(defaultValue = "") String q,
+                             @RequestParam(defaultValue = "0") int page,
+                             @RequestParam(defaultValue = "20") int size,
+                             HttpSession session) {
+        User boss = currentBoss(session);
+        if (boss == null) return roleError();
+        PageBounds bounds = PageBounds.of(page, size);
+        Page<Map<String, Object>> result = resumeService.searchPublished(q, bounds.page(), bounds.size())
+                .map(this::resumeSummary);
+        return Result.success(PageResponse.of(result));
     }
 
     @PostMapping("/jobs")
@@ -293,6 +309,21 @@ public class MobileBossController {
         PublicUserProfile profile = userService.getPublicUserProfile(app.getUserId());
         map.put("seekerName", profile == null ? "求职者" : (profile.nickname() == null ? profile.username() : profile.nickname()));
         map.put("seekerAvatar", profile == null ? null : profile.avatar()); return map;
+    }
+
+    private Map<String, Object> resumeSummary(Resume resume) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("id", idObfuscator.encode(resume.getId()));
+        map.put("seekerId", idObfuscator.encode(resume.getUserId()));
+        map.put("name", resume.getRealName());
+        map.put("avatar", resume.getAvatar());
+        map.put("education", resume.getEducation());
+        map.put("school", resume.getSchool());
+        map.put("major", resume.getMajor());
+        map.put("skills", resume.getSkills());
+        map.put("selfIntroduction", resume.getSelfIntroduction());
+        map.put("updatedAt", resume.getUpdatedAt());
+        return map;
     }
 
     public record CompanyPayload(String industry, String scale, String address, String description,

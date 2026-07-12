@@ -52,4 +52,13 @@ public interface ResumeRepository extends JpaRepository<Resume, Long> {
             "or lower(coalesce(r.school, '')) like lower(concat('%', :keyword, '%')) " +
             "or lower(coalesce(r.major, '')) like lower(concat('%', :keyword, '%'))")
     Page<Resume> search(@Param("keyword") String keyword, Pageable pageable);
+
+    Page<Resume> findByStatus(String status, Pageable pageable);
+
+    @Query("select r from Resume r where r.status = 'published' and (" +
+            "lower(coalesce(r.realName, '')) like lower(concat('%', :keyword, '%')) or " +
+            "lower(coalesce(r.school, '')) like lower(concat('%', :keyword, '%')) or " +
+            "lower(coalesce(r.major, '')) like lower(concat('%', :keyword, '%')) or " +
+            "lower(coalesce(r.skills, '')) like lower(concat('%', :keyword, '%')))" )
+    Page<Resume> searchPublished(@Param("keyword") String keyword, Pageable pageable);
 }

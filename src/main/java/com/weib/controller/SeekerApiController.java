@@ -113,13 +113,13 @@ public class SeekerApiController {
             @RequestParam(required = false) Integer salaryMax,
             @RequestParam(defaultValue = "newest") String sort,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "12") int size,
+            @RequestParam(defaultValue = "20") int size,
             HttpSession session) {
 
         // 参数校验
-        if (page < 0) page = 0;
-        if (size < 1) size = 12;
-        if (size > 100) size = 100;
+        com.weib.util.PageBounds bounds = com.weib.util.PageBounds.of(page, size);
+        page = bounds.page();
+        size = bounds.size();
 
         // 查询职位（复用 IndexController 的 Service 调用逻辑）
         Page<Job> jobPage;
