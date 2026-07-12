@@ -164,7 +164,8 @@ public class UserController {
      * @return 视图名称 "login"
      */
     @GetMapping("/login")
-    public String loginPage() {
+    public String loginPage(HttpSession session, Model model) {
+        model.addAttribute("csrf_token", com.weib.config.CsrfInterceptor.generateCsrfToken(session));
         return "login";  // 返回 login.html 页面
     }
 
@@ -174,7 +175,8 @@ public class UserController {
      * 同登录页面，只是路径和返回值不同
      */
     @GetMapping("/register")
-    public String registerPage() {
+    public String registerPage(HttpSession session, Model model) {
+        model.addAttribute("csrf_token", com.weib.config.CsrfInterceptor.generateCsrfToken(session));
         return "register";
     }
 

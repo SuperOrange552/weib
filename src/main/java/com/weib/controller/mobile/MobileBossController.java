@@ -8,6 +8,7 @@ import com.weib.entity.Job;
 import com.weib.entity.Resume;
 import com.weib.entity.User;
 import com.weib.security.Idempotent;
+import com.weib.security.CompanyApprovalPolicy;
 import com.weib.service.ApplicationService;
 import com.weib.service.CompanyService;
 import com.weib.service.JobService;
@@ -39,6 +40,7 @@ public class MobileBossController {
     private final SanctionService sanctionService;
     private final IdObfuscator idObfuscator;
     private final MobileAccessPolicy accessPolicy;
+    private final CompanyApprovalPolicy companyApprovalPolicy;
 
     @GetMapping("/dashboard")
     public Result<?> dashboard(HttpSession session) {
@@ -84,6 +86,7 @@ public class MobileBossController {
         if (body.contactEmail() != null) company.setContactEmail(body.contactEmail());
         company.setLongitude(body.longitude());
         company.setLatitude(body.latitude());
+        companyApprovalPolicy.markPending(company);
         return Result.success(companyJson(companyService.updateCompany(company)));
     }
 
@@ -210,6 +213,9 @@ public class MobileBossController {
         sanctionService.assertAllowed(boss.getId(), "PUBLISH_BAN");
         Company company = companyOrNull(boss);
         if (company == null) return Result.error("请先完成企业入驻");
+        if (!companyApprovalPolicy.isApproved(company)) {
+            return Result.error("公司资料尚未通过管理员审核，不能发布或编辑职位");
+        }
         if (body.salaryMin() != null && body.salaryMax() != null && body.salaryMin() > body.salaryMax()) {
             return Result.error("最低薪资不能高于最高薪资");
         }
@@ -240,6 +246,12 @@ public class MobileBossController {
         User boss = currentBoss(session);
         if (boss == null) return roleError();
         if ("active".equals(status)) sanctionService.assertAllowed(boss.getId(), "PUBLISH_BAN");
+        if ("active".equals(status)) {
+            Company company = companyOrNull(boss);
+            if (!companyApprovalPolicy.isApproved(company)) {
+                return Result.error("公司资料尚未通过管理员审核，不能重新开放职位");
+            }
+        }
         Job job = ownedJob(encodedId, boss);
         if (job == null) return Result.error(403, "无权操作该职位");
         job.setStatus(status);

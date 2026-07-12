@@ -5,9 +5,6 @@ import jakarta.servlet.http.HttpSession;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
-import java.security.SecureRandom;
-import java.util.Base64;
-
 /**
  * 为所有页面的 Model 添加 CSRF token，确保所有表单和 AJAX 请求都能使用
  */
@@ -15,8 +12,6 @@ import java.util.Base64;
 public class GlobalModelAdvice {
 
     private static final String CSRF_TOKEN_ATTR = "csrf_token";
-    private static final SecureRandom RANDOM = new SecureRandom();
-
     @ModelAttribute
     public void addCsrfToken(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
@@ -24,13 +19,11 @@ public class GlobalModelAdvice {
             // 不强制创建 session，未登录用户访问公开页面不需要 session
             return;
         }
-        String token = (String) session.getAttribute(CSRF_TOKEN_ATTR);
-        if (token == null) {
-            byte[] bytes = new byte[32];
-            RANDOM.nextBytes(bytes);
-            token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-            session.setAttribute(CSRF_TOKEN_ATTR, token);
-        }
+        String token = CsrfInterceptor.generateCsrfToken(session);
         request.setAttribute(CSRF_TOKEN_ATTR, token);
+        Object activeRole = session.getAttribute("activeRole");
+        if (activeRole != null) {
+            request.setAttribute("activeRole", activeRole.toString());
+        }
     }
 }

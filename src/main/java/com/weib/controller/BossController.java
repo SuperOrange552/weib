@@ -18,6 +18,7 @@ import com.weib.dto.PublicUserProfile;
 import com.weib.repository.UserRepository;
 import com.weib.util.IdObfuscator;
 import com.weib.identity.ActiveIdentityResolver;
+import com.weib.security.CompanyApprovalPolicy;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -100,6 +101,7 @@ public class BossController {
     private final UserRepository userRepository;
     private final IdObfuscator idObfuscator;
     private final ActiveIdentityResolver activeIdentityResolver;
+    private final CompanyApprovalPolicy companyApprovalPolicy;
 
     // ==========================================
     // 【Boss首页】我的公司
@@ -167,6 +169,11 @@ public class BossController {
         try {
             Company company = companyService.getCompanyByBossId(user.getId());
             model.addAttribute("company", company);
+            boolean companyApproved = companyApprovalPolicy.isApproved(company);
+            model.addAttribute("companyApproved", companyApproved);
+            if (!companyApproved) {
+                return "boss-home";
+            }
 
             List<Job> jobs = jobService.getJobsByCompanyId(company.getId());
             int activeJobs = (int) jobs.stream().filter(j -> "active".equals(j.getStatus())).count();
@@ -308,6 +315,7 @@ public class BossController {
         company.setContactPhone(contactPhone);
         company.setContactEmail(contactEmail);
         company.setBossId(user.getId());  // 关联Boss
+        companyApprovalPolicy.markPending(company);
 
         // 地图坐标：优先手动选择，地址自动地理编码改为异步
         if (longitude != null && latitude != null) {
@@ -394,6 +402,14 @@ public class BossController {
         }
         
         model.addAttribute("user", user);
+        try {
+            Company company = companyService.getCompanyByBossId(user.getId());
+            if (!companyApprovalPolicy.isApproved(company)) {
+                return "redirect:/boss";
+            }
+        } catch (RuntimeException ex) {
+            return "redirect:/boss/register";
+        }
         model.addAttribute("job", new Job());
         model.addAttribute("isEdit", false);
         
@@ -428,6 +444,9 @@ public class BossController {
             
             // 检查权限（只能编辑自己公司的职位）
             Company company = companyService.getCompanyByBossId(user.getId());
+            if (!companyApprovalPolicy.isApproved(company)) {
+                return "redirect:/boss";
+            }
             if (!job.getCompanyId().equals(company.getId())) {
                 return "redirect:/boss/jobs";
             }
@@ -486,6 +505,9 @@ public class BossController {
             company = companyService.getCompanyByBossId(user.getId());
         } catch (Exception e) {
             return "redirect:/boss/register";
+        }
+        if (!companyApprovalPolicy.isApproved(company)) {
+            return "redirect:/boss";
         }
         
         // 构建职位对象
@@ -835,8 +857,9 @@ public class BossController {
                     company.setLatitude(coords[1]);
                 }
             }
+            companyApprovalPolicy.markPending(company);
             companyService.updateCompany(company);
-            model.addAttribute("success", "公司信息已更新");
+            model.addAttribute("success", "公司信息已更新，已重新提交管理员审核");
             model.addAttribute("company", company);
         } catch (Exception e) {
             model.addAttribute("error", "更新失败：" + e.getMessage());
@@ -906,6 +929,9 @@ public class BossController {
             sanctionService.assertAllowed(user.getId(), "PUBLISH_BAN");
             Job job = jobService.getJobById(id);
             Company company = companyService.getCompanyByBossId(user.getId());
+            if (!companyApprovalPolicy.isApproved(company)) {
+                return Result.error("公司资料尚未通过管理员审核，不能重新开放职位");
+            }
             if (!job.getCompanyId().equals(company.getId())) {
                 return Result.error("无权操作此职位");
             }

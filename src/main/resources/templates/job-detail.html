@@ -236,13 +236,13 @@
                     </div>
                 </div>
                 <div style="display:flex;gap:10px;align-items:center;">
-                    <button class="fav-btn-job" id="favBtn" th:if="${user != null && user.role == 'seeker'}"
+                    <button class="fav-btn-job" id="favBtn" th:if="${user != null && activeRole == 'SEEKER'}"
                             th:attr="data-job-id=${encodedJobId}"
                             th:text="${favoriteJobIds.contains(job.id) ? '★ 已收藏' : '☆ 收藏'}"
                             th:classappend="${favoriteJobIds.contains(job.id) ? 'favorited' : ''}">
                         ☆ 收藏
                     </button>
-                    <button class="apply-btn" id="applyBtn" th:if="${user != null && user.role == 'seeker'}"
+                    <button class="apply-btn" id="applyBtn" th:if="${user != null && activeRole == 'SEEKER'}"
                             th:classappend="${hasApplied ? 'applied' : ''}"
                             th:text="${hasApplied ? '✓ 已投递' : '立即投递'}"
                             th:disabled="${hasApplied}"
@@ -255,7 +255,7 @@
                 <button class="apply-btn" onclick="location.href='/login'" th:if="${user == null}">
                     登录后投递
                 </button>
-                <button class="apply-btn" disabled style="background:#444;" th:if="${user != null && user.role == 'boss'}">
+                <button class="apply-btn" disabled style="background:#444;" th:if="${user != null && activeRole == 'BOSS'}">
                     Boss不可投递
                 </button>
             </div>

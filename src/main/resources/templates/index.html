@@ -446,7 +446,7 @@
                     </div>
                     <div class="nav-links">
                         <a href="/" class="active">职位大厅</a>
-                        <th:block th:if="${user.role == 'seeker'}">
+                        <th:block th:if="${activeRole == 'SEEKER'}">
                             <a href="/notifications">
                                 通知
                                 <span class="badge" th:if="${unreadNotifCount > 0}" th:text="${unreadNotifCount}">0</span>
@@ -459,7 +459,7 @@
                                 <span class="badge" th:if="${unreadMsgCount > 0}" th:text="${unreadMsgCount}">0</span>
                             </a>
                         </th:block>
-                        <th:block th:if="${user.role == 'boss'}">
+                        <th:block th:if="${activeRole == 'BOSS'}">
                             <a href="/chat">
                                 消息
                                 <span class="badge" th:if="${unreadMsgCount > 0}" th:text="${unreadMsgCount}">0</span>

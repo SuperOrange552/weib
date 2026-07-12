@@ -214,8 +214,15 @@
             <a href="/boss/register" class="register-btn">创建公司信息</a>
         </div>
 
+        <div class="register-prompt" th:if="${company != null && !companyApproved}">
+            <h3 th:text="${company.auditStatus == 'rejected' ? '🏢 公司资料审核未通过' : '⏳ 公司资料等待管理员审核'}">⏳ 公司资料等待管理员审核</h3>
+            <p th:if="${company.auditStatus == 'rejected'}" th:text="${company.auditReason ?: '请修改公司资料后重新提交审核'}">审核原因</p>
+            <p th:unless="${company.auditStatus == 'rejected'}">公司已创建为待审核状态；管理员审核通过前不能发布职位或处理简历。</p>
+            <a href="/boss/company/edit" class="register-btn">查看或修改公司资料</a>
+        </div>
+
         <!-- Boss已入驻 -->
-        <th:block th:if="${company != null}">
+        <th:block th:if="${company != null && companyApproved}">
             <!-- 统计卡片 -->
             <div class="stats-grid">
                 <div class="stat-card">
