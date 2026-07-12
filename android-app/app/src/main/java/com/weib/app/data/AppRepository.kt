@@ -80,7 +80,7 @@ class AppRepository(context: Context) {
         "dashboard" -> api.bossDashboard()
         "boss_jobs" -> api.bossJobs()
         "talent" -> api.bossApplications()
-        "messages" -> if (role == "seeker") api.seekerConversations() else api.commonNotifications()
+        "messages" -> if (role == "seeker") api.seekerConversations() else api.bossApplications()
         "forum" -> api.forumPosts()
         "profile" -> if (role == "seeker") api.resume() else api.bossCompany()
         else -> ApiEnvelope(400, "页面不存在", null)
@@ -120,6 +120,11 @@ class AppRepository(context: Context) {
     suspend fun reopenJob(id: String) = api.reopenJob(id)
     suspend fun createJob(fields: Map<String, Any?>) = api.createJob(fields)
     suspend fun updateJob(id: String, fields: Map<String, Any?>) = api.updateJob(id, fields)
+    suspend fun chatMessages(conversationId: String) = api.chatMessages(conversationId)
+    suspend fun sendMessage(conversationId: String, content: String) = api.sendMessage(mapOf(
+        "conversationId" to conversationId, "content" to content, "messageType" to "text",
+        "clientMessageId" to UUID.randomUUID().toString()
+    ))
 
     private fun trustLocalCertificate(builder: OkHttpClient.Builder) {
         val trustManager = object : X509TrustManager {

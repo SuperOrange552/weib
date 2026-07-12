@@ -306,6 +306,7 @@ public class MobileBossController {
         map.put("seekerId", idObfuscator.encode(app.getUserId())); map.put("status", app.getStatus()); map.put("bossNote", app.getBossNote());
         map.put("interviewTime", app.getInterviewTime()); map.put("interviewLocation", app.getInterviewLocation());
         map.put("createdAt", app.getCreatedAt()); map.put("jobTitle", job == null ? "职位已删除" : job.getTitle());
+        map.put("conversationId", "app_" + app.getId());
         PublicUserProfile profile = userService.getPublicUserProfile(app.getUserId());
         map.put("seekerName", profile == null ? "求职者" : (profile.nickname() == null ? profile.username() : profile.nickname()));
         map.put("seekerAvatar", profile == null ? null : profile.avatar()); return map;

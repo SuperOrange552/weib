@@ -136,7 +136,8 @@ private fun MainShell(state: AppUiState, viewModel: AppViewModel) {
         ContentScreen(state, viewModel::retry, viewModel::logout, viewModel::apply,
             viewModel::toggleFavorite, viewModel::withdraw, viewModel::uploadResumeMedia, viewModel::saveResume,
             viewModel::searchJobs, viewModel::loadNextJobs, viewModel::searchTalents, viewModel::loadNextTalents,
-            viewModel::saveJob, viewModel::toggleJob, Modifier.padding(padding))
+            viewModel::saveJob, viewModel::toggleJob, viewModel::openConversation,
+            viewModel::closeConversation, viewModel::sendChatMessage, Modifier.padding(padding))
     }
 }
 
@@ -148,6 +149,8 @@ private fun ContentScreen(state: AppUiState, retry: () -> Unit, logout: () -> Un
                           searchJobs: (String, String) -> Unit, loadNextJobs: () -> Unit,
                           searchTalents: (String) -> Unit, loadNextTalents: () -> Unit,
                           saveJob: (String?, Map<String, Any?>) -> Unit, toggleJob: (String, Boolean) -> Unit,
+                          openConversation: (String) -> Unit, closeConversation: () -> Unit,
+                          sendChatMessage: (String) -> Unit,
                           modifier: Modifier) {
     when {
         state.content.loading -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
@@ -157,6 +160,7 @@ private fun ContentScreen(state: AppUiState, retry: () -> Unit, logout: () -> Un
         state.selected == AppDestination.Dashboard -> Dashboard(state.content.data, modifier)
         state.selected == AppDestination.Talent -> TalentList(state, searchTalents, loadNextTalents, modifier)
         state.selected == AppDestination.BossJobs -> BossJobList(state.content.data, saveJob, toggleJob, modifier)
+        state.selected == AppDestination.Messages -> MessageScreen(state, openConversation, closeConversation, sendChatMessage, modifier)
         state.selected == AppDestination.Profile -> Profile(state.content.data, state.role, upload, saveResume, logout, modifier)
         else -> GenericList(state.content.title, state.content.data, modifier)
     }
@@ -192,6 +196,36 @@ private fun JobList(state: AppUiState, apply: (String) -> Unit, favorite: (Strin
         state.jobs.error?.let { message -> item { Button(onClick = { if (array.isEmpty()) search(keyword, city) else loadNext() }, Modifier.fillMaxWidth()) { Text("加载失败，点击重试：$message") } } }
         if (array.isNotEmpty() && state.jobs.hasNext && !state.jobs.appending) item { LaunchedEffect(state.jobs.page, keyword, city) { loadNext() } }
         if (array.isNotEmpty() && !state.jobs.hasNext) item { Text("没有更多职位了", color = WeibMuted, modifier = Modifier.fillMaxWidth().padding(12.dp)) }
+    }
+}
+
+@Composable
+private fun MessageScreen(state: AppUiState, open: (String) -> Unit, close: () -> Unit,
+                          send: (String) -> Unit, modifier: Modifier) {
+    var draft by remember(state.activeConversation) { mutableStateOf("") }
+    if (state.activeConversation != null) {
+        val messages = state.chatMessages?.takeIf { it.isJsonArray }?.asJsonArray?.map { it.asJsonObject } ?: emptyList()
+        LazyColumn(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            item { Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { IconButton(onClick = close) { Icon(Icons.Default.ArrowBack, "返回") }; Text("聊天", style = MaterialTheme.typography.headlineMedium) } }
+            if (state.chatLoading) item { CircularProgressIndicator() }
+            items(messages, key = { it.string("id") }) { message -> WeibCard { Text(message.string("content", "消息"), color = WeibBody); Text(message.string("createdAt"), color = WeibMuted) } }
+            item { OutlinedTextField(draft,{draft=it},Modifier.fillMaxWidth(),label={Text("输入消息")},minLines=2); Button(onClick={send(draft);draft=""},Modifier.fillMaxWidth(),enabled=draft.isNotBlank()){Text("发送") } }
+        }
+        return
+    }
+    val conversations = when {
+        state.content.data?.isJsonArray == true -> state.content.data.asJsonArray.map { it.asJsonObject }
+        else -> emptyList()
+    }
+    LazyColumn(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item { Text("消息", style = MaterialTheme.typography.headlineMedium) }
+        items(conversations) { conversation -> WeibCard {
+            Text(conversation.string("jobTitle", conversation.string("companyName", "招聘沟通")), style = MaterialTheme.typography.titleLarge)
+            Text(conversation.string("seekerName", conversation.string("companyName")), color = WeibBody)
+            val id = conversation.string("conversationId")
+            Button(onClick={open(id)},enabled=id.isNotBlank()){Text("进入聊天")}
+        } }
+        if (conversations.isEmpty()) item { EmptyCard("暂无会话") }
     }
 }
 

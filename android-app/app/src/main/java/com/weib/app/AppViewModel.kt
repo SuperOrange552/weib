@@ -40,6 +40,9 @@ data class AppUiState(
     ,val jobCity: String = ""
     ,val talents: PagingState<JsonObject> = PagingState()
     ,val talentQuery: String = ""
+    ,val activeConversation: String? = null
+    ,val chatMessages: com.google.gson.JsonElement? = null
+    ,val chatLoading: Boolean = false
 ) {
     val role: String? get() = user?.role ?: restoredRole
     val loggedIn: Boolean get() = role == "seeker" || role == "boss"
@@ -140,6 +143,28 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun loadNextTalents() = loadTalents(refresh = false)
+
+    fun openConversation(id: String) {
+        if (id.isBlank()) return
+        _state.value = _state.value.copy(activeConversation = id, chatLoading = true)
+        viewModelScope.launch {
+            runCatching { repository.chatMessages(id) }
+                .onSuccess { result -> _state.value = _state.value.copy(chatMessages = result.data, chatLoading = false, actionMessage = if (result.code == 200) null else result.msg) }
+                .onFailure { _state.value = _state.value.copy(chatLoading = false, actionMessage = it.message) }
+        }
+    }
+
+    fun closeConversation() { _state.value = _state.value.copy(activeConversation = null, chatMessages = null) }
+
+    fun sendChatMessage(content: String) {
+        val id = _state.value.activeConversation ?: return
+        if (content.isBlank()) return
+        viewModelScope.launch {
+            runCatching { repository.sendMessage(id, content.trim()) }
+                .onSuccess { result -> if (result.code == 200) openConversation(id) else _state.value = _state.value.copy(actionMessage = result.msg) }
+                .onFailure { _state.value = _state.value.copy(actionMessage = it.message) }
+        }
+    }
 
     fun apply(jobId: String) = runAction("投递成功") { repository.apply(jobId) }
     fun toggleFavorite(jobId: String) = runAction("收藏状态已更新") { repository.toggleFavorite(jobId) }
