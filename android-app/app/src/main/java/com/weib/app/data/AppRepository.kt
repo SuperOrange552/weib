@@ -79,6 +79,7 @@ class AppRepository(context: Context) {
         "applications" -> api.applications()
         "dashboard" -> api.bossDashboard()
         "boss_jobs" -> api.bossJobs()
+        "boss_applications" -> api.bossApplications()
         "talent" -> api.bossApplications()
         "messages" -> if (role == "seeker") api.seekerConversations() else api.bossApplications()
         "forum" -> api.forumPosts()

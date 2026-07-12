@@ -139,7 +139,7 @@ private fun MainShell(state: AppUiState, viewModel: AppViewModel) {
             viewModel::saveJob, viewModel::toggleJob, viewModel::openConversation,
             viewModel::closeConversation, viewModel::sendChatMessage, viewModel::requestFullResume,
             viewModel::decideResumeAccess, viewModel::viewAuthorizedResume, viewModel::closeAuthorizedResume,
-            Modifier.padding(padding))
+            viewModel::updateApplication, Modifier.padding(padding))
     }
 }
 
@@ -155,6 +155,7 @@ private fun ContentScreen(state: AppUiState, retry: () -> Unit, logout: () -> Un
                           sendChatMessage: (String) -> Unit,
                           requestFullResume: (String) -> Unit, decideResumeAccess: (Long, Boolean) -> Unit,
                           viewAuthorizedResume: (Long) -> Unit, closeAuthorizedResume: () -> Unit,
+                          updateApplication: (String, String) -> Unit,
                           modifier: Modifier) {
     when {
         state.content.loading -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
@@ -164,6 +165,7 @@ private fun ContentScreen(state: AppUiState, retry: () -> Unit, logout: () -> Un
         state.selected == AppDestination.Dashboard -> Dashboard(state.content.data, modifier)
         state.selected == AppDestination.Talent -> TalentList(state, searchTalents, loadNextTalents, requestFullResume, modifier)
         state.selected == AppDestination.BossJobs -> BossJobList(state.content.data, saveJob, toggleJob, modifier)
+        state.selected == AppDestination.BossApplications -> BossApplicationList(state.content.data, updateApplication, openConversation, modifier)
         state.selected == AppDestination.Messages -> MessageScreen(state, openConversation, closeConversation, sendChatMessage,
             decideResumeAccess, viewAuthorizedResume, closeAuthorizedResume, modifier)
         state.selected == AppDestination.Profile -> Profile(state.content.data, state.role, upload, saveResume, logout, modifier)
@@ -201,6 +203,22 @@ private fun JobList(state: AppUiState, apply: (String) -> Unit, favorite: (Strin
         state.jobs.error?.let { message -> item { Button(onClick = { if (array.isEmpty()) search(keyword, city) else loadNext() }, Modifier.fillMaxWidth()) { Text("加载失败，点击重试：$message") } } }
         if (array.isNotEmpty() && state.jobs.hasNext && !state.jobs.appending) item { LaunchedEffect(state.jobs.page, keyword, city) { loadNext() } }
         if (array.isNotEmpty() && !state.jobs.hasNext) item { Text("没有更多职位了", color = WeibMuted, modifier = Modifier.fillMaxWidth().padding(12.dp)) }
+    }
+}
+
+@Composable
+private fun BossApplicationList(data: JsonElement?, update: (String, String) -> Unit,
+                                openChat: (String) -> Unit, modifier: Modifier) {
+    val applications = data?.takeIf { it.isJsonArray }?.asJsonArray?.map { it.asJsonObject } ?: emptyList()
+    LazyColumn(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item { Text("候选人投递", style = MaterialTheme.typography.headlineMedium); Text("查看并推进招聘流程", color = WeibMuted) }
+        items(applications, key={it.string("id")}) { app -> WeibCard {
+            Text(app.string("seekerName", "求职者"), style=MaterialTheme.typography.titleLarge, color=WeibTitle)
+            Text(app.string("jobTitle", "职位"), color=WeibBody); Text("当前状态：${app.string("status")}", color=WeibPrimary)
+            val id=app.string("id"); Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){OutlinedButton(onClick={update(id,"viewed")}){Text("已查看")};OutlinedButton(onClick={update(id,"interviewing")}){Text("进入面试")};OutlinedButton(onClick={update(id,"rejected")}){Text("不合适")}}
+            Button(onClick={openChat(app.string("conversationId"))},enabled=app.string("conversationId").isNotBlank()){Text("联系求职者")}
+        } }
+        if(applications.isEmpty()) item { EmptyCard("暂无候选人投递") }
     }
 }
 
@@ -248,6 +266,7 @@ private fun BossJobList(data: JsonElement?, save: (String?, Map<String, Any?>) -
                         toggle: (String, Boolean) -> Unit, modifier: Modifier) {
     val jobs = data?.takeIf { it.isJsonArray }?.asJsonArray?.map { it.asJsonObject } ?: emptyList()
     var showForm by remember { mutableStateOf(false) }
+    var editingId by remember { mutableStateOf<String?>(null) }
     var title by remember { mutableStateOf("") }; var city by remember { mutableStateOf("") }
     var salaryMin by remember { mutableStateOf("") }; var salaryMax by remember { mutableStateOf("") }
     var education by remember { mutableStateOf("") }; var experience by remember { mutableStateOf("") }
@@ -260,9 +279,9 @@ private fun BossJobList(data: JsonElement?, save: (String?, Map<String, Any?>) -
             Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedTextField(salaryMin,{salaryMin=it},Modifier.weight(1f),label={Text("最低薪资")});OutlinedTextField(salaryMax,{salaryMax=it},Modifier.weight(1f),label={Text("最高薪资")})}
             OutlinedTextField(education,{education=it},Modifier.fillMaxWidth(),label={Text("学历要求")}); OutlinedTextField(experience,{experience=it},Modifier.fillMaxWidth(),label={Text("经验要求")})
             OutlinedTextField(description,{description=it},Modifier.fillMaxWidth(),label={Text("职位描述")},minLines=3); OutlinedTextField(requirements,{requirements=it},Modifier.fillMaxWidth(),label={Text("任职要求")},minLines=3)
-            Button(onClick={save(null,mapOf("title" to title,"city" to city,"salaryMin" to salaryMin.toIntOrNull(),"salaryMax" to salaryMax.toIntOrNull(),"education" to education,"experience" to experience,"description" to description,"requirements" to requirements,"address" to city,"tags" to ""))},Modifier.fillMaxWidth(),enabled=title.isNotBlank()&&city.isNotBlank()&&description.isNotBlank()){Text("确认发布")}
+            Button(onClick={save(editingId,mapOf("title" to title,"city" to city,"salaryMin" to salaryMin.toIntOrNull(),"salaryMax" to salaryMax.toIntOrNull(),"education" to education,"experience" to experience,"description" to description,"requirements" to requirements,"address" to city,"tags" to ""))},Modifier.fillMaxWidth(),enabled=title.isNotBlank()&&city.isNotBlank()&&description.isNotBlank()){Text(if(editingId==null)"确认发布" else "保存修改")}
         } }
-        items(jobs, key={it.string("id")}) { job -> WeibCard { Text(job.string("title","职位"),style=MaterialTheme.typography.titleLarge,color=WeibTitle); Text(salary(job),color=WeibPrimary); Text("${job.string("city")} · ${job.string("education")} · ${job.string("experience")}",color=WeibBody); Text("状态：${job.string("status")}",color=WeibMuted); val active=job.string("status")=="active"; Button(onClick={toggle(job.string("id"),active)}){Text(if(active)"关闭职位" else "重新开放") } } }
+        items(jobs, key={it.string("id")}) { job -> WeibCard { Text(job.string("title","职位"),style=MaterialTheme.typography.titleLarge,color=WeibTitle); Text(salary(job),color=WeibPrimary); Text("${job.string("city")} · ${job.string("education")} · ${job.string("experience")}",color=WeibBody); Text("状态：${job.string("status")}",color=WeibMuted); val active=job.string("status")=="active"; Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedButton(onClick={editingId=job.string("id");title=job.string("title");city=job.string("city");salaryMin=job.int("salaryMin").toString();salaryMax=job.int("salaryMax").toString();education=job.string("education");experience=job.string("experience");description=job.string("description");requirements=job.string("requirements");showForm=true}){Text("编辑")};Button(onClick={toggle(job.string("id"),active)}){Text(if(active)"关闭职位" else "重新开放") }} } }
         if (jobs.isEmpty() && !showForm) item { EmptyCard("暂无已发布职位") }
     }
 }
@@ -392,6 +411,7 @@ private fun Profile(data: JsonElement?, role: String?, upload: (Uri, String) -> 
 
 private fun iconFor(destination: AppDestination) = when (destination) {
     AppDestination.Jobs, AppDestination.BossJobs -> Icons.Default.Work
+    AppDestination.BossApplications -> Icons.Default.Groups
     AppDestination.Applications -> Icons.Default.Assignment
     AppDestination.Dashboard -> Icons.Default.Dashboard
     AppDestination.Talent -> Icons.Default.Groups
