@@ -48,7 +48,18 @@ interface WeibApi {
     @POST("api/mobile/resume-access/requests/{id}/decision") suspend fun decideResumeAccess(@Path("id") id: Long, @Body body: Map<String, Boolean>): ApiEnvelope<JsonElement>
     @GET("api/mobile/resume-access/requests/{id}/resume") suspend fun authorizedResume(@Path("id") id: Long): ApiEnvelope<JsonElement>
 
-    @GET("api/forum/posts") suspend fun forumPosts(): ApiEnvelope<JsonElement>
+    @GET("api/forum/posts") suspend fun forumPosts(@Query("page") page: Int = 0, @Query("size") size: Int = 20,
+        @Query("q") query: String = "", @Query("sectionId") sectionId: Long? = null): ApiEnvelope<JsonElement>
+    @GET("api/forum/sections") suspend fun forumSections(): ApiEnvelope<JsonElement>
+    @POST("api/forum/posts") suspend fun createForumPost(@Body body: Map<String, @JvmSuppressWildcards Any?>): ApiEnvelope<JsonElement>
+    @GET("api/forum/posts/{id}/comments") suspend fun forumComments(@Path("id") id: Long): ApiEnvelope<JsonElement>
+    @POST("api/forum/posts/{id}/comments") suspend fun createForumComment(@Path("id") id: Long, @Body body: Map<String, String>): ApiEnvelope<JsonElement>
+    @POST("api/forum/posts/{id}/like") suspend fun likeForumPost(@Path("id") id: Long): ApiEnvelope<JsonElement>
+    @POST("api/forum/posts/{id}/favorite") suspend fun favoriteForumPost(@Path("id") id: Long): ApiEnvelope<JsonElement>
+    @GET("api/complaints/mine") suspend fun myComplaints(): ApiEnvelope<JsonElement>
+    @POST("api/complaints") suspend fun createComplaint(@Body body: Map<String, @JvmSuppressWildcards Any?>): ApiEnvelope<JsonElement>
+    @GET("api/appeals/mine") suspend fun myAppeals(): ApiEnvelope<JsonElement>
+    @POST("api/appeals") suspend fun createAppeal(@Body body: Map<String, @JvmSuppressWildcards Any?>): ApiEnvelope<JsonElement>
     @GET("api/mobile/notifications") suspend fun notificationEvents(
         @Query("afterEventId") afterEventId: Long, @Query("limit") limit: Int = 100
     ): ApiEnvelope<JsonElement>

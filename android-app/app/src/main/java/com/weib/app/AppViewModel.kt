@@ -45,6 +45,10 @@ data class AppUiState(
     ,val chatLoading: Boolean = false
     ,val resumeAccessRequests: com.google.gson.JsonElement? = null
     ,val authorizedResume: com.google.gson.JsonElement? = null
+    ,val activeForumPost: Long? = null
+    ,val forumComments: com.google.gson.JsonElement? = null
+    ,val complaints: com.google.gson.JsonElement? = null
+    ,val appeals: com.google.gson.JsonElement? = null
 ) {
     val role: String? get() = user?.role ?: restoredRole
     val loggedIn: Boolean get() = role == "seeker" || role == "boss"
@@ -183,6 +187,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun closeAuthorizedResume() { _state.value = _state.value.copy(authorizedResume = null) }
+    fun createForumPost(fields: Map<String, Any?>) = runAction("帖子发布成功") { repository.createForumPost(fields) }
+    fun likeForumPost(id: Long) = runAction("点赞成功") { repository.likeForumPost(id) }
+    fun favoriteForumPost(id: Long) = runAction("收藏成功") { repository.favoriteForumPost(id) }
+    fun openForumPost(id: Long) { viewModelScope.launch { runCatching { repository.forumComments(id) }.onSuccess { _state.value = _state.value.copy(activeForumPost=id,forumComments=it.data) } } }
+    fun closeForumPost() { _state.value = _state.value.copy(activeForumPost=null,forumComments=null) }
+    fun commentForumPost(content: String) { val id=_state.value.activeForumPost?:return; runAction("评论成功") { repository.createForumComment(id,content) } }
+    fun createComplaint(fields: Map<String, Any?>) = runAction("投诉已提交") { repository.createComplaint(fields) }
+    fun createAppeal(fields: Map<String, Any?>) = runAction("申诉已提交") { repository.createAppeal(fields) }
 
     fun apply(jobId: String) = runAction("投递成功") { repository.apply(jobId) }
     fun toggleFavorite(jobId: String) = runAction("收藏状态已更新") { repository.toggleFavorite(jobId) }
@@ -233,6 +245,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private fun load(destination: AppDestination) {
         val role = _state.value.role ?: return
         if (destination == AppDestination.Messages) loadResumeAccessRequests()
+        if (destination == AppDestination.Profile) loadModeration()
         if (destination == AppDestination.Jobs) {
             loadJobs(refresh = true)
             return
@@ -260,6 +273,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             runCatching { repository.resumeAccessRequests() }
                 .onSuccess { result -> if (result.code == 200) _state.value = _state.value.copy(resumeAccessRequests = result.data) }
         }
+    }
+    private fun loadModeration() {
+        viewModelScope.launch { runCatching { repository.myComplaints() }.onSuccess { if(it.code==200)_state.value=_state.value.copy(complaints=it.data) } }
+        viewModelScope.launch { runCatching { repository.myAppeals() }.onSuccess { if(it.code==200)_state.value=_state.value.copy(appeals=it.data) } }
     }
 
     private fun loadJobs(refresh: Boolean) {

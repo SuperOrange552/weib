@@ -139,7 +139,10 @@ private fun MainShell(state: AppUiState, viewModel: AppViewModel) {
             viewModel::saveJob, viewModel::toggleJob, viewModel::openConversation,
             viewModel::closeConversation, viewModel::sendChatMessage, viewModel::requestFullResume,
             viewModel::decideResumeAccess, viewModel::viewAuthorizedResume, viewModel::closeAuthorizedResume,
-            viewModel::updateApplication, Modifier.padding(padding))
+            viewModel::updateApplication, viewModel::createForumPost, viewModel::openForumPost,
+            viewModel::closeForumPost, viewModel::commentForumPost, viewModel::likeForumPost,
+            viewModel::favoriteForumPost, viewModel::createComplaint, viewModel::createAppeal,
+            Modifier.padding(padding))
     }
 }
 
@@ -156,6 +159,10 @@ private fun ContentScreen(state: AppUiState, retry: () -> Unit, logout: () -> Un
                           requestFullResume: (String) -> Unit, decideResumeAccess: (Long, Boolean) -> Unit,
                           viewAuthorizedResume: (Long) -> Unit, closeAuthorizedResume: () -> Unit,
                           updateApplication: (String, String) -> Unit,
+                          createForumPost: (Map<String, Any?>) -> Unit, openForumPost: (Long) -> Unit,
+                          closeForumPost: () -> Unit, commentForumPost: (String) -> Unit,
+                          likeForumPost: (Long) -> Unit, favoriteForumPost: (Long) -> Unit,
+                          createComplaint: (Map<String, Any?>) -> Unit, createAppeal: (Map<String, Any?>) -> Unit,
                           modifier: Modifier) {
     when {
         state.content.loading -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
@@ -168,7 +175,8 @@ private fun ContentScreen(state: AppUiState, retry: () -> Unit, logout: () -> Un
         state.selected == AppDestination.BossApplications -> BossApplicationList(state.content.data, updateApplication, openConversation, modifier)
         state.selected == AppDestination.Messages -> MessageScreen(state, openConversation, closeConversation, sendChatMessage,
             decideResumeAccess, viewAuthorizedResume, closeAuthorizedResume, modifier)
-        state.selected == AppDestination.Profile -> Profile(state.content.data, state.role, upload, saveResume, logout, modifier)
+        state.selected == AppDestination.Forum -> ForumScreen(state, createForumPost, openForumPost, closeForumPost, commentForumPost, likeForumPost, favoriteForumPost, modifier)
+        state.selected == AppDestination.Profile -> Profile(state.content.data, state, upload, saveResume, createComplaint, createAppeal, logout, modifier)
         else -> GenericList(state.content.title, state.content.data, modifier)
     }
 }
@@ -203,6 +211,20 @@ private fun JobList(state: AppUiState, apply: (String) -> Unit, favorite: (Strin
         state.jobs.error?.let { message -> item { Button(onClick = { if (array.isEmpty()) search(keyword, city) else loadNext() }, Modifier.fillMaxWidth()) { Text("加载失败，点击重试：$message") } } }
         if (array.isNotEmpty() && state.jobs.hasNext && !state.jobs.appending) item { LaunchedEffect(state.jobs.page, keyword, city) { loadNext() } }
         if (array.isNotEmpty() && !state.jobs.hasNext) item { Text("没有更多职位了", color = WeibMuted, modifier = Modifier.fillMaxWidth().padding(12.dp)) }
+    }
+}
+
+@Composable
+private fun ForumScreen(state: AppUiState, create: (Map<String, Any?>) -> Unit, open: (Long) -> Unit,
+                        close: () -> Unit, comment: (String) -> Unit, like: (Long) -> Unit,
+                        favorite: (Long) -> Unit, modifier: Modifier) {
+    var title by remember { mutableStateOf("") }; var content by remember { mutableStateOf("") }; var commentText by remember { mutableStateOf("") }
+    if(state.activeForumPost!=null){ val comments=state.forumComments?.takeIf{it.isJsonArray}?.asJsonArray?.map{it.asJsonObject}?:emptyList(); LazyColumn(modifier.fillMaxSize().padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){item{Button(onClick=close){Text("返回论坛")};Text("评论",style=MaterialTheme.typography.headlineMedium)};items(comments){WeibCard{JsonSummary(it)}};item{OutlinedTextField(commentText,{commentText=it},Modifier.fillMaxWidth(),label={Text("发表评论")});Button(onClick={comment(commentText);commentText=""},enabled=commentText.isNotBlank()){Text("发送评论")}}};return }
+    val posts=state.content.data?.takeIf{it.isJsonObject}?.asJsonObject?.getAsJsonArray("content")?.map{it.asJsonObject}?:emptyList()
+    LazyColumn(modifier.fillMaxSize().padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
+        item{Text("交流论坛",style=MaterialTheme.typography.headlineMedium);WeibCard{Text("发布图文",style=MaterialTheme.typography.titleLarge);OutlinedTextField(title,{title=it},Modifier.fillMaxWidth(),label={Text("标题")});OutlinedTextField(content,{content=it},Modifier.fillMaxWidth(),label={Text("内容")},minLines=3);Button(onClick={create(mapOf("sectionId" to 1L,"title" to title,"content" to content,"imageUrls" to emptyList<String>(),"tags" to emptyList<String>()))},Modifier.fillMaxWidth(),enabled=title.isNotBlank()&&content.isNotBlank()){Text("发布帖子")}}}
+        items(posts,key={it.string("id")}){post->WeibCard{Text(post.string("title","帖子"),style=MaterialTheme.typography.titleLarge,color=WeibTitle);Text(post.string("content"),color=WeibBody);Text("点赞 ${post.int("likeCount")} · 评论 ${post.int("commentCount")} · 收藏 ${post.int("favoriteCount")}",color=WeibMuted);val id=post["id"]?.asLong?:0L;Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedButton(onClick={like(id)}){Text("点赞")};OutlinedButton(onClick={favorite(id)}){Text("收藏")};Button(onClick={open(id)}){Text("评论")}}}}
+        if(posts.isEmpty())item{EmptyCard("暂无帖子")}
     }
 }
 
@@ -360,8 +382,10 @@ private fun GenericList(title: String, data: JsonElement?, modifier: Modifier) {
 }
 
 @Composable
-private fun Profile(data: JsonElement?, role: String?, upload: (Uri, String) -> Unit,
-                    saveResume: (Map<String, Any?>) -> Unit, logout: () -> Unit, modifier: Modifier) {
+private fun Profile(data: JsonElement?, state: AppUiState, upload: (Uri, String) -> Unit,
+                    saveResume: (Map<String, Any?>) -> Unit, createComplaint: (Map<String, Any?>) -> Unit,
+                    createAppeal: (Map<String, Any?>) -> Unit, logout: () -> Unit, modifier: Modifier) {
+    val role=state.role
     val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { it?.let { uri -> upload(uri, "avatar") } }
     val attachmentPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { it?.let { uri -> upload(uri, "attachment") } }
     val resume = data?.takeIf { it.isJsonObject }?.asJsonObject
@@ -372,6 +396,8 @@ private fun Profile(data: JsonElement?, role: String?, upload: (Uri, String) -> 
     var major by remember(data) { mutableStateOf(resume?.string("major").orEmpty()) }
     var skills by remember(data) { mutableStateOf(resume?.string("skills").orEmpty()) }
     var introduction by remember(data) { mutableStateOf(resume?.string("selfIntroduction").orEmpty()) }
+    var targetType by remember { mutableStateOf("JOB") }; var targetId by remember { mutableStateOf("") }
+    var complaintReason by remember { mutableStateOf("") }; var sanctionId by remember { mutableStateOf("") }; var appealReason by remember { mutableStateOf("") }
     LazyColumn(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { Text("我的", style = MaterialTheme.typography.headlineMedium) }
         item { WeibCard { JsonSummary(data); Text("论坛、投诉与申诉", style = MaterialTheme.typography.titleMedium); Text("用户提交后由 Web 管理后台审核", color = WeibMuted) } }
@@ -389,6 +415,8 @@ private fun Profile(data: JsonElement?, role: String?, upload: (Uri, String) -> 
             Button(onClick = { avatarPicker.launch("image/*") }, Modifier.fillMaxWidth()) { Text("选择并上传头像") }
             OutlinedButton(onClick = { attachmentPicker.launch("application/pdf") }, Modifier.fillMaxWidth()) { Text("选择并上传简历附件") }
         } }
+        item { WeibCard { Text("提交投诉",style=MaterialTheme.typography.titleLarge);OutlinedTextField(targetType,{targetType=it},Modifier.fillMaxWidth(),label={Text("对象类型：JOB/COMPANY/USER/POST/COMMENT")});OutlinedTextField(targetId,{targetId=it},Modifier.fillMaxWidth(),label={Text("对象ID")});OutlinedTextField(complaintReason,{complaintReason=it},Modifier.fillMaxWidth(),label={Text("投诉说明")},minLines=3);Button(onClick={createComplaint(mapOf("targetType" to targetType,"targetId" to targetId.toLongOrNull(),"category" to "FALSE_INFORMATION","description" to complaintReason,"evidenceUrls" to emptyList<String>()))},Modifier.fillMaxWidth(),enabled=targetId.toLongOrNull()!=null&&complaintReason.isNotBlank()){Text("提交投诉")};Text("我的投诉",style=MaterialTheme.typography.titleMedium);JsonSummary(state.complaints) } }
+        item { WeibCard { Text("封禁申诉",style=MaterialTheme.typography.titleLarge);OutlinedTextField(sanctionId,{sanctionId=it},Modifier.fillMaxWidth(),label={Text("处罚ID")});OutlinedTextField(appealReason,{appealReason=it},Modifier.fillMaxWidth(),label={Text("申诉理由")},minLines=3);Button(onClick={createAppeal(mapOf("sanctionId" to sanctionId.toLongOrNull(),"reason" to appealReason,"evidenceUrls" to emptyList<String>()))},Modifier.fillMaxWidth(),enabled=sanctionId.toLongOrNull()!=null&&appealReason.isNotBlank()){Text("提交申诉")};Text("我的申诉",style=MaterialTheme.typography.titleMedium);JsonSummary(state.appeals) } }
         item { OutlinedButton(onClick = logout, Modifier.fillMaxWidth()) { Text("退出登录") } }
     }
 }

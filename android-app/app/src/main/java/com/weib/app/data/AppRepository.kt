@@ -130,6 +130,17 @@ class AppRepository(context: Context) {
     suspend fun requestResumeAccess(seekerId: String) = api.requestResumeAccess(mapOf("seekerId" to seekerId))
     suspend fun decideResumeAccess(id: Long, approved: Boolean) = api.decideResumeAccess(id, mapOf("approved" to approved))
     suspend fun authorizedResume(id: Long) = api.authorizedResume(id)
+    suspend fun forumPosts(page: Int, query: String, sectionId: Long?) = api.forumPosts(page, 20, query, sectionId)
+    suspend fun forumSections() = api.forumSections()
+    suspend fun createForumPost(fields: Map<String, Any?>) = api.createForumPost(fields)
+    suspend fun forumComments(id: Long) = api.forumComments(id)
+    suspend fun createForumComment(id: Long, content: String) = api.createForumComment(id, mapOf("content" to content))
+    suspend fun likeForumPost(id: Long) = api.likeForumPost(id)
+    suspend fun favoriteForumPost(id: Long) = api.favoriteForumPost(id)
+    suspend fun myComplaints() = api.myComplaints()
+    suspend fun createComplaint(fields: Map<String, Any?>) = api.createComplaint(fields)
+    suspend fun myAppeals() = api.myAppeals()
+    suspend fun createAppeal(fields: Map<String, Any?>) = api.createAppeal(fields)
 
     private fun trustLocalCertificate(builder: OkHttpClient.Builder) {
         val trustManager = object : X509TrustManager {
