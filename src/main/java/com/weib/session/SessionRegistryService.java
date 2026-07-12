@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -26,6 +27,7 @@ public class SessionRegistryService {
     private final Clock clock;
     private final SecuritySessionNotifier notifier;
 
+    @Autowired
     public SessionRegistryService(StringRedisTemplate redis, ObjectMapper objectMapper,
                                   SecuritySessionNotifier notifier) {
         this(redis, objectMapper, Clock.systemUTC(), notifier);
