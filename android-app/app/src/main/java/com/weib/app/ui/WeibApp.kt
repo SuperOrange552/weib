@@ -134,7 +134,8 @@ private fun MainShell(state: AppUiState, viewModel: AppViewModel) {
         }
     ) { padding ->
         ContentScreen(state, viewModel::retry, viewModel::logout, viewModel::apply,
-            viewModel::toggleFavorite, viewModel::withdraw, viewModel::uploadResumeMedia, viewModel::saveResume, Modifier.padding(padding))
+            viewModel::toggleFavorite, viewModel::withdraw, viewModel::uploadResumeMedia, viewModel::saveResume,
+            viewModel::searchJobs, viewModel::loadNextJobs, Modifier.padding(padding))
     }
 }
 
@@ -142,11 +143,12 @@ private fun MainShell(state: AppUiState, viewModel: AppViewModel) {
 private fun ContentScreen(state: AppUiState, retry: () -> Unit, logout: () -> Unit,
                           apply: (String) -> Unit, favorite: (String) -> Unit,
                           withdraw: (String) -> Unit, upload: (Uri, String) -> Unit,
-                          saveResume: (Map<String, Any?>) -> Unit, modifier: Modifier) {
+                          saveResume: (Map<String, Any?>) -> Unit,
+                          searchJobs: (String, String) -> Unit, loadNextJobs: () -> Unit, modifier: Modifier) {
     when {
         state.content.loading -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         state.content.error != null -> ErrorState(state.content.error, retry, modifier)
-        state.selected == AppDestination.Jobs -> JobList(state.content.data, apply, favorite, modifier)
+        state.selected == AppDestination.Jobs -> JobList(state, apply, favorite, searchJobs, loadNextJobs, modifier)
         state.selected == AppDestination.Applications -> ApplicationList(state.content.data, withdraw, modifier)
         state.selected == AppDestination.Dashboard -> Dashboard(state.content.data, modifier)
         state.selected == AppDestination.Profile -> Profile(state.content.data, state.role, upload, saveResume, logout, modifier)
@@ -155,16 +157,16 @@ private fun ContentScreen(state: AppUiState, retry: () -> Unit, logout: () -> Un
 }
 
 @Composable
-private fun JobList(data: JsonElement?, apply: (String) -> Unit, favorite: (String) -> Unit, modifier: Modifier) {
-    val array = data?.asJsonObject?.getAsJsonArray("content")?.mapNotNull { it.takeIf(JsonElement::isJsonObject)?.asJsonObject } ?: emptyList()
-    var keyword by remember { mutableStateOf("") }
-    var city by remember { mutableStateOf("") }
+private fun JobList(state: AppUiState, apply: (String) -> Unit, favorite: (String) -> Unit,
+                    search: (String, String) -> Unit, loadNext: () -> Unit, modifier: Modifier) {
+    val array = state.jobs.items
+    var keyword by remember { mutableStateOf(state.jobKeyword) }
+    var city by remember { mutableStateOf(state.jobCity) }
     var expandedId by remember { mutableStateOf<String?>(null) }
-    val filtered = array.filter { job -> (keyword.isBlank() || job.string("title").contains(keyword,true) || job.getAsJsonObject("company")?.string("name")?.contains(keyword,true)==true) && (city.isBlank() || job.string("city").contains(city,true)) }
     LazyColumn(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { Text("发现好职位", style = MaterialTheme.typography.headlineMedium); Text("职位信息与 Web 端数据实时同步", color = WeibMuted) }
-        item { OutlinedTextField(keyword,{keyword=it},Modifier.fillMaxWidth(),label={Text("搜索职位或公司")}); OutlinedTextField(city,{city=it},Modifier.fillMaxWidth(),label={Text("城市筛选")}) }
-        items(filtered) { job -> WeibCard {
+        item { OutlinedTextField(keyword,{keyword=it},Modifier.fillMaxWidth(),label={Text("搜索职位或公司")}); OutlinedTextField(city,{city=it},Modifier.fillMaxWidth(),label={Text("城市筛选")}); Button(onClick={search(keyword,city)},Modifier.fillMaxWidth()){Text("搜索") } }
+        items(array, key = { it.string("id") }) { job -> WeibCard {
             Text(job.string("title", "职位名称"), style = MaterialTheme.typography.titleLarge, color = WeibTitle)
             Text(salary(job), style = MaterialTheme.typography.titleMedium, color = WeibPrimary)
             Text(listOf(job.string("city"), job.string("education"), job.string("experience")).filter { it.isNotBlank() }.joinToString(" · "), color = WeibBody)
@@ -179,7 +181,11 @@ private fun JobList(data: JsonElement?, apply: (String) -> Unit, favorite: (Stri
             TextButton(onClick={expandedId=if(expandedId==id)null else id}){Text(if(expandedId==id)"收起详情" else "查看详情")}
             if(expandedId==id){ HorizontalDivider(); Text(job.string("description","暂无职位描述")); Text(job.string("requirements","暂无任职要求")); company?.let{Text("公司：${it.string("name")}\n${it.string("description")}")}; Text("地址：${job.string("address","-")}") }
         } }
-        if (filtered.isEmpty()) item { EmptyCard("暂无职位") }
+        if (array.isEmpty() && !state.jobs.refreshing) item { EmptyCard("暂无职位") }
+        if (state.jobs.refreshing || state.jobs.appending) item { Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
+        state.jobs.error?.let { message -> item { Button(onClick = { if (array.isEmpty()) search(keyword, city) else loadNext() }, Modifier.fillMaxWidth()) { Text("加载失败，点击重试：$message") } } }
+        if (array.isNotEmpty() && state.jobs.hasNext && !state.jobs.appending) item { LaunchedEffect(state.jobs.page, keyword, city) { loadNext() } }
+        if (array.isNotEmpty() && !state.jobs.hasNext) item { Text("没有更多职位了", color = WeibMuted, modifier = Modifier.fillMaxWidth().padding(12.dp)) }
     }
 }
 

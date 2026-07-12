@@ -75,7 +75,7 @@ class AppRepository(context: Context) {
     }
 
     suspend fun load(role: String, route: String): ApiEnvelope<JsonElement> = when (route) {
-        "jobs" -> api.jobs()
+        "jobs" -> api.jobs(0)
         "applications" -> api.applications()
         "dashboard" -> api.bossDashboard()
         "boss_jobs" -> api.bossJobs()
@@ -112,6 +112,9 @@ class AppRepository(context: Context) {
             url
         } finally { temp.delete() }
     }
+
+    suspend fun jobs(page: Int, keyword: String, city: String) = api.jobs(page, 20, keyword, city)
+    suspend fun talents(page: Int, query: String) = api.talents(page, 20, query)
     suspend fun updateApplicationStatus(id: String, status: String) = api.updateApplicationStatus(id, mapOf("status" to status))
     suspend fun closeJob(id: String) = api.closeJob(id)
     suspend fun reopenJob(id: String) = api.reopenJob(id)

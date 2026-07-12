@@ -17,6 +17,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import android.net.Uri
+import com.google.gson.JsonObject
+import com.weib.app.data.PageSlice
+import com.weib.app.data.PagingReducer
+import com.weib.app.data.PagingState
 
 data class AppUiState(
     val restoring: Boolean = true,
@@ -31,6 +35,9 @@ data class AppUiState(
     val content: ContentState = ContentState()
     ,val securityDialog: String? = null
     ,val actionMessage: String? = null
+    ,val jobs: PagingState<JsonObject> = PagingState()
+    ,val jobKeyword: String = ""
+    ,val jobCity: String = ""
 ) {
     val role: String? get() = user?.role ?: restoredRole
     val loggedIn: Boolean get() = role == "seeker" || role == "boss"
@@ -118,6 +125,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun retry() { _state.value.selected?.let(::load) }
 
+    fun searchJobs(keyword: String, city: String) {
+        _state.value = _state.value.copy(jobKeyword = keyword, jobCity = city)
+        loadJobs(refresh = true)
+    }
+
+    fun loadNextJobs() = loadJobs(refresh = false)
+
     fun apply(jobId: String) = runAction("投递成功") { repository.apply(jobId) }
     fun toggleFavorite(jobId: String) = runAction("收藏状态已更新") { repository.toggleFavorite(jobId) }
     fun withdraw(applicationId: String) = runAction("投递已撤回") { repository.withdraw(applicationId) }
@@ -163,6 +177,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun load(destination: AppDestination) {
         val role = _state.value.role ?: return
+        if (destination == AppDestination.Jobs) {
+            loadJobs(refresh = true)
+            return
+        }
         viewModelScope.launch {
             _state.value = _state.value.copy(content = ContentState(title = destination.label, loading = true))
             runCatching { repository.load(role, destination.route) }
@@ -174,6 +192,36 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
                 .onFailure { _state.value = _state.value.copy(content = ContentState(destination.label, error = it.message)) }
+        }
+    }
+
+    private fun loadJobs(refresh: Boolean) {
+        if (_state.value.role != "seeker") return
+        val current = _state.value.jobs
+        val loading = if (refresh) PagingReducer.startRefresh(current) else PagingReducer.startAppend(current)
+        if (!refresh && loading === current) return
+        _state.value = _state.value.copy(jobs = loading)
+        val requestedPage = if (refresh) 0 else current.page + 1
+        val keyword = _state.value.jobKeyword
+        val city = _state.value.jobCity
+        viewModelScope.launch {
+            runCatching { repository.jobs(requestedPage, keyword, city) }
+                .onSuccess { result ->
+                    val data = result.data?.takeIf { it.isJsonObject }?.asJsonObject
+                    if (result.code != 200 || data == null) {
+                        _state.value = _state.value.copy(jobs = PagingReducer.pageFailed(_state.value.jobs, result.msg ?: "职位加载失败"))
+                    } else {
+                        val items = data.getAsJsonArray("content")?.mapNotNull { it.takeIf { e -> e.isJsonObject }?.asJsonObject } ?: emptyList()
+                        val page = data.get("number")?.asInt ?: data.get("page")?.asInt ?: requestedPage
+                        val totalPages = data.get("totalPages")?.asInt ?: (page + 1)
+                        _state.value = _state.value.copy(jobs = PagingReducer.pageLoaded(
+                            _state.value.jobs, PageSlice(items, page, totalPages)
+                        ) { it.get("id")?.asString.orEmpty() })
+                    }
+                }
+                .onFailure { error ->
+                    _state.value = _state.value.copy(jobs = PagingReducer.pageFailed(_state.value.jobs, error.message ?: "网络异常"))
+                }
         }
     }
 

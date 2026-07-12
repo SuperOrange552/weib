@@ -20,7 +20,13 @@ interface WeibApi {
     @GET("api/mobile/auth/me") suspend fun me(): ApiEnvelope<MobileUser>
     @POST("api/mobile/auth/logout") suspend fun logout(): ApiEnvelope<JsonElement>
 
-    @GET("api/seeker/jobs?size=50") suspend fun jobs(): ApiEnvelope<JsonElement>
+    @GET("api/seeker/jobs") suspend fun jobs(
+        @Query("page") page: Int, @Query("size") size: Int = 20,
+        @Query("keyword") keyword: String = "", @Query("city") city: String = ""
+    ): ApiEnvelope<JsonElement>
+    @GET("api/mobile/boss/talents") suspend fun talents(
+        @Query("page") page: Int, @Query("size") size: Int = 20, @Query("q") query: String = ""
+    ): ApiEnvelope<JsonElement>
     @GET("api/seeker/applications") suspend fun applications(): ApiEnvelope<JsonElement>
     @GET("api/seeker/conversations") suspend fun seekerConversations(): ApiEnvelope<JsonElement>
     @GET("api/seeker/resume") suspend fun resume(): ApiEnvelope<JsonElement>
