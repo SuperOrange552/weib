@@ -9,6 +9,16 @@ SELECT
     'boss', '莉莉Boss', 'active', 0, NOW(), NOW()
 WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'boss_lily');
 
+-- Repair every documented Boss practice account as well as create-on-missing.
+UPDATE users
+SET password = '$2b$10$rb5oFX5K6qYlfde/v5vFFOkIodOggkABHo43mow.dAAJfUQwwdN1m',
+    role = 'boss',
+    status = 'active',
+    login_fail_count = 0,
+    lock_until = NULL,
+    updated_at = NOW()
+WHERE username IN ('boss_lily', 'boss_li', 'boss_zhang', 'boss_wang', 'boss_zhao', 'boss_chen');
+
 INSERT INTO user_roles (user_id, role_type, status, enabled_at, created_at, updated_at)
 SELECT u.id, 'BOSS', 'ACTIVE', NOW(), NOW(), NOW()
 FROM users u

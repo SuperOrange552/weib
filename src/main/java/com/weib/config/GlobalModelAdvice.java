@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 @ControllerAdvice
 public class GlobalModelAdvice {
 
-    private static final String CSRF_TOKEN_ATTR = "csrf_token";
     @ModelAttribute
     public void addCsrfToken(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
@@ -20,7 +19,7 @@ public class GlobalModelAdvice {
             return;
         }
         String token = CsrfInterceptor.generateCsrfToken(session);
-        request.setAttribute(CSRF_TOKEN_ATTR, token);
+        request.setAttribute("csrf_token", token);
         Object activeRole = session.getAttribute("activeRole");
         if (activeRole != null) {
             request.setAttribute("activeRole", activeRole.toString());
