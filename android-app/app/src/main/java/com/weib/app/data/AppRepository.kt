@@ -43,9 +43,9 @@ class AppRepository(context: Context) {
                     }
                 }.build()
                 val response = chain.proceed(request)
-                if (response.code == 401) {
+                if (response.code == 401 && session.token() != null) {
                     val body = runCatching { response.peekBody(4096).string() }.getOrDefault("")
-                    if (body.contains("KICKED")) _securityEvents.tryEmit("KICKED")
+                    _securityEvents.tryEmit(if (body.contains("KICKED")) "KICKED" else "SESSION_EXPIRED")
                 }
                 response
             }
