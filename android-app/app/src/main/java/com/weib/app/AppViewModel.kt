@@ -21,6 +21,7 @@ import com.google.gson.JsonObject
 import com.weib.app.data.PageSlice
 import com.weib.app.data.PagingReducer
 import com.weib.app.data.PagingState
+import retrofit2.HttpException
 
 data class AppUiState(
     val restoring: Boolean = true,
@@ -87,16 +88,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun refreshCaptcha(manual: Boolean, username: String = "", password: String = "") {
-        if (manual && (username.isBlank() || password.isBlank())) {
-            _state.value = _state.value.copy(authError = "请先输入账号和密码，再刷新验证码")
-            return
-        }
-        if (manual && _state.value.captchaSeconds > 115) {
-            _state.value = _state.value.copy(authError = "刷新过于频繁，请稍后再试")
-            return
-        }
         viewModelScope.launch {
-            _state.value = _state.value.copy(captchaRefreshing = true, authError = null)
+            _state.value = _state.value.copy(captchaRefreshing = true,
+                authError = if (manual) null else _state.value.authError)
             runCatching { repository.captcha() }
                 .onSuccess { image ->
                     val bitmap = BitmapFactory.decodeByteArray(image.bytes, 0, image.bytes.size)
@@ -127,7 +121,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         restoredRole = null, selected = destination, captcha = null)
                     load(destination)
                 }
-                .onFailure { _state.value = _state.value.copy(loggingIn = false, authError = it.message) }
+                .onFailure {
+                    _state.value = _state.value.copy(loggingIn = false, authError = it.message)
+                    refreshCaptcha(manual = false)
+                }
         }
     }
 
@@ -264,13 +261,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             _state.value = _state.value.copy(content = ContentState(title = destination.label, loading = true))
             runCatching { repository.load(role, destination.route) }
                 .onSuccess { result ->
+                    if (handleUnauthorized(result.code)) return@onSuccess
                     if (result.code == 200) {
                         _state.value = _state.value.copy(content = ContentState(destination.label, result.data))
                     } else {
                         _state.value = _state.value.copy(content = ContentState(destination.label, error = result.msg))
                     }
                 }
-                .onFailure { _state.value = _state.value.copy(content = ContentState(destination.label, error = it.message)) }
+                .onFailure { if (!handleUnauthorized(it)) _state.value = _state.value.copy(content = ContentState(destination.label, error = it.message)) }
         }
     }
 
@@ -297,6 +295,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             runCatching { repository.jobs(requestedPage, keyword, city) }
                 .onSuccess { result ->
+                    if (handleUnauthorized(result.code)) return@onSuccess
                     val data = result.data?.takeIf { it.isJsonObject }?.asJsonObject
                     if (result.code != 200 || data == null) {
                         _state.value = _state.value.copy(jobs = PagingReducer.pageFailed(_state.value.jobs, result.msg ?: "职位加载失败"))
@@ -309,9 +308,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         ) { it.get("id")?.asString.orEmpty() })
                     }
                 }
-                .onFailure { error ->
+                .onFailure { error -> if (!handleUnauthorized(error)) {
                     _state.value = _state.value.copy(jobs = PagingReducer.pageFailed(_state.value.jobs, error.message ?: "网络异常"))
-                }
+                } }
         }
     }
 
@@ -326,6 +325,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             runCatching { repository.talents(requestedPage, query) }
                 .onSuccess { result ->
+                    if (handleUnauthorized(result.code)) return@onSuccess
                     val data = result.data?.takeIf { it.isJsonObject }?.asJsonObject
                     if (result.code != 200 || data == null) {
                         _state.value = _state.value.copy(talents = PagingReducer.pageFailed(_state.value.talents, result.msg ?: "人才加载失败"))
@@ -338,9 +338,27 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         ) { it.get("id")?.asString.orEmpty() })
                     }
                 }
-                .onFailure { error ->
+                .onFailure { error -> if (!handleUnauthorized(error)) {
                     _state.value = _state.value.copy(talents = PagingReducer.pageFailed(_state.value.talents, error.message ?: "网络异常"))
-                }
+                } }
+        }
+    }
+
+    private fun handleUnauthorized(code: Int): Boolean {
+        if (!com.weib.app.data.realtime.AuthFailurePolicy.isUnauthorizedApiResult(code)) return false
+        expireSession(); return true
+    }
+
+    private fun handleUnauthorized(error: Throwable): Boolean {
+        if (error !is HttpException || error.code() != 401) return false
+        expireSession(); return true
+    }
+
+    private fun expireSession() {
+        viewModelScope.launch {
+            repository.session.clear()
+            _state.value = AppUiState(restoring = false, securityDialog = "登录状态已失效，请重新登录。")
+            refreshCaptcha(manual = false)
         }
     }
 
@@ -351,6 +369,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 delay(1000)
                 _state.value = _state.value.copy(captchaSeconds = (_state.value.captchaSeconds - 1).coerceAtLeast(0))
             }
+            if (!_state.value.loggedIn && _state.value.captchaSeconds == 0) refreshCaptcha(manual = false)
         }
     }
 }

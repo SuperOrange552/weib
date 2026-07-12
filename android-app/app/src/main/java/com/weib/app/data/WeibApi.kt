@@ -16,7 +16,7 @@ import okhttp3.MultipartBody
 import okhttp3.RequestBody
 
 interface WeibApi {
-    @GET("captcha") suspend fun captcha(): Response<ResponseBody>
+    @GET("captcha") suspend fun captcha(@Query("_") nonce: Long): Response<ResponseBody>
     @POST("api/mobile/auth/login") suspend fun login(@Body body: LoginRequest): ApiEnvelope<LoginData>
     @GET("api/mobile/auth/me") suspend fun me(): ApiEnvelope<MobileUser>
     @POST("api/mobile/auth/logout") suspend fun logout(): ApiEnvelope<JsonElement>

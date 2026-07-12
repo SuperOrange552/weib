@@ -43,9 +43,11 @@ class AppRepository(context: Context) {
                     }
                 }.build()
                 val response = chain.proceed(request)
-                if (response.code == 401 && session.token() != null) {
+                if (response.code == 401) {
                     val body = runCatching { response.peekBody(4096).string() }.getOrDefault("")
-                    _securityEvents.tryEmit(if (body.contains("KICKED")) "KICKED" else "SESSION_EXPIRED")
+                    com.weib.app.data.realtime.AuthFailurePolicy.securityEvent(
+                        response.code, request.url.encodedPath, body, session.token() != null
+                    )?.let(_securityEvents::tryEmit)
                 }
                 response
             }
@@ -60,7 +62,7 @@ class AppRepository(context: Context) {
     }
 
     suspend fun captcha(): CaptchaImage = withContext(Dispatchers.IO) {
-        val response = api.captcha()
+        val response = api.captcha(System.currentTimeMillis())
         if (!response.isSuccessful) error("验证码刷新过于频繁，请稍后再试")
         CaptchaImage(response.body()?.bytes() ?: error("验证码加载失败"),
             response.headers()["X-Captcha-Expires-In"]?.toIntOrNull() ?: 120)

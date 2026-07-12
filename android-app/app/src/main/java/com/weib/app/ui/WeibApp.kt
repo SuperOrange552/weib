@@ -97,9 +97,7 @@ private fun LoginScreen(state: AppUiState, viewModel: AppViewModel) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text(if (state.captchaSeconds > 0) "验证码有效期 %02d:%02d".format(minute, second) else "验证码已过期",
                         color = if (state.captchaSeconds > 0) WeibBody else MaterialTheme.colorScheme.error)
-                    TextButton(onClick = { viewModel.refreshCaptcha(true, username, password) }, enabled = !state.captchaRefreshing) {
-                        Text("刷新验证码")
-                    }
+                    Text("到期后自动更换", color = WeibMuted)
                 }
                 state.authError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 Button(onClick = { viewModel.login(username, password, captcha, selectedRole) }, Modifier.fillMaxWidth().height(50.dp),
