@@ -10,6 +10,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 class WebTemplateRegressionTest {
 
     @Test
+    void authPagesExposeHighContrastSwitchActionsAndAllowSmallScreenScrolling() throws IOException {
+        for (String template : new String[]{"login.html", "register.html"}) {
+            String html = resource("templates/" + template);
+            assertThat(html).as(template).contains("<body class=\"auth-page\">");
+            assertThat(html).as(template).contains("class=\"auth-switch-link\"");
+        }
+
+        String css = resource("static/css/app-shell.css");
+        assertThat(css).contains("body.auth-page{overflow-y:auto !important;flex-direction:column !important");
+        assertThat(css).contains("body.auth-page .login-card,body.auth-page .register-card{background:#ffffff !important");
+        assertThat(css).contains("body.auth-page .auth-switch-link{display:inline-flex !important");
+        assertThat(css).contains("background:#0f766e !important;color:#ffffff !important");
+    }
+
+    @Test
     void dualRoleTemplatesUseTheActiveSessionRole() throws IOException {
         for (String template : new String[]{"index.html", "chat-list.html", "job-detail.html"}) {
             String html = resource("templates/" + template);
