@@ -1,0 +1,99 @@
+{
+  "status": "PASS",
+  "controllerEndpointCount": 158,
+  "businessEndpointCount": 131,
+  "pageEndpointCount": 27,
+  "documentedEndpointCount": 158,
+  "appEndpointCount": 28,
+  "missingEndpoints": [],
+  "unknownEndpoints": [],
+  "mislabelledAppEndpoints": [],
+  "incompleteCards": [],
+  "changedOldFiles": [],
+  "requiredCardFields": [
+    "功能",
+    "请求方式与完整地址",
+    "权限与前置条件",
+    "Content-Type",
+    "请求头",
+    "参数表",
+    "可复制请求数据",
+    "成功响应示例",
+    "变量来源",
+    "关键错误"
+  ],
+  "productionValidation": {
+    "validatedAt": "2026-07-14T11:35:00+08:00",
+    "baseUrl": "http://superorange.top",
+    "publicReads": [
+      {
+        "request": "GET /api/forum/sections",
+        "httpStatus": 200,
+        "jsonParsed": true
+      },
+      {
+        "request": "GET /api/forum/posts?page=0&size=2",
+        "httpStatus": 200,
+        "jsonParsed": true
+      },
+      {
+        "request": "GET /check-username?username=api_test_unused_20260714",
+        "httpStatus": 200
+      },
+      {
+        "request": "GET /api/seeker/jobs?page=0&size=2&keyword=Java",
+        "httpStatus": 401,
+        "meaning": "confirmed authentication guard"
+      }
+    ],
+    "captcha": {
+      "request": "GET /captcha?username=<account>",
+      "httpStatus": 200,
+      "contentType": "image/png;charset=UTF-8",
+      "expiresInSeconds": 120,
+      "sessionCookiePresent": true
+    },
+    "mobileAuth": [
+      {
+        "account": "seeker_ahua",
+        "role": "SEEKER",
+        "httpStatus": 200,
+        "code": 200,
+        "accessTokenPresent": true,
+        "meReadCode": 200,
+        "notificationReadCode": 200
+      },
+      {
+        "account": "boss_li",
+        "role": "BOSS",
+        "httpStatus": 200,
+        "code": 200,
+        "accessTokenPresent": true
+      }
+    ],
+    "adminAuth": {
+      "account": "admin",
+      "loginCode": 200,
+      "tokenPresent": true,
+      "meCode": 200,
+      "roleType": "super_admin"
+    },
+    "sensitiveRuntimeValuesPersisted": false
+  },
+  "documentQa": {
+    "preset": "compact_reference_guide",
+    "renderStatus": "PASS",
+    "renderedPageCount": 142,
+    "pageSize": "US Letter 612 x 792 pt",
+    "visualInspection": "All 142 rendered pages inspected through 12 contact sheets; representative full-resolution pages checked",
+    "visualDefects": [],
+    "accessibilityAudit": {
+      "high": 0,
+      "medium": 323,
+      "low": 0,
+      "mediumFindingKind": "table_no_header_row",
+      "note": "Metadata and one-cell callout tables intentionally have no header row; all true parameter/status tables repeat header rows"
+    },
+    "rendererNote": "Bundled render_docx.py was attempted; Windows LibreOffice launcher returned before conversion. Equivalent LibreOffice PDF export plus Poppler PNG rasterization completed successfully."
+  }
+}
