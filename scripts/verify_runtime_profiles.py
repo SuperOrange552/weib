@@ -11,10 +11,11 @@ redirect = (ROOT / "src/main/java/com/weib/config/HttpsRedirectConfig.java").rea
 checks = {
     "commonHasNoHardcodedSsl": "key-store:" not in common and "port: 8443" not in common,
     "localProfile": "on-profile: local" in local and "port: 8443" in local and "enabled: true" in local and "secure: true" in local,
-    "prodProfile": "on-profile: prod" in prod and "SERVER_PORT:8888" in prod and "enabled: false" in prod and "secure: false" in prod,
+    "prodProfile": "on-profile: prod" in prod and "SERVER_PORT:8888" in prod and "enabled: false" in prod and "secure: true" in prod,
+    "prodHttpsOrigins": "https://superorange.top,https://www.superorange.top" in prod,
     "prodForwardHeaders": "forward-headers-strategy: framework" in prod,
     "redirectOnlyLocal": '@Profile("local")' in redirect,
-    "websocketOriginsPerProfile": "https://localhost:8443" in local and "http://superorange.top" in prod,
+    "websocketOriginsPerProfile": "https://localhost:8443" in local and "https://superorange.top" in prod,
 }
 failed = [name for name, passed in checks.items() if not passed]
 print({"checks": checks, "status": "PASS" if not failed else "FAIL", "failed": failed})

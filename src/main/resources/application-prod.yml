@@ -11,9 +11,9 @@ server:
   servlet:
     session:
       cookie:
-        secure: false
+        secure: true
         http-only: true
         same-site: lax
 
 websocket:
-  allowed-origins: ${WEBSOCKET_ALLOWED_ORIGINS:http://superorange.top,http://www.superorange.top}
+  allowed-origins: ${WEBSOCKET_ALLOWED_ORIGINS:https://superorange.top,https://www.superorange.top}
