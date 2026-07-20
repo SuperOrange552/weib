@@ -61,3 +61,14 @@ SERVER_SERVLET_SESSION_COOKIE_SECURE=true
 - JWT/Remember Cookie：根据当前请求及 `X-Forwarded-Proto` 动态设置 `Secure`。
 - WebSocket/SockJS：使用相对路径 `/ws`，自动跟随页面的 HTTP/HTTPS 协议。
 - 管理后台幂等键：优先使用 `crypto.randomUUID()`，不支持时自动降级。
+
+## API 自动化测试验证码开关
+
+`GET /api/test/captcha` 仅用于受控的接口自动化环境，默认关闭。临时启用时设置：
+
+```bash
+TEST_CAPTCHA_API_ENABLED=true
+TEST_CAPTCHA_ACCESS_KEY=<至少16位的随机密钥>
+```
+
+调用时传入 `X-Test-Access-Key`，响应 `data.captcha` 与当前 `JSESSIONID` 会话绑定。测试完成后把 `TEST_CAPTCHA_API_ENABLED` 改为 `false` 并重启 `weib.service`；关闭后 Controller 不注册，路径返回 404。密钥只保存在服务器环境变量中，禁止写入源码、接口文档或 Git。

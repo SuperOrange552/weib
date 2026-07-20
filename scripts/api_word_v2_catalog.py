@@ -13,7 +13,7 @@ from urllib.parse import urlencode
 from api_word_v2_inventory import Endpoint
 
 
-BASE_URL = "http://superorange.top"
+BASE_URL = "https://superorange.top"
 APP_BADGE = "📱 APP 专用"
 
 DEFAULT_VARIABLES = {
@@ -22,7 +22,8 @@ DEFAULT_VARIABLES = {
     "bossUsername": "boss_li",
     "testPassword": "Weib@123456",
     "adminUsername": "admin",
-    "captcha": "先以同一 Cookie 会话请求 GET /captcha?username=账号，再人工读取图片中的 4 位验证码",
+    "captcha": "正常流程从 GET /captcha 图片读取；启用测试工具时可从 GET /api/test/captcha 的 data.captcha 读取",
+    "testCaptchaAccessKey": "仅保存在测试环境变量 TEST_CAPTCHA_ACCESS_KEY 中，请求时放入 X-Test-Access-Key",
     "csrfToken": "从 GET /login 或 GET /register 返回 HTML 的隐藏字段 _csrf 读取",
     "adminToken": "从 POST /api/admin/auth/login 成功响应的 data.token 读取",
     "mobileToken": "从 POST /api/mobile/auth/login 成功响应的 data.accessToken 读取",
@@ -134,6 +135,8 @@ MULTIPART_BODY_OVERRIDES: dict[tuple[str, str], dict[str, Any]] = {
 
 
 def platform_for(path: str, page_route: bool) -> str:
+    if path.startswith("/api/test/"):
+        return "测试工具（默认关闭）"
     if path.startswith("/api/mobile/"):
         return APP_BADGE
     if path.startswith("/api/admin/") or path.startswith("/admin"):
@@ -184,6 +187,8 @@ ACTION_LABELS = {
 
 
 def function_for(endpoint: Endpoint, operation: dict[str, Any] | None) -> str:
+    if endpoint.path == "/api/test/captcha":
+        return "获取 API 自动化测试验证码明文"
     tokens = [token for token in endpoint.path.split("/") if token and not token.startswith("{")]
     last = tokens[-1] if tokens else "home"
     action = ACTION_LABELS.get(last, ACTION_LABELS.get(endpoint.method, "访问"))
@@ -274,8 +279,10 @@ def _request_body(operation: dict[str, Any], spec: dict[str, Any]) -> tuple[str,
 
 
 def _permission(path: str, page_route: bool) -> str:
+    if path == "/api/test/captcha":
+        return "测试工具；默认关闭；仅在 TEST_CAPTCHA_API_ENABLED=true 且 X-Test-Access-Key 正确时开放"
     if path in ("/login", "/register", "/captcha", "/check-username", "/api/admin/auth/login", "/api/mobile/auth/login"):
-        return "公开；验证码接口须先提交 username，并在同一 Cookie 会话中完成登录/注册"
+        return "公开；必须在同一 Cookie 会话中获取验证码并完成登录/注册"
     if path.startswith("/api/admin/"):
         return "管理员；请求头 Authorization: Bearer {{adminToken}}"
     if path.startswith("/api/mobile/"):
@@ -295,11 +302,13 @@ def endpoint_public_forum(path: str) -> bool:
 
 def _headers(endpoint: Endpoint, content_type: str, operation: dict[str, Any] | None) -> tuple[tuple[str, str], ...]:
     values: list[tuple[str, str]] = []
-    if endpoint.path.startswith("/api/admin/") and endpoint.path != "/api/admin/auth/login":
+    if endpoint.path == "/api/test/captcha":
+        values.append(("X-Test-Access-Key", "{{testCaptchaAccessKey}}"))
+    elif endpoint.path.startswith("/api/admin/") and endpoint.path != "/api/admin/auth/login":
         values.append(("Authorization", "Bearer {{adminToken}}"))
     elif endpoint.path.startswith("/api/mobile/") and endpoint.path != "/api/mobile/auth/login":
         values.append(("Authorization", "Bearer {{mobileToken}}"))
-    elif not endpoint.page_route and endpoint.path not in ("/check-username", "/captcha"):
+    elif not endpoint.page_route and endpoint.path not in ("/check-username", "/captcha", "/api/test/captcha"):
         values.append(("Cookie", "JSESSIONID={{jsessionid}}"))
     if content_type != "无":
         values.append(("Content-Type", content_type))
@@ -385,6 +394,12 @@ def _response_sample(endpoint: Endpoint, operation: dict[str, Any] | None, spec:
         return "HTTP/1.1 302 Found\nLocation: /目标页面\n（页面接口成功时返回 HTML 或重定向）"
     if endpoint.path == "/captcha":
         return "HTTP/1.1 200 OK\nContent-Type: image/png\nX-Captcha-Expires-In: 120\n\n<PNG 二进制图片>"
+    if endpoint.path == "/api/test/captcha":
+        return json.dumps({
+            "code": 200,
+            "msg": "操作成功",
+            "data": {"captcha": "AB12", "expiresInSeconds": 120},
+        }, ensure_ascii=False, indent=2)
     if endpoint.path == "/chat/file/{storedName}":
         return "HTTP/1.1 200 OK\nContent-Type: image/png（按实际文件）\nContent-Disposition: inline; filename=storedName\n\n<文件二进制内容>"
     if endpoint.path.startswith("/api/admin/export/"):
@@ -408,6 +423,11 @@ def _response_sample(endpoint: Endpoint, operation: dict[str, Any] | None, spec:
 
 
 def _errors(endpoint: Endpoint) -> tuple[str, ...]:
+    if endpoint.path == "/api/test/captcha":
+        return (
+            "404：测试开关关闭、访问密钥缺失或访问密钥错误",
+            "429：验证码请求过于频繁，请按 Retry-After 等待",
+        )
     values = ["400：请求参数、格式或业务状态不符合要求"]
     permission = _permission(endpoint.path, endpoint.page_route)
     if "已登录" in permission or "管理员" in permission or "App 用户" in permission:
@@ -439,8 +459,10 @@ def _variable_source(endpoint: Endpoint, rows: Iterable[ParameterRow]) -> str:
     for key, text in mapping.items():
         if key in names:
             notes.append(text)
-    if endpoint.path.startswith("/api/mobile/"):
-        notes.append("{{mobileToken}} 从 APP 登录接口 data.token 取得")
+    if endpoint.path == "/api/test/captcha":
+        notes.append("{{testCaptchaAccessKey}} 来自测试环境变量 TEST_CAPTCHA_ACCESS_KEY；响应 data.captcha 可直接作为登录 captcha")
+    elif endpoint.path.startswith("/api/mobile/"):
+        notes.append("{{mobileToken}} 从 APP 登录接口 data.accessToken 取得")
     elif endpoint.path.startswith("/api/admin/") and endpoint.path != "/api/admin/auth/login":
         notes.append("{{adminToken}} 从管理员登录接口 data.token 取得")
     elif endpoint.method in ("POST", "PUT", "PATCH", "DELETE"):

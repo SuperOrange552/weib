@@ -263,7 +263,7 @@ def _add_cover(doc: Document, cards: list[InterfaceCard], generated_date: str):
     p = doc.add_paragraph()
     p.paragraph_format.space_before = Pt(22)
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r = p.add_run("基准环境  http://superorange.top")
+    r = p.add_run("基准环境  https://superorange.top")
     _set_run_font(r, name=CODE_FONT, size=10.5, color=DARK, bold=True)
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -326,8 +326,8 @@ def _add_front_matter(doc: Document, cards: list[InterfaceCard]):
 
     doc.add_heading("认证流程速查", level=2)
     steps = [
-        "Web：GET /login → 保存 JSESSIONID → GET /captcha?username=账号 → 读取验证码 → POST /login（同一 Cookie、携带 _csrf）。",
-        "App：GET /captcha?username=账号（保存 Cookie）→ POST /api/mobile/auth/login → 保存 data.accessToken → 后续使用 Authorization: Bearer {{mobileToken}}。",
+        "Web：GET /login → 保存 JSESSIONID → GET /captcha → 读取验证码 → POST /login（同一 Cookie、携带 _csrf）。",
+        "App：GET /captcha（保存 Cookie；测试开关开启时可改用 /api/test/captcha 读取明文）→ POST /api/mobile/auth/login → 保存 data.accessToken → 后续使用 Authorization: Bearer {{mobileToken}}。",
         "管理员：POST /api/admin/auth/login → 保存 data.token → 后续使用 Authorization: Bearer {{adminToken}}。",
         "写操作：Session 模式同时携带 X-CSRF-TOKEN；标注 Idempotency-Key 的接口每次新业务生成新 UUID。",
     ]

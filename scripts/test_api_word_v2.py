@@ -24,6 +24,7 @@ class ApiWordV2InventoryTest(unittest.TestCase):
         self.assertIn(("POST", "/api/mobile/auth/login"), keys)
         self.assertIn(("GET", "/api/admin/identities/users/{userId}"), keys)
         self.assertIn(("POST", "/api/forum/media"), keys)
+        self.assertIn(("GET", "/api/test/captcha"), keys)
 
     def test_inventory_has_no_duplicate_method_path(self):
         endpoints = extract_endpoints(ROOT / "src/main/java/com/weib/controller")
@@ -56,7 +57,7 @@ class ApiWordV2CatalogTest(unittest.TestCase):
             if card.page_route:
                 continue
             self.assertTrue(card.function.strip(), card.key)
-            self.assertTrue(card.full_url.startswith("http://superorange.top/"), card.key)
+            self.assertTrue(card.full_url.startswith("https://superorange.top/"), card.key)
             self.assertTrue(card.permission.strip(), card.key)
             self.assertTrue(card.content_type.strip(), card.key)
             self.assertTrue(card.request_sample.strip(), card.key)
@@ -65,6 +66,13 @@ class ApiWordV2CatalogTest(unittest.TestCase):
             self.assertNotIn("同上", card.request_sample)
             if card.content_type == "application/json" and card.method in ("POST", "PUT", "PATCH"):
                 self.assertFalse(card.request_sample.rstrip().endswith("{}"), card.key)
+
+    def test_test_captcha_card_is_explicitly_gated(self):
+        card = next(item for item in self.catalog if item.key == "GET /api/test/captcha")
+        self.assertEqual(card.platform, "测试工具（默认关闭）")
+        self.assertIn("TEST_CAPTCHA_API_ENABLED=true", card.permission)
+        self.assertIn(("X-Test-Access-Key", "{{testCaptchaAccessKey}}"), card.headers)
+        self.assertIn("data.captcha", card.variable_source)
 
     def test_upload_routes_use_real_multipart_examples(self):
         uploads = {card.key: card for card in self.catalog if card.key in {
@@ -97,6 +105,8 @@ class ApiWordV2DocxTest(unittest.TestCase):
             self.assertEqual(text.count(APP_BADGE), app_count + 1)
             self.assertIn("请求方式与完整地址", output.read_bytes().decode("utf-8", errors="ignore") or "") if False else None
             self.assertIn("可复制请求数据", text)
+            self.assertIn("基准环境  https://superorange.top", text)
+            self.assertNotIn("http://superorange.top", text)
 
     def test_old_manual_is_not_the_output_target(self):
         output = ROOT / "docs/微招系统接口测试手册-精简完整版-V2.docx"

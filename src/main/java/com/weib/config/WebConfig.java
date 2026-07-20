@@ -67,6 +67,7 @@ public class WebConfig implements WebMvcConfigurer {
                         "/static/**",
                         "/api/admin/**",
                         "/api/mobile/auth/login",
+                        "/api/test/captcha",
                         "/admin/**",
                         "/swagger-ui/**",
                         "/v3/api-docs/**"
@@ -75,7 +76,7 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addInterceptor(sessionSlotInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns(
-                        "/login", "/register", "/captcha", "/check-username",
+                        "/login", "/register", "/captcha", "/check-username", "/api/test/captcha",
                         "/css/**", "/js/**", "/images/**", "/static/**", "/uploads/**",
                         "/swagger-ui/**", "/v3/api-docs/**"
                 );
