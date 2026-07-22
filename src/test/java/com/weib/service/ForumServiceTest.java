@@ -1,5 +1,6 @@
 package com.weib.service;
 
+import com.weib.cache.CacheKeys;
 import com.weib.entity.ForumPost;
 import com.weib.entity.ForumSection;
 import com.weib.repository.ForumPostFavoriteRepository;
@@ -17,6 +18,7 @@ import com.weib.entity.User;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class ForumServiceTest {
     @Test
@@ -63,6 +65,51 @@ class ForumServiceTest {
 
         verify(likes).save(any());
         verify(posts).incrementLikeCount(20L);
+    }
+
+    @Test
+    void deletingOwnPostUsesSoftDeleteAndInvalidatesCache() {
+        ForumPostRepository posts = mock(ForumPostRepository.class);
+        IdentityService identities = mock(IdentityService.class);
+        com.weib.cache.CacheInvalidationService invalidation =
+                mock(com.weib.cache.CacheInvalidationService.class);
+        ForumPost own = post(30L, 0);
+        own.setAuthorId(5L);
+        own.setAuthorRole("SEEKER");
+        when(posts.findByIdAndStatus(30L, "ACTIVE")).thenReturn(Optional.of(own));
+        when(identities.requireEnabledRole(5L, "SEEKER")).thenReturn("SEEKER");
+
+        ForumService service = new ForumService(posts, mock(ForumSectionRepository.class),
+                mock(ForumPostFavoriteRepository.class), mock(ForumPostLikeRepository.class),
+                mock(com.weib.repository.ForumCommentRepository.class), mock(UserRepository.class),
+                mock(SanctionService.class), mock(com.weib.cache.CacheAsideService.class),
+                invalidation, identities);
+
+        service.deleteOwnPost(5L, "SEEKER", 30L);
+
+        org.junit.jupiter.api.Assertions.assertEquals("DELETED", own.getStatus());
+        verify(posts).save(own);
+        verify(invalidation).invalidate(CacheKeys.forumPost(30L));
+    }
+
+    @Test
+    void deletingAnotherUsersPostIsRejected() {
+        ForumPostRepository posts = mock(ForumPostRepository.class);
+        IdentityService identities = mock(IdentityService.class);
+        ForumPost other = post(31L, 0);
+        other.setAuthorId(99L);
+        other.setAuthorRole("SEEKER");
+        when(posts.findByIdAndStatus(31L, "ACTIVE")).thenReturn(Optional.of(other));
+        when(identities.requireEnabledRole(5L, "SEEKER")).thenReturn("SEEKER");
+
+        ForumService service = new ForumService(posts, mock(ForumSectionRepository.class),
+                mock(ForumPostFavoriteRepository.class), mock(ForumPostLikeRepository.class),
+                mock(com.weib.repository.ForumCommentRepository.class), mock(UserRepository.class),
+                mock(SanctionService.class), mock(com.weib.cache.CacheAsideService.class),
+                mock(com.weib.cache.CacheInvalidationService.class), identities);
+
+        assertThrows(org.springframework.security.access.AccessDeniedException.class,
+                () -> service.deleteOwnPost(5L, "SEEKER", 31L));
     }
 
     private ForumPost post(Long id, int likes) {

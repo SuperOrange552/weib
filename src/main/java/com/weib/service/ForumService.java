@@ -8,6 +8,7 @@ import com.weib.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -62,6 +63,20 @@ public class ForumService {
         p.setSectionId(request.sectionId()); p.setAuthorId(userId); p.setAuthorRole(identityService.requireEnabledRole(userId, authorRole)); p.setTitle(title); p.setContent(content);
         p.setImageUrls(String.join("|", images)); p.setTags(String.join(",", tags)); p.setStatus("ACTIVE");
         ForumPost saved = postRepository.save(p); invalidate(saved.getId()); return post(saved);
+    }
+
+    /** 软删除当前业务身份自己发布的帖子，供移动端自动化清理和用户主动删除使用。 */
+    @Transactional
+    public void deleteOwnPost(Long userId, String authorRole, Long postId) {
+        ForumPost post = active(postId);
+        String canonicalRole = identityService.requireEnabledRole(userId, authorRole);
+        if (!Objects.equals(post.getAuthorId(), userId)
+                || !canonicalRole.equalsIgnoreCase(post.getAuthorRole())) {
+            throw new AccessDeniedException("无权删除他人或其他身份发布的帖子");
+        }
+        post.setStatus("DELETED");
+        postRepository.save(post);
+        invalidate(postId);
     }
 
     @Transactional
